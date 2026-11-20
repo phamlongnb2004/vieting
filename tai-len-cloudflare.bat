@@ -25,7 +25,7 @@ echo == Cat file cai thanh phan 20 MB
 node tools\pack-cloudflare.js || (pause & exit /b 1)
 pushd server
 echo == Tao bang du lieu ^(neu chua co^)
-call npx -y wrangler@4 d1 execute vieting --remote --file=schema.sql
+call npx -y wrangler@4 d1 execute vieting --remote --yes --file=schema.sql
 echo == Deploy
 call npx -y wrangler@4 deploy > "%TEMP%\vieting-deploy.txt" 2>&1
 type "%TEMP%\vieting-deploy.txt"
