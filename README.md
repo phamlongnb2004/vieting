@@ -59,4 +59,4 @@ flutter build windows  # Windows
 - **App Store:** 99 USD/năm, dựng bằng Codemagic. Bản iOS không có tính năng đọc thông báo (giới hạn của Apple).
 
 ## Logo
-`assets/branding/icon.png` (1024×1024, nền kem) và `icon-foreground.png` (nền trong suốt cho icon Android). Thay file rồi đẩy lên, GitHub Actions tự tạo lại icon cho mọi nền tảng.
+`assets/branding/icon.png` (1024×1024, nền đỏ cờ) và `icon-foreground.png` (cho icon Android, nền đỏ #BB171E). Thay file rồi đẩy lên, GitHub Actions tự tạo lại icon cho mọi nền tảng.
