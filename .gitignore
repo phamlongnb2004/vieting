@@ -39,3 +39,5 @@ key.properties
 server/node_modules/
 server/.wrangler/
 server/site/files/
+deploy-log.txt
+server-url.txt

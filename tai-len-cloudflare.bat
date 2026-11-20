@@ -27,16 +27,16 @@ pushd server
 echo == Tao bang du lieu ^(neu chua co^)
 call npx -y wrangler@latest d1 execute vieting --remote --yes --file=schema.sql
 echo == Deploy
-call npx -y wrangler@latest deploy > "%TEMP%\vieting-deploy.txt" 2>&1
-type "%TEMP%\vieting-deploy.txt"
+call npx -y wrangler@latest deploy > "%~dp0deploy-log.txt" 2>&1
+type "%~dp0deploy-log.txt"
 set "URL="
-findstr /r /c:"https://[a-z0-9.-]*workers\.dev" "%TEMP%\vieting-deploy.txt" >nul || (
+findstr /r /c:"https://[a-z0-9.-]*workers\.dev" "%~dp0deploy-log.txt" >nul || (
   echo == Lan dau Cloudflare can them it giay, deploy lai...
   timeout /t 8 /nobreak >nul
-  call npx -y wrangler@latest deploy > "%TEMP%\vieting-deploy.txt" 2>&1
-  type "%TEMP%\vieting-deploy.txt"
+  call npx -y wrangler@latest deploy > "%~dp0deploy-log.txt" 2>&1
+  type "%~dp0deploy-log.txt"
 )
-for /f "usebackq delims=" %%u in (`powershell -NoProfile -Command "$m = Select-String -Path $env:TEMP\vieting-deploy.txt -Pattern 'https://[a-z0-9.-]+\.workers\.dev' ^| Select-Object -First 1; if ($m) { $m.Matches[0].Value }"`) do set "URL=%%u"
+for /f "usebackq delims=" %%u in (`powershell -NoProfile -Command "$m = Select-String -Path ..\deploy-log.txt -Pattern 'https://[a-z0-9.-]+\.workers\.dev' ^| Select-Object -First 1; if ($m) { $m.Matches[0].Value }"`) do set "URL=%%u"
 popd
 if defined URL (
   echo %URL%> server-url.txt
