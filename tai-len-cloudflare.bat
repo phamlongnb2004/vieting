@@ -30,6 +30,12 @@ echo == Deploy
 call npx -y wrangler@4 deploy > "%TEMP%\vieting-deploy.txt" 2>&1
 type "%TEMP%\vieting-deploy.txt"
 set "URL="
+findstr /r /c:"https://[a-z0-9.-]*workers\.dev" "%TEMP%\vieting-deploy.txt" >nul || (
+  echo == Lan dau Cloudflare can them it giay, deploy lai...
+  timeout /t 8 /nobreak >nul
+  call npx -y wrangler@4 deploy > "%TEMP%\vieting-deploy.txt" 2>&1
+  type "%TEMP%\vieting-deploy.txt"
+)
 for /f "usebackq delims=" %%u in (`powershell -NoProfile -Command "$m = Select-String -Path $env:TEMP\vieting-deploy.txt -Pattern 'https://[a-z0-9.-]+\.workers\.dev' ^| Select-Object -First 1; if ($m) { $m.Matches[0].Value }"`) do set "URL=%%u"
 popd
 if defined URL (
