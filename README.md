@@ -61,6 +61,15 @@ Một Worker trên Cloudflare lo cả **trang tải app** (`/tai-app`) lẫn **s
 
 Cloudflare chỉ nhận file tối đa 25 MB nên `tools/pack-cloudflare.js` cắt file thành phần 20 MB, Worker ghép lại khi tải (có tải tiếp). Mỗi lần có bản mới: chép file vào `dist\` rồi chạy lại file .bat.
 
+## Trang quản trị (/admin)
+
+- Mở `https://<server>/admin`, đăng nhập bằng tài khoản VieTing có quyền admin.
+- Lần đầu: đăng ký tài khoản trong app, rồi chạy `dat-admin.bat` và nhập email đó. Sau đó cấp quyền cho người khác ngay trên trang.
+- Xem số người dùng, người đang dùng, đăng ký mới và giao dịch đồng bộ theo ngày, lượt dùng trợ lý AI.
+- Quản lý tài khoản: khóa / mở khóa, đăng xuất mọi thiết bị, đặt lại mật khẩu, cấp / bỏ admin, xóa tài khoản và dữ liệu.
+- Gửi thông báo hiện ở trang Tổng quan trong app.
+- Có nhật ký thao tác. Vì quyền riêng tư, admin không xem được nội dung chi tiêu của người dùng.
+
 ## Trợ lý AI (miễn phí)
 Chạy trên chính server Cloudflare ở trên, khóa AI chỉ nằm trên server:
 - **Google Gemini** (miễn phí, tiếng Việt tốt nhất): lấy khóa ở https://aistudio.google.com/apikey rồi bấm đúp `dat-khoa-gemini.bat` và dán khóa. Đổi mô hình bằng biến `GEMINI_MODEL` trong `server/wrangler.jsonc`.

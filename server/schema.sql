@@ -33,3 +33,32 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   n INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (k, day)
 );
+
+-- Quản trị: ai là admin, tài khoản bị khóa, thông báo gửi tới app
+CREATE TABLE IF NOT EXISTS admins (
+  user_id INTEGER PRIMARY KEY,
+  created INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS banned (
+  user_id INTEGER PRIMARY KEY,
+  reason TEXT NOT NULL DEFAULT '',
+  created INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL DEFAULT '',
+  level TEXT NOT NULL DEFAULT 'info',
+  active INTEGER NOT NULL DEFAULT 1,
+  created INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS admin_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_id INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  target TEXT NOT NULL DEFAULT '',
+  created INTEGER NOT NULL
+);

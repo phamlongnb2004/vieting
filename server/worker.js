@@ -5,6 +5,8 @@
 // POST /api/register  {email, password}        -> {token}
 // POST /api/login     {email, password}        -> {token}
 // POST /api/chat      {messages, context, today}  -> {reply, actions}  trợ lý AI (ai.js), đăng nhập không bắt buộc
+// GET  /admin                                 trang quản trị (admin.js); /api/admin/* cần quyền admin
+// GET  /api/notice                             thông báo admin gửi tới app
 // POST /api/sync      {since, changes: [...]}  -> {now, changes: [...]}   (header Authorization: Bearer <token>)
 //
 // Mỗi bản ghi: {kind: txn|wallet|budget|rule, id, data, u (thời điểm sửa), del}.
@@ -12,6 +14,7 @@
 
 import { handleDownload } from './download.js';
 import { handleChat, handleReceipt } from './ai.js';
+import { handleAdmin, adminPage, publicNotice } from './admin.js';
 
 const KINDS = new Set(['txn', 'wallet', 'budget', 'rule', 'goal', 'challenge', 'group', 'bill', 'wish', 'gift']);
 const MAX_CHANGES = 1000;
@@ -94,6 +97,8 @@ async function login(req, env) {
   if (!u) return json({ error: 'Sai email hoặc mật khẩu' }, 401);
   const hash = await hashPassword(password, u.salt);
   if (!safeEqual(hash, u.hash)) return json({ error: 'Sai email hoặc mật khẩu' }, 401);
+  const ban = await env.DB.prepare('SELECT reason FROM banned WHERE user_id = ?').bind(u.id).first().catch(() => null);
+  if (ban) return json({ error: 'Tài khoản đã bị khóa' + (ban.reason ? ': ' + ban.reason : '') }, 403);
   return json({ token: await newSession(env, u.id) });
 }
 
@@ -101,7 +106,11 @@ async function auth(req, env) {
   const h = req.headers.get('authorization') || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : '';
   if (!token) return null;
-  const s = await env.DB.prepare('SELECT user_id FROM sessions WHERE token = ?').bind(token).first();
+  const s = await env.DB.prepare(
+    'SELECT user_id FROM sessions s WHERE token = ? AND NOT EXISTS (SELECT 1 FROM banned b WHERE b.user_id = s.user_id)'
+  )
+    .bind(token)
+    .first();
   return s ? s.user_id : null;
 }
 
@@ -162,6 +171,11 @@ export default {
       if (req.method === 'POST' && url.pathname === '/api/sync') return await sync(req, env);
       if (req.method === 'POST' && url.pathname === '/api/chat') return await handleChat(req, env, await auth(req, env));
       if (req.method === 'POST' && url.pathname === '/api/receipt') return await handleReceipt(req, env, await auth(req, env));
+      if (url.pathname.startsWith('/api/admin/')) {
+        return await handleAdmin(req, env, url, await auth(req, env), { json, readJson, randomHex, hashPassword });
+      }
+      if (req.method === 'GET' && url.pathname === '/api/notice') return await publicNotice(env, { json });
+      if (url.pathname === '/admin' || url.pathname === '/admin/') return adminPage();
       if (url.pathname === '/api') return json({ app: 'VieTing', ok: true });
       const p = url.pathname.replace(/\/+$/, '') || '/';
       if (env.ASSETS) {

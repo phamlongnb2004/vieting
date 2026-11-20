@@ -44,6 +44,8 @@ class AppStore extends ChangeNotifier {
   final Map<String, Wish> wishes = {};
   final Map<String, GiftEntry> gifts = {};
   int hourlyWage = 0; // 0 = tự tính từ thu nhập
+  int noticeSeen = 0; // id thông báo admin đã tắt
+  Map<String, dynamic>? notice; // thông báo admin đang hiện
   bool revealHidden = false; // đã mở khóa xem khoản riêng tư (chỉ trong phiên)
   String pinHash = ''; // khóa app (chỉ trên máy này)
   bool bioLock = false;
@@ -140,6 +142,7 @@ class AppStore extends ChangeNotifier {
         cycleDay = ((s['cycle'] as num?)?.toInt() ?? 1).clamp(1, 28);
         aiTone = (s['tone'] ?? 'gentle') as String;
         hourlyWage = (s['wage'] as num?)?.toInt() ?? 0;
+        noticeSeen = (s['notice'] as num?)?.toInt() ?? 0;
         skipDays = ((s['skip'] as List?) ?? []).map((e) => e.toString()).toSet();
         sweptDays = ((s['swept'] as List?) ?? []).map((e) => e.toString()).toSet();
         bioLock = s['bio'] == true;
@@ -183,6 +186,7 @@ class AppStore extends ChangeNotifier {
           'pin': pinHash,
           'cycle': cycleDay,
           'tone': aiTone,
+          'notice': noticeSeen,
           'wage': hourlyWage,
           'skip': skipDays.toList(),
           'swept': sweptDays.toList(),
@@ -519,6 +523,25 @@ class AppStore extends ChangeNotifier {
     g.deleted = true;
     g.updatedAt = nowMs();
     _changed();
+  }
+
+  /// Lấy thông báo admin gửi tới app (không cần đăng nhập).
+  Future<void> fetchNotice() async {
+    if (serverUrl.isEmpty) return;
+    try {
+      final r = await http.get(Uri.parse('$serverUrl/api/notice')).timeout(const Duration(seconds: 8));
+      if (r.statusCode != 200) return;
+      final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map;
+      final n = j['notice'];
+      notice = n is Map ? Map<String, dynamic>.from(n) : null;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  void dismissNotice() {
+    final id = (notice?['id'] as num?)?.toInt() ?? 0;
+    noticeSeen = id;
+    _changed(syncSoon: false);
   }
 
   void setHourlyWage(int v) {

@@ -49,5 +49,5 @@ if defined URL (
   echo ==================================================
 )
 echo.
-if defined URL (echo Xong. Trang tai: %URL%/tai-app) else (echo Xong.)
+if defined URL (echo Xong. Trang tai: %URL%/tai-app - Quan tri: %URL%/admin) else (echo Xong.)
 pause

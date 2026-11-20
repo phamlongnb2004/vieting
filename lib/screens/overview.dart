@@ -36,6 +36,9 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _check();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) StoreScope.read(context).fetchNotice();
+    });
   }
 
   @override
@@ -102,6 +105,29 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
                   await Navigator.push(context, MaterialPageRoute(builder: (_) => const NotifySetupScreen()));
                   _check();
                 },
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (store.notice != null && (store.notice!['id'] as num?)?.toInt() != store.noticeSeen) ...[
+            Card(
+              color: switch (store.notice!['level']) {
+                'warning' => const Color(0xFFFFF1D6),
+                'success' => Brand.bamboo.withAlpha(35),
+                _ => Brand.navy.withAlpha(25),
+              },
+              child: ListTile(
+                leading: Icon(
+                  switch (store.notice!['level']) {
+                    'warning' => Icons.warning_amber_rounded,
+                    'success' => Icons.celebration_outlined,
+                    _ => Icons.campaign_outlined,
+                  },
+                  color: Brand.navy,
+                ),
+                title: Text('${store.notice!['title'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: '${store.notice!['body'] ?? ''}'.isEmpty ? null : Text('${store.notice!['body']}'),
+                trailing: IconButton(icon: const Icon(Icons.close), tooltip: 'Ẩn', onPressed: store.dismissNotice),
               ),
             ),
             const SizedBox(height: 12),
