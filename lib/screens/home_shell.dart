@@ -9,6 +9,7 @@ import '../insights.dart';
 import '../models.dart';
 import '../widgets/nudge.dart';
 import '../services/notify_bridge.dart';
+import '../services/reminders.dart';
 import '../store.dart';
 import '../ui_keys.dart';
 import '../util/format.dart';
@@ -30,13 +31,27 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _tab = 0;
   StreamSubscription<Uri>? _linkSub;
   bool _draining = false;
+  AppStore? _store;
+  Timer? _remindTimer;
+
+  void _onStore() {
+    _remindTimer?.cancel();
+    _remindTimer = Timer(const Duration(seconds: 3), () {
+      final s = _store;
+      if (s != null) Reminders.sync(s);
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     NotifyBridge.listen(_drain);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _drain());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _drain();
+      _store = StoreScope.read(context)..addListener(_onStore);
+      _store!.fetchConfig().whenComplete(_onStore);
+    });
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       _linkSub = AppLinks().uriLinkStream.listen(_onLink, onError: (_) {});
     }
@@ -46,6 +61,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _linkSub?.cancel();
+    _store?.removeListener(_onStore);
+    _remindTimer?.cancel();
     super.dispose();
   }
 
@@ -55,6 +72,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _drain();
       final store = StoreScope.read(context);
       if (store.loggedIn) store.sync();
+      store.fetchConfig().whenComplete(_onStore);
     }
   }
 

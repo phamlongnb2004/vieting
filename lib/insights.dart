@@ -1,6 +1,7 @@
 import 'categories.dart';
 import 'models.dart';
 import 'store.dart';
+import 'util/text.dart';
 import 'util/format.dart';
 
 /// Gợi ý khoản chi quen thuộc ở khung giờ hiện tại.
@@ -182,7 +183,15 @@ extension Insights on AppStore {
 
   /// 'running' | 'failed' | 'done'
   String challengeStatus(Challenge c) {
-    final bad = activeTxns.any((t) => t.tag == 'boc_dong' && !t.date.isBefore(c.start) && t.date.isBefore(c.end));
+    bool breaks(Txn t) {
+      if (t.income || t.date.isBefore(c.start) || !t.date.isBefore(c.end)) return false;
+      if (c.type != 'campaign') return t.tag == 'boc_dong';
+      if (c.category.isNotEmpty && t.categoryId == c.category) return true;
+      final f = fold(t.note);
+      return c.keywords.any((k) => fold(k).trim().isNotEmpty && f.contains(fold(k).trim()));
+    }
+
+    final bad = activeTxns.any(breaks);
     if (bad) return 'failed';
     return DateTime.now().isAfter(c.end) ? 'done' : 'running';
   }

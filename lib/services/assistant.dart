@@ -101,7 +101,7 @@ class Assistant {
               'content-type': 'application/json',
               if (s.token.isNotEmpty) 'authorization': 'Bearer ${s.token}',
             },
-            body: jsonEncode({'messages': history, 'context': buildContext(s), 'today': _d(DateTime.now()), 'tone': s.aiTone}),
+            body: jsonEncode({'messages': history, 'context': buildContext(s), 'today': _d(DateTime.now()), 'tone': s.aiTone, 'payday': s.cycleDay > 1 && DateTime.now().difference(s.periodStart(s.currentPeriod.year, s.currentPeriod.month)).inHours < 48}),
           )
           .timeout(const Duration(seconds: 45));
       Map<String, dynamic> body;

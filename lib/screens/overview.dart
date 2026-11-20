@@ -36,9 +36,7 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _check();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) StoreScope.read(context).fetchNotice();
-    });
+
   }
 
   @override

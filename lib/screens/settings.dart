@@ -19,6 +19,9 @@ import 'notify_log.dart';
 import 'notify_setup.dart';
 import 'paste.dart';
 import 'wallets.dart';
+import 'feedback.dart';
+import '../services/reminders.dart';
+import '../ui_keys.dart';
 import 'cleanup.dart';
 import 'wrapped.dart';
 
@@ -139,7 +142,67 @@ class SettingsScreen extends StatelessWidget {
               onTap: () => _go(context, const WalletsScreen()),
             ),
           ]),
+          group('Gói & hỗ trợ', [
+            ListTile(
+              leading: Icon(store.isPro ? Icons.workspace_premium : Icons.workspace_premium_outlined,
+                  color: store.isPro ? const Color(0xFFE0A800) : null),
+              title: Text(store.isPro ? 'VieTing Pro' : 'Gói Miễn phí'),
+              subtitle: Text(store.isPro
+                  ? 'Đến ${dmy(store.proUntil!)} · 300 lượt trợ lý AI / ngày'
+                  : '80 lượt trợ lý AI / ngày · có mã khuyến mãi? Nhập để mở Pro'),
+              trailing: const Icon(Icons.redeem),
+              onTap: () async {
+                if (!store.loggedIn) {
+                  showToast(context, 'Đăng nhập trước để dùng mã khuyến mãi');
+                  return;
+                }
+                final c = TextEditingController();
+                final code = await showDialog<String>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Nhập mã khuyến mãi'),
+                    content: TextField(
+                      controller: c,
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(hintText: 'VD: TET2027'),
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+                      FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text('Dùng mã')),
+                    ],
+                  ),
+                );
+                if (code == null || code.isEmpty) return;
+                try {
+                  final days = await store.redeem(code);
+                  if (context.mounted) showToast(context, '🎉 Đã mở Pro thêm $days ngày');
+                } catch (e) {
+                  if (context.mounted) showToast(context, '$e'.replaceFirst('Exception: ', ''));
+                }
+              },
+            ),
+            ListTile(
+              leading: Badge(isLabelVisible: store.ticketsUnread > 0, label: Text('${store.ticketsUnread}'), child: const Icon(Icons.support_agent)),
+              title: const Text('Góp ý & báo lỗi'),
+              subtitle: const Text('Báo lỗi theo tính năng, xem phản hồi của VieTing'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _go(context, const FeedbackScreen()),
+            ),
+          ]),
           group('Chi tiêu & trợ lý', [
+            if (NotifyBridge.supported)
+              SwitchListTile(
+                secondary: const Icon(Icons.notifications_active_outlined),
+                title: const Text('Nhắc nhở trên máy'),
+                subtitle: const Text('Nhắc ghi chi tiêu buổi tối, khoản định kỳ sắp trừ tiền, món chờ mua… kể cả khi không mở app'),
+                value: store.remindersOn,
+                onChanged: (v) {
+                  store.setRemindersOn(v);
+                  Reminders.sync(store);
+                  if (v) Reminders.test();
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.event_repeat),
               title: const Text('Ngày bắt đầu kỳ chi tiêu'),

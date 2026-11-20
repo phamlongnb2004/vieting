@@ -315,21 +315,53 @@ class Goal {
 /// Thử thách ngắn, VD 7 ngày không mua sắm bốc đồng.
 class Challenge {
   String id;
-  String type; // no_impulse_7
+  String type; // no_impulse_7 | campaign
   DateTime start;
+  // thử thách theo mùa do admin tạo (lưu kèm để chạy cả khi sự kiện đã kết thúc)
+  String title;
+  String emoji;
+  List<String> keywords;
+  String category;
+  int? dayCount;
   int updatedAt;
   bool deleted;
-  Challenge({required this.id, required this.type, required this.start, int? updatedAt, this.deleted = false})
-      : updatedAt = updatedAt ?? nowMs();
+  Challenge({
+    required this.id,
+    required this.type,
+    required this.start,
+    this.title = '',
+    this.emoji = '',
+    this.keywords = const [],
+    this.category = '',
+    this.dayCount,
+    int? updatedAt,
+    this.deleted = false,
+  }) : updatedAt = updatedAt ?? nowMs();
 
-  int get days => 7;
+  int get days => dayCount ?? 7;
   DateTime get end => DateTime(start.year, start.month, start.day).add(Duration(days: days));
 
-  Map<String, dynamic> toJson() => {'id': id, 'type': type, 'start': start.millisecondsSinceEpoch, 'u': updatedAt, 'del': deleted};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type,
+        'start': start.millisecondsSinceEpoch,
+        if (title.isNotEmpty) 'title': title,
+        if (emoji.isNotEmpty) 'emoji': emoji,
+        if (keywords.isNotEmpty) 'kw': keywords,
+        if (category.isNotEmpty) 'cat': category,
+        if (dayCount != null) 'days': dayCount,
+        'u': updatedAt,
+        'del': deleted,
+      };
   factory Challenge.fromJson(Map<String, dynamic> j) => Challenge(
         id: j['id'] as String,
         type: (j['type'] ?? 'no_impulse_7') as String,
         start: DateTime.fromMillisecondsSinceEpoch((j['start'] as num).toInt()),
+        title: (j['title'] ?? '') as String,
+        emoji: (j['emoji'] ?? '') as String,
+        keywords: ((j['kw'] as List?) ?? const []).map((e) => e.toString()).toList(),
+        category: (j['cat'] ?? '') as String,
+        dayCount: (j['days'] as num?)?.toInt(),
         updatedAt: (j['u'] as num?)?.toInt() ?? 0,
         deleted: j['del'] == true,
       );

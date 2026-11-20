@@ -46,6 +46,9 @@ class AppStore extends ChangeNotifier {
   int hourlyWage = 0; // 0 = tự tính từ thu nhập
   int noticeSeen = 0; // id thông báo admin đã tắt
   Map<String, dynamic>? notice; // thông báo admin đang hiện
+  Map<String, dynamic> remote = {}; // cấu hình từ server (/api/config): thử thách, gói định kỳ, tỷ giá, lãi suất, nhắc tự động...
+  bool remindersOn = true;
+  int lastOpen = 0; // lần mở app gần nhất (ms)
   bool revealHidden = false; // đã mở khóa xem khoản riêng tư (chỉ trong phiên)
   String pinHash = ''; // khóa app (chỉ trên máy này)
   bool bioLock = false;
@@ -143,6 +146,8 @@ class AppStore extends ChangeNotifier {
         aiTone = (s['tone'] ?? 'gentle') as String;
         hourlyWage = (s['wage'] as num?)?.toInt() ?? 0;
         noticeSeen = (s['notice'] as num?)?.toInt() ?? 0;
+        remindersOn = s['remind'] != false;
+        if (s['remote'] is Map) _applyRemote(Map<String, dynamic>.from(s['remote'] as Map), notify: false);
         skipDays = ((s['skip'] as List?) ?? []).map((e) => e.toString()).toSet();
         sweptDays = ((s['swept'] as List?) ?? []).map((e) => e.toString()).toSet();
         bioLock = s['bio'] == true;
@@ -187,6 +192,8 @@ class AppStore extends ChangeNotifier {
           'cycle': cycleDay,
           'tone': aiTone,
           'notice': noticeSeen,
+          'remind': remindersOn,
+          'remote': remote,
           'wage': hourlyWage,
           'skip': skipDays.toList(),
           'swept': sweptDays.toList(),
@@ -525,18 +532,137 @@ class AppStore extends ChangeNotifier {
     _changed();
   }
 
-  /// Lấy thông báo admin gửi tới app (không cần đăng nhập).
-  Future<void> fetchNotice() async {
+  /// Tải cấu hình admin cập nhật trên server: thông báo, từ điển, thử thách theo mùa, gói định kỳ,
+  /// tỷ giá, lãi suất, gói Pro, nhắc tự động. Không cần cập nhật app. Lưu lại để dùng khi offline.
+  Future<void> fetchConfig() async {
     if (serverUrl.isEmpty) return;
     try {
-      final r = await http.get(Uri.parse('$serverUrl/api/notice')).timeout(const Duration(seconds: 8));
+      final r = await http.get(Uri.parse('$serverUrl/api/config'),
+          headers: {if (token.isNotEmpty) 'authorization': 'Bearer $token'}).timeout(const Duration(seconds: 10));
       if (r.statusCode != 200) return;
-      final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map;
-      final n = j['notice'];
-      notice = n is Map ? Map<String, dynamic>.from(n) : null;
-      notifyListeners();
+      _applyRemote(Map<String, dynamic>.from(jsonDecode(utf8.decode(r.bodyBytes)) as Map));
+      _scheduleSave();
     } catch (_) {}
   }
+
+  Future<void> fetchNotice() => fetchConfig();
+
+  void _applyRemote(Map<String, dynamic> j, {bool notify = true}) {
+    remote = j;
+    final n = j['notice'];
+    notice = n is Map ? Map<String, dynamic>.from(n) : null;
+    setRemoteDict([
+      for (final e in (j['dict'] as List? ?? const []))
+        if (e is Map) ('${e['k'] ?? ''}', '${e['c'] ?? ''}')
+    ]);
+    if (notify) notifyListeners();
+  }
+
+  List<Map<String, dynamic>> _remoteList(String k) =>
+      [for (final e in (remote[k] as List? ?? const [])) if (e is Map) Map<String, dynamic>.from(e)];
+
+  /// Thử thách / sự kiện theo mùa đang mở (admin tạo).
+  List<Map<String, dynamic>> get campaigns {
+    final now = nowMs();
+    return _remoteList('campaigns').where((c) => ((c['end'] as num?) ?? 0) > now).toList();
+  }
+
+  /// Gói định kỳ phổ biến (admin cập nhật giá).
+  List<Map<String, dynamic>> get catalog => _remoteList('catalog');
+
+  /// Tỷ giá: mã ngoại tệ -> số đồng.
+  Map<String, double> get fxRates {
+    final m = (remote['fx'] as Map?)?['rates'] as Map?;
+    return {if (m != null) for (final e in m.entries) '${e.key}': (e.value as num).toDouble()};
+  }
+
+  ({double saving6, double saving12, String note}) get savingRates {
+    final r = (remote['rates'] as Map?) ?? const {};
+    return (
+      saving6: ((r['saving6'] as num?) ?? 4.5).toDouble(),
+      saving12: ((r['saving12'] as num?) ?? 5.0).toDouble(),
+      note: '${r['note'] ?? ''}',
+    );
+  }
+
+  bool get isPro {
+    final p = remote['plan'] as Map?;
+    return p != null && p['plan'] == 'pro' && ((p['until'] as num?) ?? 0) > nowMs();
+  }
+
+  DateTime? get proUntil {
+    final u = (remote['plan'] as Map?)?['until'] as num?;
+    return u == null || u <= 0 ? null : DateTime.fromMillisecondsSinceEpoch(u.toInt());
+  }
+
+  int get ticketsUnread => ((remote['ticketsUnread'] as num?) ?? 0).toInt();
+
+  Map<String, dynamic> smartRule(String k) => Map<String, dynamic>.from(((remote['smart'] as Map?)?[k] as Map?) ?? const {});
+
+  void setRemindersOn(bool v) {
+    remindersOn = v;
+    _changed(syncSoon: false);
+  }
+
+  void markOpened() {
+    lastOpen = nowMs();
+  }
+
+  void joinCampaign(Map<String, dynamic> c) {
+    for (final x in challenges.values) {
+      if (!x.deleted) {
+        x.deleted = true;
+        x.updatedAt = nowMs();
+      }
+    }
+    final ch = Challenge(
+      id: newId(),
+      type: 'campaign',
+      start: DateTime.now(),
+      title: '${c['title'] ?? ''}',
+      emoji: '${c['emoji'] ?? ''}',
+      keywords: '${c['keywords'] ?? ''}'.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+      category: '${c['category'] ?? ''}',
+      dayCount: ((c['days'] as num?) ?? 7).toInt(),
+    );
+    challenges[ch.id] = ch;
+    _changed();
+  }
+
+  Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {
+    final r = await http
+        .post(Uri.parse('$serverUrl$path'),
+            headers: {'content-type': 'application/json', if (token.isNotEmpty) 'authorization': 'Bearer $token'},
+            body: jsonEncode(body))
+        .timeout(const Duration(seconds: 15));
+    final j = Map<String, dynamic>.from(jsonDecode(utf8.decode(r.bodyBytes)) as Map);
+    if (r.statusCode >= 400) throw Exception(j['error'] ?? 'Lỗi ${r.statusCode}');
+    return j;
+  }
+
+  /// Nhập mã khuyến mãi -> trả về số ngày Pro được tặng.
+  Future<int> redeem(String code) async {
+    final j = await _post('/api/redeem', {'code': code});
+    remote = {...remote, 'plan': j['plan']};
+    _changed(syncSoon: false);
+    return ((j['days'] as num?) ?? 0).toInt();
+  }
+
+  Future<void> sendTicket(String feature, String body, {String contact = '', String app = ''}) =>
+      _post('/api/ticket', {'feature': feature, 'body': body, 'contact': contact, 'app': app});
+
+  Future<List<Map<String, dynamic>>> myTickets() async {
+    if (token.isEmpty) return [];
+    final r = await http.get(Uri.parse('$serverUrl/api/tickets'), headers: {'authorization': 'Bearer $token'}).timeout(const Duration(seconds: 15));
+    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map;
+    remote = {...remote, 'ticketsUnread': 0};
+    notifyListeners();
+    return [for (final e in (j['tickets'] as List? ?? const [])) Map<String, dynamic>.from(e as Map)];
+  }
+
+  /// Báo AI đọc hóa đơn sai: chỉ gửi số AI đọc và số người dùng sửa (không gửi ảnh).
+  Future<void> reportReceipt(Map<String, dynamic> ai, Map<String, dynamic> fixed, String comment) =>
+      _post('/api/ocr-report', {'ai': ai, 'fixed': fixed, 'comment': comment});
 
   void dismissNotice() {
     final id = (notice?['id'] as num?)?.toInt() ?? 0;

@@ -64,7 +64,13 @@ class HabitsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           // ---- Thử thách ----
-          const Text('Thử thách 7 ngày', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          if (store.campaigns.isNotEmpty) ...[
+            const Text('Sự kiện đang diễn ra', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 8),
+            for (final c in store.campaigns) _CampaignCard(c: c),
+            const SizedBox(height: 10),
+          ],
+          const Text('Thử thách của bạn', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 8),
           Card(
             child: Padding(
@@ -147,16 +153,29 @@ class _ChallengeView extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final status = store.challengeStatus(c);
     final day = store.challengeDay(c);
+    final n = c.days;
+    final what = c.title.isEmpty ? 'không mua sắm bốc đồng' : c.title;
     final title = switch (status) {
-      'failed' => 'Thử thách đã đứt 😅',
-      'done' => 'Hoàn thành! 🎋 Bạn giữ được 7 ngày',
-      _ => 'Ngày $day/7 · không mua sắm bốc đồng',
+      'failed' => '${c.emoji} Thử thách "$what" đã đứt 😅',
+      'done' => 'Hoàn thành! 🎋 Bạn giữ được $n ngày',
+      _ => '${c.emoji.isEmpty ? '' : '${c.emoji} '}Ngày $day/$n · $what',
     };
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
       const SizedBox(height: 12),
+      if (n > 14)
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: status == 'done' ? 1 : day / n,
+            minHeight: 14,
+            color: status == 'failed' ? Brand.red : Brand.bamboo,
+            backgroundColor: cs.surfaceContainerHighest,
+          ),
+        )
+      else
       Row(children: [
-        for (var i = 1; i <= 7; i++)
+        for (var i = 1; i <= n; i++)
           Expanded(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -182,10 +201,76 @@ class _ChallengeView extends StatelessWidget {
       const SizedBox(height: 12),
       Row(children: [
         if (status != 'running')
-          FilledButton(onPressed: () => store.startChallenge('no_impulse_7'), child: const Text('Thử lại 7 ngày mới')),
+          FilledButton(
+              onPressed: () => store.startChallenge('no_impulse_7'), child: const Text('Thử lại 7 ngày không bốc đồng')),
         const Spacer(),
         TextButton(onPressed: () => store.stopChallenge(c.id), child: const Text('Dừng')),
       ]),
     ]);
+  }
+}
+
+
+/// Thử thách / sự kiện theo mùa do admin tạo trên trang quản trị.
+class _CampaignCard extends StatelessWidget {
+  final Map<String, dynamic> c;
+  const _CampaignCard({required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final start = DateTime.fromMillisecondsSinceEpoch(((c['start'] as num?) ?? 0).toInt());
+    final end = DateTime.fromMillisecondsSinceEpoch(((c['end'] as num?) ?? 0).toInt());
+    final upcoming = start.isAfter(DateTime.now());
+    final isGoal = c['kind'] == 'goal';
+    final title = '${c['title'] ?? ''}';
+    final joined = isGoal
+        ? store.activeGoals.any((g) => g.name == title)
+        : store.activeChallenge?.title == title && store.activeChallenge?.type == 'campaign';
+    return Card(
+      color: Brand.yellow.withAlpha(40),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${c['emoji'] ?? '🎯'}', style: const TextStyle(fontSize: 30)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              if ('${c['body'] ?? ''}'.isNotEmpty) Text('${c['body']}'),
+              const SizedBox(height: 2),
+              Text(
+                isGoal
+                    ? 'Mục tiêu ${money(((c['target'] as num?) ?? 0).toInt())} · tới ${dmy(end)}'
+                    : '${c['days'] ?? 7} ngày · ${upcoming ? 'bắt đầu ${dmy(start)}' : 'tham gia tới ${dmy(end)}'}',
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+              ),
+              const SizedBox(height: 8),
+              if (joined)
+                const Text('✓ Bạn đang tham gia', style: TextStyle(fontWeight: FontWeight.w700, color: Brand.bamboo))
+              else if (!upcoming)
+                FilledButton(
+                  onPressed: () {
+                    if (isGoal) {
+                      store.saveGoal(Goal(
+                        id: newId(),
+                        name: title,
+                        target: ((c['target'] as num?) ?? 0).toInt(),
+                        emoji: '${c['emoji'] ?? '🎯'}',
+                        deadline: end,
+                      ));
+                    } else {
+                      store.joinCampaign(c);
+                    }
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  },
+                  child: Text(isGoal ? 'Tạo hũ gom tiền' : 'Tham gia'),
+                ),
+            ]),
+          ),
+        ]),
+      ),
+    );
   }
 }

@@ -44,13 +44,19 @@ class BillsScreen extends StatelessWidget {
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                 if (b == null && !isInst)
                   Wrap(spacing: 6, runSpacing: 4, children: [
-                    for (final p in _presets)
+                    for (final p in (store.catalog.isNotEmpty
+                        ? [
+                            for (final c in store.catalog)
+                              ('${c['name']}', ((c['amount'] as num?) ?? 0).toInt(), '${c['category'] ?? 'giai_tri'}', '${c['cycle'] ?? 'month'}')
+                          ]
+                        : [for (final p in _presets) (p.$1, p.$2, p.$3, 'month')]))
                       ActionChip(
                         label: Text(p.$1),
                         onPressed: () => setS(() {
                           name.text = p.$1;
                           amount.text = groupDigits(p.$2);
-                          cat = p.$3;
+                          cat = catById(p.$3).id == p.$3 ? p.$3 : 'hoa_don';
+                          cycle = p.$4;
                         }),
                       ),
                   ]),

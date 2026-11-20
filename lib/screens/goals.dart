@@ -140,6 +140,23 @@ class GoalsScreen extends StatelessWidget {
                 FilledButton(onPressed: () => edit(context, null), child: const Text('Tạo mục tiêu')),
               ]),
             ),
+          if (goals.isNotEmpty)
+            Builder(builder: (context) {
+              final saved = goals.fold<int>(0, (t, g) => t + g.saved);
+              final r = store.savingRates;
+              if (saved <= 0) return const SizedBox.shrink();
+              final year = (saved * r.saving12 / 100).round();
+              return Card(
+                color: Brand.bamboo.withAlpha(28),
+                child: ListTile(
+                  leading: const Text('🏦', style: TextStyle(fontSize: 24)),
+                  title: Text('Gửi tiết kiệm ${money(saved)} đã tích lũy: thêm ~${money(year)}/năm',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text('Lãi tham khảo ${r.saving6}%/năm (6 tháng) · ${r.saving12}%/năm (12 tháng)'
+                      '${r.note.isEmpty ? '' : ' · ${r.note}'}'),
+                ),
+              );
+            }),
           for (final g in goals)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),

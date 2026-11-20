@@ -84,6 +84,17 @@ String ruleKey(String note) {
 }
 
 /// Đoán danh mục: ưu tiên luật đã học, rồi từ khóa, cuối cùng là mặc định.
+/// Từ điển do admin cập nhật trên server (từ lóng, thương hiệu -> danh mục), app tải về lúc mở.
+/// Khóa đã bỏ dấu, sắp từ dài tới ngắn.
+List<(String, String)> remoteDict = [];
+
+void setRemoteDict(List<(String, String)> items) {
+  remoteDict = [
+    for (final e in items)
+      if (fold(e.$1).trim().length >= 2 && kCategories.any((c) => c.id == e.$2)) (fold(e.$1).trim(), e.$2)
+  ]..sort((a, b) => b.$1.length.compareTo(a.$1.length));
+}
+
 String guessCategory(bool income, String text, Map<String, String> learned) {
   final key = ruleKey(text);
   if (key.isNotEmpty && learned.containsKey(key)) {
@@ -91,6 +102,9 @@ String guessCategory(bool income, String text, Map<String, String> learned) {
     if (catById(id).income == income) return id;
   }
   final f = fold(text);
+  for (final e in remoteDict) {
+    if (catById(e.$2).income == income && f.contains(e.$1)) return e.$2;
+  }
   for (final c in kCategories) {
     if (c.income != income) continue;
     for (final re in _kwRe[c.id]!) {

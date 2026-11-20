@@ -7,6 +7,7 @@ import '../parser/quick_add.dart';
 import '../services/receipt.dart';
 import '../services/voice.dart';
 import '../store.dart';
+import '../ui_keys.dart';
 import '../widgets/nudge.dart';
 import 'lock.dart';
 import '../theme.dart';
@@ -48,6 +49,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
   String? _originalCat;
   String _tag = '';
   bool _hidden = false;
+  Map<String, dynamic>? _aiRead; // kết quả AI đọc hóa đơn, để người dùng báo nếu đọc sai
   bool _listening = false;
   bool _reading = false;
   String _heard = '';
@@ -186,7 +188,102 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
               return DateTime(d.year, d.month, d.day, _date.hour, _date.minute);
             })(),
     );
+    setState(() => _aiRead = {
+          'amount': (a['amount'] as num).toInt(),
+          'category': (a['category'] ?? '') as String,
+          'income': a['income'] == true,
+          'note': (a['note'] ?? '') as String,
+        });
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã đọc hóa đơn, kiểm tra lại rồi bấm Lưu')));
+  }
+
+  /// Gửi góp ý "AI đọc sai": chỉ gồm số AI đọc và số bạn sửa lại, không gửi ảnh.
+  Future<void> _reportAi() async {
+    final store = StoreScope.read(context);
+    final c = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Báo AI đọc sai'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Sửa số tiền / danh mục / nội dung cho đúng trước, rồi gửi. VieTing chỉ nhận số AI đọc và số bạn sửa — không gửi ảnh.'),
+          const SizedBox(height: 10),
+          TextField(controller: c, decoration: const InputDecoration(labelText: 'Sai ở đâu? (không bắt buộc)')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Gửi')),
+        ],
+      ),
+    );
+    if (ok != true || _aiRead == null) return;
+    try {
+      await store.reportReceipt(_aiRead!, {
+        'amount': parseMoneyInput(_amount.text),
+        'category': _cat,
+        'income': _income,
+        'note': _note.text.trim(),
+      }, c.text.trim());
+      if (!mounted) return;
+      setState(() => _aiRead = null);
+      showToast(context, 'Cảm ơn bạn! VieTing sẽ đọc tốt hơn ở bản sau 🙏');
+    } catch (e) {
+      if (mounted) showToast(context, 'Chưa gửi được: $e');
+    }
+  }
+
+  /// Nhập bằng ngoại tệ, quy ra đồng theo tỷ giá server cập nhật.
+  Future<void> _foreign() async {
+    final store = StoreScope.read(context);
+    final rates = store.fxRates;
+    if (rates.isEmpty) {
+      showToast(context, 'Chưa tải được tỷ giá, kết nối mạng rồi mở lại app nhé');
+      return;
+    }
+    var code = rates.containsKey('USD') ? 'USD' : rates.keys.first;
+    final c = TextEditingController();
+    final res = await showDialog<int>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
+        final v = double.tryParse(c.text.replaceAll(',', '.')) ?? 0;
+        final vnd = (v * (rates[code] ?? 0)).round();
+        return AlertDialog(
+          title: const Text('Nhập bằng ngoại tệ'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: c,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (_) => setS(() {}),
+                  decoration: const InputDecoration(labelText: 'Số tiền'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              DropdownButton<String>(
+                value: code,
+                items: [for (final k in rates.keys) DropdownMenuItem(value: k, child: Text(k))],
+                onChanged: (x) => setS(() => code = x ?? code),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            Text('1 $code ≈ ${money((rates[code] ?? 0).round())}', style: TextStyle(color: Theme.of(ctx).colorScheme.onSurfaceVariant)),
+            Text('= ${money(vnd)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+            FilledButton(onPressed: vnd > 0 ? () => Navigator.pop(ctx, vnd) : null, child: const Text('Dùng số này')),
+          ],
+        );
+      }),
+    );
+    if (res == null || !mounted) return;
+    setState(() {
+      _amount.text = groupDigits(res);
+      final tag = '(${c.text.trim()} $code)';
+      if (!_note.text.contains(tag)) _note.text = _note.text.trim().isEmpty ? tag : '${_note.text.trim()} $tag';
+    });
   }
 
   @override
@@ -352,10 +449,20 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
             decoration: InputDecoration(
               hintText: '0',
               suffixText: '₫',
+              suffixIcon: IconButton(tooltip: 'Nhập bằng ngoại tệ', icon: const Icon(Icons.currency_exchange), onPressed: _foreign),
               prefixText: _income ? '+ ' : '− ',
               prefixStyle: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color),
             ),
           ),
+          if (_aiRead != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _reportAi,
+                icon: const Icon(Icons.flag_outlined, size: 18),
+                label: const Text('AI đọc sai? Báo để VieTing đọc tốt hơn'),
+              ),
+            ),
           const SizedBox(height: 18),
           const Text('Danh mục', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
