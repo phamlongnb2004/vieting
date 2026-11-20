@@ -5,7 +5,7 @@ rem Lay khoa tai https://aistudio.google.com/apikey  (dang nhap Google, bam Crea
 rem Khong co khoa thi tro ly van chay bang Cloudflare Workers AI (mien phi), chi kem hon mot chut ve tieng Viet.
 cd /d "%~dp0server"
 echo Dan khoa Gemini roi bam Enter:
-call npx -y wrangler@latest secret put GEMINI_API_KEY
+call npx -y -p node@22 -p wrangler@latest wrangler secret put GEMINI_API_KEY
 echo.
 echo Xong. Tro ly AI da dung Gemini.
 pause
