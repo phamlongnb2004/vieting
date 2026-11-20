@@ -36,7 +36,8 @@ findstr /r /c:"https://[a-z0-9.-]*workers\.dev" "%~dp0deploy-log.txt" >nul || (
   call npx -y -p node@22 -p wrangler@latest wrangler deploy > "%~dp0deploy-log.txt" 2>&1
   type "%~dp0deploy-log.txt"
 )
-for /f "usebackq delims=" %%u in (`powershell -NoProfile -Command "$m = Select-String -Path ..\deploy-log.txt -Pattern 'https://[a-z0-9.-]+\.workers\.dev' ^| Select-Object -First 1; if ($m) { $m.Matches[0].Value }"`) do set "URL=%%u"
+for /f "tokens=*" %%u in ('findstr /r /c:"https://[a-z0-9.-]*\.workers\.dev" "%~dp0deploy-log.txt"') do set "URL=%%u"
+if defined URL set "URL=%URL: =%"
 popd
 if defined URL (
   echo %URL%> server-url.txt

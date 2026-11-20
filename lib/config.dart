@@ -4,4 +4,4 @@
 const String kServerUrl = String.fromEnvironment('SERVER_URL', defaultValue: kDefaultServerUrl);
 
 /// Địa chỉ server mặc định sau khi đưa lên Cloudflare (tai-len-cloudflare.bat in ra địa chỉ này).
-const String kDefaultServerUrl = '';
+const String kDefaultServerUrl = 'https://vieting.phamthanhlong-contact.workers.dev';
