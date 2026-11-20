@@ -14,7 +14,7 @@
       "binding": "DB",
       "database_name": "vieting",
       // Dán ID nhận được sau lệnh "wrangler d1 create vieting" vào đây
-      "database_id": "DIEN-ID-D1-VAO-DAY"
+      "database_id": "3b66fd65-a0f2-4a2e-9440-3e3b51e25221"
     }
   ],
   // Trợ lý AI: Workers AI miễn phí (dự phòng khi chưa có khóa Gemini)
