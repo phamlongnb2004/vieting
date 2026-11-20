@@ -9,6 +9,7 @@ import '../models.dart';
 import '../services/notify_bridge.dart';
 import '../store.dart';
 import '../util/format.dart';
+import 'assistant.dart';
 import 'budgets.dart';
 import 'edit_txn.dart';
 import 'overview.dart';
@@ -118,12 +119,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final pages = [
       OverviewScreen(onSeeAll: () => setState(() => _tab = 1)),
       const TransactionsScreen(),
+      const AssistantScreen(),
       const BudgetsScreen(),
       const SettingsScreen(),
     ];
     const items = [
       (Icons.space_dashboard_outlined, Icons.space_dashboard, 'Tổng quan'),
       (Icons.receipt_long_outlined, Icons.receipt_long, 'Giao dịch'),
+      (Icons.auto_awesome_outlined, Icons.auto_awesome, 'Trợ lý'),
       (Icons.savings_outlined, Icons.savings, 'Ngân sách'),
       (Icons.settings_outlined, Icons.settings, 'Cài đặt'),
     ];

@@ -69,6 +69,36 @@ class SettingsScreen extends StatelessWidget {
                 onTap: () => _go(context, const LoginScreen()),
               ),
           ]),
+          group('Trợ lý AI & server', [
+            ListTile(
+              leading: const Icon(Icons.dns_outlined),
+              title: const Text('Địa chỉ server'),
+              subtitle: Text(store.serverUrl.isEmpty ? 'Chưa nhập (cần cho trợ lý AI và đồng bộ)' : store.serverUrl),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () async {
+                final c = TextEditingController(text: store.serverUrl);
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Địa chỉ server'),
+                    content: SizedBox(
+                      width: 360,
+                      child: TextField(
+                        controller: c,
+                        keyboardType: TextInputType.url,
+                        decoration: const InputDecoration(hintText: 'https://vieting.xxx.workers.dev'),
+                      ),
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Lưu')),
+                    ],
+                  ),
+                );
+                if (ok == true) store.setServerUrl(c.text);
+              },
+            ),
+          ]),
           group('Ví & tài khoản', [
             ListTile(
               leading: const Icon(Icons.account_balance_wallet_outlined),

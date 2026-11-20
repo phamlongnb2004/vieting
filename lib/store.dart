@@ -35,6 +35,7 @@ class AppStore extends ChangeNotifier {
   final Map<String, Budget> budgets = {};
   final Map<String, CatRule> rules = {};
   final List<NoticeLog> logs = [];
+  final List<ChatMsg> chat = [];
   final List<Map<String, int>> _recentSigs = []; // chống ghi trùng: {sig, t}
   Set<String> allowedApps = {};
 
@@ -81,6 +82,9 @@ class AppStore extends ChangeNotifier {
         for (final e in (j['logs'] as List? ?? [])) {
           logs.add(NoticeLog.fromJson(Map<String, dynamic>.from(e as Map)));
         }
+        for (final e in (j['chat'] as List? ?? [])) {
+          chat.add(ChatMsg.fromJson(Map<String, dynamic>.from(e as Map)));
+        }
         for (final e in (j['sigs'] as List? ?? [])) {
           final m = Map<String, dynamic>.from(e as Map);
           _recentSigs.add({'s': (m['s'] as num).toInt(), 't': (m['t'] as num).toInt()});
@@ -115,6 +119,7 @@ class AppStore extends ChangeNotifier {
         'rules': rules.values.map((e) => e.toJson()).toList(),
         'logs': logs.map((e) => e.toJson()).toList(),
         'sigs': _recentSigs,
+        'chat': chat.map((e) => e.toJson()).toList(),
         'settings': {
           'dark': dark,
           'server': serverUrl,
@@ -278,6 +283,66 @@ class AppStore extends ChangeNotifier {
   void setBudget(String id, int limit) {
     budgets[id] = Budget(id: id, limit: limit, deleted: limit <= 0);
     _changed();
+  }
+
+  // ---------------- Trợ lý AI ----------------
+
+  void setServerUrl(String url) {
+    serverUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
+    _changed(syncSoon: false);
+  }
+
+  void addChat(ChatMsg m) {
+    chat.add(m);
+    if (chat.length > 80) chat.removeRange(0, chat.length - 80);
+    _changed(syncSoon: false);
+  }
+
+  void clearChat() {
+    chat.clear();
+    _changed(syncSoon: false);
+  }
+
+  /// Thực hiện hành động trợ lý đề xuất (sau khi người dùng bấm xác nhận). Trả về mô tả ngắn.
+  String applyAction(ChatMsg msg, int index) {
+    final a = msg.actions[index];
+    String done;
+    if (a['type'] == 'add_txn') {
+      final income = a['income'] == true;
+      var cat = (a['category'] ?? '') as String;
+      if (catById(cat).id != cat || catById(cat).income != income) cat = income ? 'khac_thu' : 'khac_chi';
+      var date = DateTime.now();
+      final ds = (a['date'] ?? '') as String;
+      final d = DateTime.tryParse(ds);
+      if (d != null && !(d.year == date.year && d.month == date.month && d.day == date.day)) {
+        date = DateTime(d.year, d.month, d.day, 12);
+      }
+      final wallets = activeWallets;
+      final t = Txn(
+        id: newId(),
+        amount: (a['amount'] as num).toInt(),
+        income: income,
+        categoryId: cat,
+        walletId: (a['wallet'] as String?) ?? (wallets.any((w) => w.id == 'cash') ? 'cash' : wallets.first.id),
+        date: date,
+        note: (a['note'] ?? '') as String,
+        source: 'assistant',
+      );
+      txns[t.id] = t;
+      done = 'txn:${t.id}';
+    } else {
+      final id = (a['category'] ?? 'all') as String;
+      budgets[id] = Budget(id: id, limit: (a['limit'] as num).toInt(), deleted: (a['limit'] as num) <= 0);
+      done = 'budget';
+    }
+    msg.status[index] = 'done';
+    _changed();
+    return done;
+  }
+
+  void skipAction(ChatMsg msg, int index) {
+    msg.status[index] = 'skip';
+    _changed(syncSoon: false);
   }
 
   void setDark(bool v) {

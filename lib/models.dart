@@ -188,3 +188,49 @@ class NoticeLog {
   factory NoticeLog.fromJson(Map<String, dynamic> j) =>
       NoticeLog(RawNotice.fromJson(Map<String, dynamic>.from(j['n'] as Map)), (j['s'] ?? 'unparsed') as String, j['t'] as String?);
 }
+
+/// Một tin nhắn trong khung trò chuyện với trợ lý AI (chỉ lưu trên máy).
+class ChatMsg {
+  final String role; // user | model
+  final String text;
+  final List<Map<String, dynamic>> actions; // add_txn | set_budget
+  final List<String> status; // '' | done | skip, theo từng hành động
+  final DateTime time;
+  final bool error;
+
+  ChatMsg({
+    required this.role,
+    required this.text,
+    List<Map<String, dynamic>>? actions,
+    List<String>? status,
+    DateTime? time,
+    this.error = false,
+  })  : actions = actions ?? [],
+        status = status ?? List.filled((actions ?? []).length, '', growable: true),
+        time = time ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'r': role,
+        't': text,
+        if (actions.isNotEmpty) 'a': actions,
+        if (actions.isNotEmpty) 's': status,
+        'tm': time.millisecondsSinceEpoch,
+        if (error) 'e': true,
+      };
+
+  factory ChatMsg.fromJson(Map<String, dynamic> j) {
+    final acts = ((j['a'] as List?) ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final st = ((j['s'] as List?) ?? []).map((e) => e.toString()).toList();
+    while (st.length < acts.length) {
+      st.add('');
+    }
+    return ChatMsg(
+      role: (j['r'] ?? 'user') as String,
+      text: (j['t'] ?? '') as String,
+      actions: acts,
+      status: st,
+      time: DateTime.fromMillisecondsSinceEpoch((j['tm'] as num?)?.toInt() ?? nowMs()),
+      error: j['e'] == true,
+    );
+  }
+}

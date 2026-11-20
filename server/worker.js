@@ -4,12 +4,14 @@
 // GET  /tai-app, /tai/<android|windows|windows-portable|ios>  trang tải + link tải (download.js)
 // POST /api/register  {email, password}        -> {token}
 // POST /api/login     {email, password}        -> {token}
+// POST /api/chat      {messages, context, today}  -> {reply, actions}  trợ lý AI (ai.js), đăng nhập không bắt buộc
 // POST /api/sync      {since, changes: [...]}  -> {now, changes: [...]}   (header Authorization: Bearer <token>)
 //
 // Mỗi bản ghi: {kind: txn|wallet|budget|rule, id, data, u (thời điểm sửa), del}.
 // Bản nào sửa sau thì thắng (last-write-wins).
 
 import { handleDownload } from './download.js';
+import { handleChat } from './ai.js';
 
 const KINDS = new Set(['txn', 'wallet', 'budget', 'rule']);
 const MAX_CHANGES = 1000;
@@ -158,6 +160,7 @@ export default {
       if (req.method === 'POST' && url.pathname === '/api/register') return await register(req, env);
       if (req.method === 'POST' && url.pathname === '/api/login') return await login(req, env);
       if (req.method === 'POST' && url.pathname === '/api/sync') return await sync(req, env);
+      if (req.method === 'POST' && url.pathname === '/api/chat') return await handleChat(req, env, await auth(req, env));
       if (url.pathname === '/api') return json({ app: 'VieTing', ok: true });
       const p = url.pathname.replace(/\/+$/, '') || '/';
       if (env.ASSETS) {

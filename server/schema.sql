@@ -25,3 +25,11 @@ CREATE TABLE IF NOT EXISTS records (
 );
 
 CREATE INDEX IF NOT EXISTS records_user_srv ON records (user_id, srv);
+
+-- Đếm lượt hỏi trợ lý AI mỗi ngày (giữ trong hạn mức miễn phí)
+CREATE TABLE IF NOT EXISTS ai_usage (
+  k TEXT NOT NULL,
+  day TEXT NOT NULL,
+  n INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (k, day)
+);

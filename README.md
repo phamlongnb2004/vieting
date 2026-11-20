@@ -12,6 +12,7 @@ App thật (Flutter, biên dịch ra mã máy, không phải web). Có tiền v�
 | `test/` | Kiểm tra bộ đọc thông báo với mẫu của các ngân hàng |
 | `server/` | Trang tải app + server đồng bộ (Cloudflare Workers + D1, miễn phí) |
 | `tai-len-cloudflare.bat` | Đưa trang tải + file cài + server lên Cloudflare |
+| `dat-khoa-gemini.bat` | Đặt khóa Gemini miễn phí cho trợ lý AI |
 | `installer/` | Bộ cài Windows (Inno Setup) |
 | `tools/` | Tạo thư mục nền tảng + gắn cấu hình |
 | `.github/workflows/build.yml` | GitHub Actions tự dựng APK/AAB + bộ cài Windows |
@@ -25,6 +26,7 @@ App thật (Flutter, biên dịch ra mã máy, không phải web). Có tiền v�
 - **Android:** tự đọc thông báo ngân hàng/SMS (Vietcombank, MB, Techcombank, BIDV, VietinBank, Agribank, VPBank, TPBank, ACB, MoMo, ZaloPay…), chống ghi trùng, bỏ qua OTP/quảng cáo/chat, nhật ký thông báo.
 - Tự đoán danh mục theo nội dung (Highlands → Ăn uống, Grab → Đi lại…) và **học** khi bạn sửa danh mục.
 - **iOS:** Apple không cho đọc thông báo app khác → dùng Phím tắt (SMS ngân hàng) qua link `vieting://add?text=...`, hoặc Dán thông báo.
+- **Trợ lý AI** (tab Trợ lý): hỏi về chi tiêu ("tháng này chi bao nhiêu?", "so với tháng trước?"), ghi giao dịch bằng một câu ("ăn phở 45k", "nhận lương 15tr"), đặt ngân sách; luôn hỏi lại trước khi ghi. Không có mạng/server vẫn ghi nhanh được.
 - Đăng nhập (tùy chọn) để đồng bộ giữa điện thoại, iPhone, máy tính. Sáng/tối.
 
 ## Dựng app
@@ -58,6 +60,13 @@ Một Worker trên Cloudflare lo cả **trang tải app** (`/tai-app`) lẫn **s
 4. Địa chỉ server đồng bộ (nhập vào app khi đăng nhập): `https://vieting.<tài-khoản>.workers.dev`. Hoặc đặt biến `SERVER_URL` (GitHub → Settings → Variables) để gắn sẵn vào app.
 
 Cloudflare chỉ nhận file tối đa 25 MB nên `tools/pack-cloudflare.js` cắt file thành phần 20 MB, Worker ghép lại khi tải (có tải tiếp). Mỗi lần có bản mới: chép file vào `dist\` rồi chạy lại file .bat.
+
+## Trợ lý AI (miễn phí)
+Chạy trên chính server Cloudflare ở trên, khóa AI chỉ nằm trên server:
+- **Google Gemini** (miễn phí, tiếng Việt tốt nhất): lấy khóa ở https://aistudio.google.com/apikey rồi bấm đúp `dat-khoa-gemini.bat` và dán khóa. Đổi mô hình bằng biến `GEMINI_MODEL` trong `server/wrangler.jsonc`.
+- **Cloudflare Workers AI** (miễn phí 10.000 neurons/ngày, không cần khóa): tự dùng khi chưa có khóa Gemini hoặc Gemini hết lượt.
+- Mỗi người tối đa 80 câu hỏi/ngày (sửa `DAILY_LIMIT` trong `server/ai.js`).
+- App gửi câu hỏi + tóm tắt chi tiêu (tổng thu chi, theo danh mục, ngân sách, 40 giao dịch gần nhất), không gửi nội dung thông báo ngân hàng gốc. Lưu ý: bản Gemini miễn phí có thể được Google dùng để cải thiện sản phẩm.
 
 ## Đưa lên CH Play / App Store
 - **CH Play:** tài khoản nhà phát triển 25 USD (một lần). Nộp `VieTing.aab`. Quyền đọc thông báo cần: trang chính sách quyền riêng tư, màn hình giải thích (đã có trong app), khai báo Data safety.
