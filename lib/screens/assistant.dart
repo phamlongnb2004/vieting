@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../config.dart';
+import '../insights.dart';
 import '../models.dart';
+import '../widgets/nudge.dart';
 import '../services/assistant.dart';
+import '../services/voice.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -30,6 +33,30 @@ class _AssistantScreenState extends State<AssistantScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
   bool _busy = false;
+  bool _listening = false;
+
+  Future<void> _mic() async {
+    if (_listening) {
+      await Voice.stop();
+      setState(() => _listening = false);
+      return;
+    }
+    setState(() => _listening = true);
+    final ok = await Voice.listen(
+      onText: (t) {
+        if (mounted) setState(() => _input.text = t);
+      },
+      onDone: (t) {
+        if (!mounted) return;
+        setState(() => _listening = false);
+        if (t.trim().isNotEmpty) _send(t);
+      },
+    );
+    if (!ok && mounted) {
+      setState(() => _listening = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chưa dùng được micro trên máy này')));
+    }
+  }
 
   @override
   void dispose() {
@@ -174,7 +201,14 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              if (Voice.supported) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: _busy ? null : _mic,
+                  icon: Icon(_listening ? Icons.stop_circle : Icons.mic, color: Brand.red),
+                ),
+              ],
+              const SizedBox(width: 4),
               IconButton.filled(
                 onPressed: _busy ? null : () => _send(),
                 icon: const Icon(Icons.arrow_upward),
@@ -313,6 +347,14 @@ class _Bubble extends StatelessWidget {
                       onPressed: () {
                         final r = store.applyAction(msg, i);
                         final isTxn = r.startsWith('txn:');
+                        if (isTxn) {
+                          final t = store.txns[r.substring(4)];
+                          final n = t == null ? const <Nudge>[] : store.nudgesFor(t);
+                          if (n.isNotEmpty) {
+                            showNudges(n);
+                            return;
+                          }
+                        }
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text(isTxn ? 'Đã ghi giao dịch' : 'Đã đặt ngân sách'),
                           action: isTxn

@@ -5,12 +5,14 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../insights.dart';
 import '../models.dart';
+import '../widgets/nudge.dart';
 import '../services/notify_bridge.dart';
 import '../store.dart';
 import '../util/format.dart';
 import 'assistant.dart';
-import 'budgets.dart';
+import 'plan.dart';
 import 'edit_txn.dart';
 import 'overview.dart';
 import 'settings.dart';
@@ -68,6 +70,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         final r = store.ingest(n);
         if (r.status == 'added') added.add(r.txn!);
       }
+      final nudges = [for (final t in added) ...store.nudgesFor(t)];
+      if (nudges.isNotEmpty) {
+        showNudges(nudges);
+        return;
+      }
       if (added.isNotEmpty && mounted) {
         final msg = added.length == 1
             ? 'Đã ghi ${money(added.first.signed, signed: true)} · ${store.walletName(added.first.walletId)}'
@@ -120,14 +127,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       OverviewScreen(onSeeAll: () => setState(() => _tab = 1)),
       const TransactionsScreen(),
       const AssistantScreen(),
-      const BudgetsScreen(),
+      const PlanScreen(),
       const SettingsScreen(),
     ];
     const items = [
       (Icons.space_dashboard_outlined, Icons.space_dashboard, 'Tổng quan'),
       (Icons.receipt_long_outlined, Icons.receipt_long, 'Giao dịch'),
       (Icons.auto_awesome_outlined, Icons.auto_awesome, 'Trợ lý'),
-      (Icons.savings_outlined, Icons.savings, 'Ngân sách'),
+      (Icons.forest_outlined, Icons.forest, 'Kế hoạch'),
       (Icons.settings_outlined, Icons.settings, 'Cài đặt'),
     ];
     final wide = MediaQuery.sizeOf(context).width >= 840;

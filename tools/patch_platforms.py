@@ -90,6 +90,11 @@ def patch_ios():
     pl["CFBundleURLTypes"] = [{"CFBundleURLName": "vn.thlong.vieting", "CFBundleURLSchemes": ["vieting"]}]
     pl["FlutterDeepLinkingEnabled"] = False
     pl["ITSAppUsesNonExemptEncryption"] = False
+    pl["NSMicrophoneUsageDescription"] = "VieTing dùng micro để bạn nói nhanh khoản chi, VD: ăn phở 45 nghìn."
+    pl["NSSpeechRecognitionUsageDescription"] = "VieTing chuyển lời nói thành giao dịch."
+    pl["NSCameraUsageDescription"] = "VieTing dùng camera để chụp hóa đơn và đọc số tiền."
+    pl["NSPhotoLibraryUsageDescription"] = "VieTing đọc ảnh hóa đơn / ảnh chuyển khoản bạn chọn."
+    pl["NSFaceIDUsageDescription"] = "Mở khóa VieTing bằng Face ID."
     with open(path, "wb") as f:
         plistlib.dump(pl, f)
 

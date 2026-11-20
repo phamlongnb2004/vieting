@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../categories.dart';
+import '../insights.dart';
 import '../services/notify_bridge.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -9,6 +10,8 @@ import '../widgets/charts.dart';
 import '../widgets/logo.dart';
 import '../widgets/txn_tile.dart';
 import 'edit_txn.dart';
+import 'goals.dart';
+import 'habits.dart';
 import 'notify_setup.dart';
 import 'paste.dart';
 
@@ -98,6 +101,8 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
             const SizedBox(height: 12),
           ],
           _BalanceCard(total: store.totalBalance, income: totals.income, expense: totals.expense, month: now.month),
+          const SizedBox(height: 12),
+          _TodayRow(store: store),
           SectionTitle('Chi tiêu tháng ${now.month}'),
           Card(
             child: Padding(
@@ -256,5 +261,59 @@ class _BalanceCard extends StatelessWidget {
         ]),
       ]),
     );
+  }
+}
+
+
+/// Hôm nay còn chi được bao nhiêu, chuỗi ngày, mục tiêu gần nhất.
+class _TodayRow extends StatelessWidget {
+  final AppStore store;
+  const _TodayRow({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final now = DateTime.now();
+    final allowance = store.dailyAllowance;
+    final spentToday = store.activeTxns
+        .where((t) => !t.income && sameDay(t.date, now))
+        .fold<int>(0, (s, t) => s + t.amount);
+    final goals = store.activeGoals.where((g) => g.progress < 1).toList()
+      ..sort((a, b) => b.progress.compareTo(a.progress));
+    Widget tile(String emoji, String top, String bottom, VoidCallback onTap) => Expanded(
+          child: Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(emoji, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(height: 4),
+                  Text(top, style: const TextStyle(fontWeight: FontWeight.w800), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(bottom, style: TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant), maxLines: 2, overflow: TextOverflow.ellipsis),
+                ]),
+              ),
+            ),
+          ),
+        );
+    void open(Widget w) => Navigator.push(context, MaterialPageRoute(builder: (_) => w));
+    return Row(children: [
+      tile(
+        '🗓️',
+        allowance == null ? compactMoney(spentToday) : compactMoney(allowance - spentToday),
+        allowance == null ? 'đã chi hôm nay' : (allowance - spentToday >= 0 ? 'còn chi được hôm nay' : 'đã lố hôm nay'),
+        () => open(const HabitsScreen()),
+      ),
+      const SizedBox(width: 8),
+      tile('🔥', '${store.streak} ngày', 'giữ ngân sách liên tiếp', () => open(const HabitsScreen())),
+      const SizedBox(width: 8),
+      tile(
+        goals.isEmpty ? '🎋' : goals.first.emoji,
+        goals.isEmpty ? 'Mục tiêu' : '${(goals.first.progress * 100).floor()}%',
+        goals.isEmpty ? 'trồng cây tre đầu tiên' : goals.first.name,
+        () => open(const GoalsScreen()),
+      ),
+    ]);
   }
 }

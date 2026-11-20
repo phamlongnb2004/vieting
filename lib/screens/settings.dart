@@ -1,14 +1,19 @@
 import 'dart:io';
 
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../config.dart';
+import '../insights.dart';
 import '../services/notify_bridge.dart';
 import '../store.dart';
 import '../util/format.dart';
 import '../widgets/logo.dart';
 import 'ios_shortcut.dart';
+import 'lock.dart';
 import 'login.dart';
 import 'notify_log.dart';
 import 'notify_setup.dart';
@@ -19,6 +24,29 @@ class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   void _go(BuildContext context, Widget page) => Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+
+  Future<void> _export(BuildContext context, AppStore store) async {
+    final now = DateTime.now();
+    final name = 'VieTing-${now.year}${two(now.month)}${two(now.day)}-${two(now.hour)}${two(now.minute)}.csv';
+    try {
+      final dir = !kIsWeb && Platform.isWindows
+          ? (await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory())
+          : await getTemporaryDirectory();
+      final f = File('${dir.path}${Platform.pathSeparator}$name');
+      await f.writeAsString(store.exportCsv());
+      if (!kIsWeb && Platform.isWindows) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã lưu ${f.path}')));
+        }
+        return;
+      }
+      await Share.shareXFiles([XFile(f.path, mimeType: 'text/csv')], subject: 'Dữ liệu VieTing');
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không xuất được: $e')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +169,47 @@ class SettingsScreen extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _go(context, const NotifyLogScreen()),
               ),
+          ]),
+          group('Bảo mật & dữ liệu', [
+            SwitchListTile(
+              secondary: const Icon(Icons.pin_outlined),
+              title: const Text('Khóa app bằng mã PIN'),
+              subtitle: const Text('Tự khóa khi rời app quá 30 giây'),
+              value: store.locked,
+              onChanged: (v) async {
+                if (v) {
+                  final pin = await askNewPin(context);
+                  if (pin != null) store.setPin(pin);
+                } else {
+                  store.setPin(null);
+                }
+              },
+            ),
+            if (store.locked)
+              FutureBuilder<bool>(
+                future: Biometric.available(),
+                builder: (context, snap) => snap.data == true
+                    ? SwitchListTile(
+                        secondary: const Icon(Icons.fingerprint),
+                        title: const Text('Mở bằng vân tay / khuôn mặt'),
+                        value: store.bioLock,
+                        onChanged: (v) async {
+                          if (!v) {
+                            store.setBioLock(false);
+                          } else if (await Biometric.authenticate()) {
+                            store.setBioLock(true);
+                          }
+                        },
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ListTile(
+              leading: const Icon(Icons.table_view_outlined),
+              title: const Text('Xuất dữ liệu (Excel / CSV)'),
+              subtitle: const Text('Toàn bộ giao dịch, mở được bằng Excel / Google Sheets'),
+              trailing: const Icon(Icons.ios_share),
+              onTap: () => _export(context, store),
+            ),
           ]),
           group('Giao diện', [
             SwitchListTile(

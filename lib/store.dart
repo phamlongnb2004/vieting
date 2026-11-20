@@ -37,6 +37,11 @@ class AppStore extends ChangeNotifier {
   final Map<String, CatRule> rules = {};
   final List<NoticeLog> logs = [];
   final List<ChatMsg> chat = [];
+  final Map<String, Goal> goals = {};
+  final Map<String, Challenge> challenges = {};
+  final Map<String, Group> groups = {};
+  String pinHash = ''; // khóa app (chỉ trên máy này)
+  bool bioLock = false;
   final List<Map<String, int>> _recentSigs = []; // chống ghi trùng: {sig, t}
   Set<String> allowedApps = {};
 
@@ -83,6 +88,18 @@ class AppStore extends ChangeNotifier {
         for (final e in (j['logs'] as List? ?? [])) {
           logs.add(NoticeLog.fromJson(Map<String, dynamic>.from(e as Map)));
         }
+        for (final e in (j['goals'] as List? ?? [])) {
+          final g = Goal.fromJson(Map<String, dynamic>.from(e as Map));
+          goals[g.id] = g;
+        }
+        for (final e in (j['challenges'] as List? ?? [])) {
+          final c = Challenge.fromJson(Map<String, dynamic>.from(e as Map));
+          challenges[c.id] = c;
+        }
+        for (final e in (j['groups'] as List? ?? [])) {
+          final g = Group.fromJson(Map<String, dynamic>.from(e as Map));
+          groups[g.id] = g;
+        }
         for (final e in (j['chat'] as List? ?? [])) {
           chat.add(ChatMsg.fromJson(Map<String, dynamic>.from(e as Map)));
         }
@@ -98,6 +115,8 @@ class AppStore extends ChangeNotifier {
         lastSync = (s['lastSync'] as num?)?.toInt() ?? 0;
         lastPush = (s['lastPush'] as num?)?.toInt() ?? 0;
         allowedApps = ((s['allowed'] as List?) ?? []).map((e) => e.toString()).toSet();
+        pinHash = (s['pin'] ?? '') as String;
+        bioLock = s['bio'] == true;
       }
     } catch (e) {
       debugPrint('VieTing: không đọc được dữ liệu: $e');
@@ -121,6 +140,9 @@ class AppStore extends ChangeNotifier {
         'logs': logs.map((e) => e.toJson()).toList(),
         'sigs': _recentSigs,
         'chat': chat.map((e) => e.toJson()).toList(),
+        'goals': goals.values.map((e) => e.toJson()).toList(),
+        'challenges': challenges.values.map((e) => e.toJson()).toList(),
+        'groups': groups.values.map((e) => e.toJson()).toList(),
         'settings': {
           'dark': dark,
           'server': serverUrl,
@@ -129,6 +151,8 @@ class AppStore extends ChangeNotifier {
           'lastSync': lastSync,
           'lastPush': lastPush,
           'allowed': allowedApps.toList(),
+          'pin': pinHash,
+          'bio': bioLock,
         },
       };
 
@@ -284,6 +308,88 @@ class AppStore extends ChangeNotifier {
   void setBudget(String id, int limit) {
     budgets[id] = Budget(id: id, limit: limit, deleted: limit <= 0);
     _changed();
+  }
+
+  // ---------------- Mục tiêu, thử thách, sổ chung ----------------
+
+  List<Goal> get activeGoals => goals.values.where((g) => !g.deleted).toList()
+    ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+  void saveGoal(Goal g) {
+    g.updatedAt = nowMs();
+    goals[g.id] = g;
+    _changed();
+  }
+
+  void deleteGoal(String id) {
+    final g = goals[id];
+    if (g == null) return;
+    g.deleted = true;
+    g.updatedAt = nowMs();
+    _changed();
+  }
+
+  void startChallenge(String type) {
+    for (final c in challenges.values) {
+      if (!c.deleted) {
+        c.deleted = true;
+        c.updatedAt = nowMs();
+      }
+    }
+    final c = Challenge(id: newId(), type: type, start: DateTime.now());
+    challenges[c.id] = c;
+    _changed();
+  }
+
+  void stopChallenge(String id) {
+    final c = challenges[id];
+    if (c == null) return;
+    c.deleted = true;
+    c.updatedAt = nowMs();
+    _changed();
+  }
+
+  List<Group> get activeGroups => groups.values.where((g) => !g.deleted).toList()
+    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+  void saveGroup(Group g) {
+    g.updatedAt = nowMs();
+    groups[g.id] = g;
+    _changed();
+  }
+
+  void deleteGroup(String id) {
+    final g = groups[id];
+    if (g == null) return;
+    g.deleted = true;
+    g.updatedAt = nowMs();
+    _changed();
+  }
+
+  // ---------------- Khóa app ----------------
+
+  static String hashPin(String pin) {
+    // băm đơn giản kèm muối cố định: chỉ để không lưu mã PIN dạng chữ thường trên máy
+    var h = 0x811c9dc5;
+    for (final c in 'vieting:$pin'.codeUnits) {
+      h = ((h ^ c) * 0x01000193) & 0xffffffff;
+    }
+    return h.toRadixString(16);
+  }
+
+  bool get locked => pinHash.isNotEmpty;
+
+  void setPin(String? pin) {
+    pinHash = pin == null || pin.isEmpty ? '' : hashPin(pin);
+    if (pinHash.isEmpty) bioLock = false;
+    _changed(syncSoon: false);
+  }
+
+  bool checkPin(String pin) => pinHash.isNotEmpty && hashPin(pin) == pinHash;
+
+  void setBioLock(bool v) {
+    bioLock = v;
+    _changed(syncSoon: false);
   }
 
   // ---------------- Trợ lý AI ----------------
@@ -517,6 +623,15 @@ class AppStore extends ChangeNotifier {
     for (final r in rules.values) {
       add('rule', r.id, r.toJson(), r.updatedAt, r.deleted);
     }
+    for (final g in goals.values) {
+      add('goal', g.id, g.toJson(), g.updatedAt, g.deleted);
+    }
+    for (final c in challenges.values) {
+      add('challenge', c.id, c.toJson(), c.updatedAt, c.deleted);
+    }
+    for (final g in groups.values) {
+      add('group', g.id, g.toJson(), g.updatedAt, g.deleted);
+    }
     return out;
   }
 
@@ -534,6 +649,12 @@ class AppStore extends ChangeNotifier {
         if ((budgets[id]?.updatedAt ?? -1) < u) budgets[id] = Budget.fromJson(data)..updatedAt = u;
       case 'rule':
         if ((rules[id]?.updatedAt ?? -1) < u) rules[id] = CatRule.fromJson(data)..updatedAt = u;
+      case 'goal':
+        if ((goals[id]?.updatedAt ?? -1) < u) goals[id] = Goal.fromJson(data)..updatedAt = u;
+      case 'challenge':
+        if ((challenges[id]?.updatedAt ?? -1) < u) challenges[id] = Challenge.fromJson(data)..updatedAt = u;
+      case 'group':
+        if ((groups[id]?.updatedAt ?? -1) < u) groups[id] = Group.fromJson(data)..updatedAt = u;
     }
   }
 

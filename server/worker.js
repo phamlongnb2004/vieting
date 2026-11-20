@@ -11,9 +11,9 @@
 // Bản nào sửa sau thì thắng (last-write-wins).
 
 import { handleDownload } from './download.js';
-import { handleChat } from './ai.js';
+import { handleChat, handleReceipt } from './ai.js';
 
-const KINDS = new Set(['txn', 'wallet', 'budget', 'rule']);
+const KINDS = new Set(['txn', 'wallet', 'budget', 'rule', 'goal', 'challenge', 'group']);
 const MAX_CHANGES = 1000;
 
 function json(body, status = 200) {
@@ -118,7 +118,7 @@ async function sync(req, env) {
   for (const c of changes) {
     if (!c || !KINDS.has(c.kind) || typeof c.id !== 'string' || c.id.length > 200) continue;
     const data = JSON.stringify(c.data ?? {});
-    if (data.length > 20000) continue;
+    if (data.length > 200000) continue;
     stmts.push(
       env.DB.prepare(
         `INSERT INTO records (user_id, kind, id, data, updated_at, deleted, srv)
@@ -161,6 +161,7 @@ export default {
       if (req.method === 'POST' && url.pathname === '/api/login') return await login(req, env);
       if (req.method === 'POST' && url.pathname === '/api/sync') return await sync(req, env);
       if (req.method === 'POST' && url.pathname === '/api/chat') return await handleChat(req, env, await auth(req, env));
+      if (req.method === 'POST' && url.pathname === '/api/receipt') return await handleReceipt(req, env, await auth(req, env));
       if (url.pathname === '/api') return json({ app: 'VieTing', ok: true });
       const p = url.pathname.replace(/\/+$/, '') || '/';
       if (env.ASSETS) {

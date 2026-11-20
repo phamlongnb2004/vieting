@@ -14,6 +14,7 @@ class Txn {
   String source; // manual | notify | paste | shortcut
   String raw; // nội dung thông báo gốc (nếu có)
   int? balanceAfter;
+  String tag; // thẻ cảm xúc: can_thiet | xa_stress | dau_tu | boc_dong | ''
   int updatedAt;
   bool deleted;
 
@@ -28,6 +29,7 @@ class Txn {
     this.source = 'manual',
     this.raw = '',
     this.balanceAfter,
+    this.tag = '',
     int? updatedAt,
     this.deleted = false,
   }) : updatedAt = updatedAt ?? nowMs();
@@ -48,6 +50,7 @@ class Txn {
         'source': source,
         'raw': raw,
         if (balanceAfter != null) 'bal': balanceAfter,
+        if (tag.isNotEmpty) 'tag': tag,
         'u': updatedAt,
         'del': deleted,
       };
@@ -63,6 +66,7 @@ class Txn {
         source: (j['source'] ?? 'manual') as String,
         raw: (j['raw'] ?? '') as String,
         balanceAfter: (j['bal'] as num?)?.toInt(),
+        tag: (j['tag'] ?? '') as String,
         updatedAt: (j['u'] as num?)?.toInt() ?? 0,
         deleted: j['del'] == true,
       );
@@ -233,4 +237,180 @@ class ChatMsg {
       error: j['e'] == true,
     );
   }
+}
+
+
+/// Thẻ cảm xúc / giá trị cho khoản chi: tiền đi đâu vì lý do gì.
+class TagInfo {
+  final String id;
+  final String name;
+  final IconData icon;
+  final Color color;
+  const TagInfo(this.id, this.name, this.icon, this.color);
+}
+
+const List<TagInfo> kTags = [
+  TagInfo('can_thiet', 'Cần thiết', Icons.check_circle_outline, Color(0xFF3E8E41)),
+  TagInfo('xa_stress', 'Xả stress', Icons.spa_outlined, Color(0xFF8E24AA)),
+  TagInfo('dau_tu', 'Đầu tư bản thân', Icons.auto_graph, Color(0xFF1E88E5)),
+  TagInfo('boc_dong', 'Bốc đồng', Icons.bolt, Color(0xFFE8710A)),
+];
+
+TagInfo? tagById(String id) {
+  for (final t in kTags) {
+    if (t.id == id) return t;
+  }
+  return null;
+}
+
+/// Hũ mục tiêu tiết kiệm (du lịch, laptop, quỹ dự phòng...).
+class Goal {
+  String id;
+  String name;
+  String emoji;
+  int target;
+  int saved;
+  DateTime? deadline;
+  int updatedAt;
+  bool deleted;
+  Goal({
+    required this.id,
+    required this.name,
+    this.emoji = '🎯',
+    required this.target,
+    this.saved = 0,
+    this.deadline,
+    int? updatedAt,
+    this.deleted = false,
+  }) : updatedAt = updatedAt ?? nowMs();
+
+  double get progress => target <= 0 ? 0 : (saved / target).clamp(0.0, 1.0);
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'emoji': emoji,
+        'target': target,
+        'saved': saved,
+        if (deadline != null) 'deadline': deadline!.millisecondsSinceEpoch,
+        'u': updatedAt,
+        'del': deleted,
+      };
+  factory Goal.fromJson(Map<String, dynamic> j) => Goal(
+        id: j['id'] as String,
+        name: (j['name'] ?? 'Mục tiêu') as String,
+        emoji: (j['emoji'] ?? '🎯') as String,
+        target: (j['target'] as num?)?.toInt() ?? 0,
+        saved: (j['saved'] as num?)?.toInt() ?? 0,
+        deadline: j['deadline'] == null ? null : DateTime.fromMillisecondsSinceEpoch((j['deadline'] as num).toInt()),
+        updatedAt: (j['u'] as num?)?.toInt() ?? 0,
+        deleted: j['del'] == true,
+      );
+}
+
+/// Thử thách ngắn, VD 7 ngày không mua sắm bốc đồng.
+class Challenge {
+  String id;
+  String type; // no_impulse_7
+  DateTime start;
+  int updatedAt;
+  bool deleted;
+  Challenge({required this.id, required this.type, required this.start, int? updatedAt, this.deleted = false})
+      : updatedAt = updatedAt ?? nowMs();
+
+  int get days => 7;
+  DateTime get end => DateTime(start.year, start.month, start.day).add(Duration(days: days));
+
+  Map<String, dynamic> toJson() => {'id': id, 'type': type, 'start': start.millisecondsSinceEpoch, 'u': updatedAt, 'del': deleted};
+  factory Challenge.fromJson(Map<String, dynamic> j) => Challenge(
+        id: j['id'] as String,
+        type: (j['type'] ?? 'no_impulse_7') as String,
+        start: DateTime.fromMillisecondsSinceEpoch((j['start'] as num).toInt()),
+        updatedAt: (j['u'] as num?)?.toInt() ?? 0,
+        deleted: j['del'] == true,
+      );
+}
+
+/// Một khoản chi trong sổ chung: ai trả, chia cho những ai.
+class GroupExpense {
+  String id;
+  String desc;
+  int amount;
+  String payer;
+  Map<String, int> shares; // người -> số tiền phải chịu (tổng = amount)
+  DateTime date;
+  GroupExpense({required this.id, required this.desc, required this.amount, required this.payer, required this.shares, required this.date});
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'desc': desc, 'amount': amount, 'payer': payer, 'shares': shares, 'date': date.millisecondsSinceEpoch};
+  factory GroupExpense.fromJson(Map<String, dynamic> j) => GroupExpense(
+        id: j['id'] as String,
+        desc: (j['desc'] ?? '') as String,
+        amount: (j['amount'] as num).toInt(),
+        payer: (j['payer'] ?? '') as String,
+        shares: Map<String, dynamic>.from((j['shares'] as Map?) ?? {}).map((k, v) => MapEntry(k, (v as num).toInt())),
+        date: DateTime.fromMillisecondsSinceEpoch((j['date'] as num?)?.toInt() ?? nowMs()),
+      );
+}
+
+/// Sổ chung cho cặp đôi / gia đình / nhóm đi chơi.
+class Group {
+  String id;
+  String name;
+  List<String> members;
+  List<GroupExpense> expenses;
+  int updatedAt;
+  bool deleted;
+  Group({required this.id, required this.name, required this.members, List<GroupExpense>? expenses, int? updatedAt, this.deleted = false})
+      : expenses = expenses ?? [],
+        updatedAt = updatedAt ?? nowMs();
+
+  int get total => expenses.fold(0, (s, e) => s + e.amount);
+
+  /// Số dư mỗi người: dương = được nhận lại, âm = đang nợ.
+  Map<String, int> balances() {
+    final b = {for (final m in members) m: 0};
+    for (final e in expenses) {
+      b[e.payer] = (b[e.payer] ?? 0) + e.amount;
+      e.shares.forEach((m, v) => b[m] = (b[m] ?? 0) - v);
+    }
+    return b;
+  }
+
+  /// Ai trả ai bao nhiêu để chốt sổ, với số lần chuyển khoản ít nhất (tham lam).
+  List<({String from, String to, int amount})> settle() {
+    final b = balances();
+    final cred = b.entries.where((e) => e.value > 0).map((e) => [e.key, e.value]).toList()
+      ..sort((x, y) => (y[1] as int).compareTo(x[1] as int));
+    final debt = b.entries.where((e) => e.value < 0).map((e) => [e.key, -e.value]).toList()
+      ..sort((x, y) => (y[1] as int).compareTo(x[1] as int));
+    final out = <({String from, String to, int amount})>[];
+    var i = 0, j = 0;
+    while (i < debt.length && j < cred.length) {
+      final pay = (debt[i][1] as int) < (cred[j][1] as int) ? debt[i][1] as int : cred[j][1] as int;
+      if (pay > 0) out.add((from: debt[i][0] as String, to: cred[j][0] as String, amount: pay));
+      debt[i][1] = (debt[i][1] as int) - pay;
+      cred[j][1] = (cred[j][1] as int) - pay;
+      if (debt[i][1] == 0) i++;
+      if (cred[j][1] == 0) j++;
+    }
+    return out;
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'members': members,
+        'expenses': expenses.map((e) => e.toJson()).toList(),
+        'u': updatedAt,
+        'del': deleted,
+      };
+  factory Group.fromJson(Map<String, dynamic> j) => Group(
+        id: j['id'] as String,
+        name: (j['name'] ?? 'Sổ chung') as String,
+        members: ((j['members'] as List?) ?? []).map((e) => e.toString()).toList(),
+        expenses: ((j['expenses'] as List?) ?? []).map((e) => GroupExpense.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
+        updatedAt: (j['u'] as num?)?.toInt() ?? 0,
+        deleted: j['del'] == true,
+      );
 }

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/home_shell.dart';
+import 'screens/lock.dart';
 import 'store.dart';
 import 'theme.dart';
+import 'ui_keys.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +26,8 @@ class VieTingApp extends StatelessWidget {
         listenable: store,
         builder: (context, _) => MaterialApp(
           title: 'VieTing',
+          scaffoldMessengerKey: messengerKey,
+          navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: buildTheme(Brightness.light),
           darkTheme: buildTheme(Brightness.dark),
@@ -35,7 +39,7 @@ class VieTingApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const HomeShell(),
+          home: const LockGate(child: HomeShell()),
         ),
       ),
     );

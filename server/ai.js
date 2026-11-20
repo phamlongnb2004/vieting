@@ -168,3 +168,50 @@ export async function handleChat(req, env, userId) {
   const reply = parsed && typeof parsed.reply === 'string' ? parsed.reply : String(out.text || '').trim();
   return json({ reply: reply.slice(0, 4000), actions: cleanActions(parsed?.actions), provider: out.provider });
 }
+
+// ---------------- Đọc hóa đơn / ảnh chuyển khoản: POST /api/receipt {image: base64, mime, today} ----------------
+
+export async function handleReceipt(req, env, userId) {
+  if (!env.GEMINI_API_KEY) {
+    return json({ error: 'Đọc ảnh hóa đơn cần khóa Gemini trên server (chạy dat-khoa-gemini.bat).' }, 503);
+  }
+  let b;
+  try {
+    b = await req.json();
+  } catch {
+    return json({ error: 'Dữ liệu không hợp lệ' }, 400);
+  }
+  const img = String(b.image || '');
+  if (!img || img.length > 6_000_000) return json({ error: 'Ảnh trống hoặc quá lớn' }, 400);
+  const key = userId != null ? 'u' + userId : 'ip' + (req.headers.get('cf-connecting-ip') || '?');
+  if (!(await underLimit(env, key))) return json({ error: `Hôm nay bạn đã dùng hết ${DAILY_LIMIT} lượt AI.` }, 429);
+  const today = /^\d{4}-\d{2}-\d{2}$/.test(b.today || '') ? b.today : new Date().toISOString().slice(0, 10);
+  const prompt = `Đây là ảnh hóa đơn, biên lai, hoặc ảnh chụp màn hình chuyển khoản / mã QR thanh toán ở Việt Nam. Hôm nay là ${today}.
+Đọc và trả về MỘT đối tượng JSON:
+{"found":true,"amount":125000,"income":false,"category":"an_uong","note":"tên cửa hàng hoặc nội dung ngắn","date":"YYYY-MM-DD"}
+- amount: TỔNG số tiền phải trả / đã chuyển (đồng, số nguyên).
+- income: true chỉ khi ảnh là tiền NHẬN vào.
+- category: một trong ${Object.keys(CATS).join(', ')}.
+- date: ngày trên hóa đơn nếu có, không có thì để trống.
+Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do ngắn bằng tiếng Việt"}.`;
+  const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ inline_data: { mime_type: b.mime || 'image/jpeg', data: img } }, { text: prompt }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' },
+      }),
+    });
+    if (!res.ok) return json({ error: 'AI chưa đọc được ảnh (' + res.status + '), thử lại sau.' }, 502);
+    const j = await res.json();
+    const p = extractJson((j.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join(''));
+    if (!p || !p.found) return json({ found: false, reason: (p && p.reason) || 'Không thấy số tiền trong ảnh' });
+    const acts = cleanActions([{ type: 'add_txn', ...p }]);
+    if (!acts.length) return json({ found: false, reason: 'Không thấy số tiền hợp lệ' });
+    return json({ found: true, ...acts[0] });
+  } catch (e) {
+    return json({ error: 'AI đang bận, thử lại sau.' }, 502);
+  }
+}

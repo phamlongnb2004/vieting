@@ -8,7 +8,8 @@ import '../widgets/charts.dart';
 import '../widgets/txn_tile.dart';
 
 class BudgetsScreen extends StatelessWidget {
-  const BudgetsScreen({super.key});
+  final bool embedded;
+  const BudgetsScreen({super.key, this.embedded = false});
 
   Future<void> _edit(BuildContext context, String? id) async {
     final store = StoreScope.read(context);
@@ -60,8 +61,8 @@ class BudgetsScreen extends StatelessWidget {
     final daysLeft = daysInMonth - now.day + 1;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ngân sách', style: TextStyle(fontWeight: FontWeight.w800))),
-      floatingActionButton: FloatingActionButton(onPressed: () => _edit(context, null), child: const Icon(Icons.add)),
+      appBar: embedded ? null : AppBar(title: const Text('Ngân sách', style: TextStyle(fontWeight: FontWeight.w800))),
+      floatingActionButton: FloatingActionButton(heroTag: 'budget', onPressed: () => _edit(context, null), child: const Icon(Icons.add)),
       body: budgets.isEmpty
           ? Center(
               child: Padding(
