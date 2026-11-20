@@ -10,6 +10,7 @@ import '../models.dart';
 import '../widgets/nudge.dart';
 import '../services/notify_bridge.dart';
 import '../store.dart';
+import '../ui_keys.dart';
 import '../util/format.dart';
 import 'assistant.dart';
 import 'plan.dart';
@@ -79,12 +80,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         final msg = added.length == 1
             ? 'Đã ghi ${money(added.first.signed, signed: true)} · ${store.walletName(added.first.walletId)}'
             : 'Đã tự ghi ${added.length} giao dịch từ thông báo ngân hàng';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(msg),
-          action: added.length == 1
-              ? SnackBarAction(label: 'Sửa', onPressed: () => openEditTxn(context, added.first))
-              : null,
-        ));
+        showToast(context, msg,
+            actionLabel: added.length == 1 ? 'Sửa' : null,
+            onAction: added.length == 1 ? () => openEditTxn(context, added.first) : null);
       }
     } finally {
       _draining = false;
@@ -111,7 +109,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         'added' => 'Đã ghi ${money(r.txn!.signed, signed: true)}',
         _ => 'Không đọc được số tiền trong tin nhắn',
       };
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      showToast(context, msg);
       return;
     }
     final amount = int.tryParse(uri.queryParameters['amount'] ?? '');

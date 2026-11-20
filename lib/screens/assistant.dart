@@ -7,6 +7,7 @@ import '../widgets/nudge.dart';
 import '../services/assistant.dart';
 import '../services/voice.dart';
 import '../store.dart';
+import '../ui_keys.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/logo.dart';
@@ -355,18 +356,14 @@ class _Bubble extends StatelessWidget {
                             return;
                           }
                         }
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(isTxn ? 'Đã ghi giao dịch' : 'Đã đặt ngân sách'),
-                          action: isTxn
-                              ? SnackBarAction(
-                                  label: 'Sửa',
-                                  onPressed: () {
+                        showToast(context, isTxn ? 'Đã ghi giao dịch' : 'Đã đặt ngân sách',
+                            actionLabel: isTxn ? 'Sửa' : null,
+                            onAction: isTxn
+                                ? () {
                                     final t = store.txns[r.substring(4)];
                                     if (t != null) openEditTxn(context, t);
-                                  },
-                                )
-                              : null,
-                        ));
+                                  }
+                                : null);
                       },
                       child: Text(msg.actions[i]['type'] == 'add_txn' ? 'Ghi' : 'Đặt'),
                     ),

@@ -9,8 +9,11 @@ void showNudges(List<Nudge> nudges) {
   final m = messengerKey.currentState;
   if (m == null) return;
   final serious = nudges.any((n) => n.serious);
+  m.hideCurrentSnackBar();
   m.showSnackBar(SnackBar(
     duration: const Duration(seconds: 7),
+    showCloseIcon: true,
+    closeIconColor: Colors.white,
     backgroundColor: serious ? const Color(0xFF8E1B1F) : const Color(0xFF152758),
     content: Column(
       mainAxisSize: MainAxisSize.min,

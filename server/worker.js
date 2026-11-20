@@ -7,6 +7,7 @@
 // POST /api/chat      {messages, context, today}  -> {reply, actions}  trợ lý AI (ai.js), đăng nhập không bắt buộc
 // GET  /admin                                 trang quản trị (admin.js); /api/admin/* cần quyền admin
 // GET  /api/notice                             thông báo admin gửi tới app
+// GET  /api/config  POST /api/redeem /api/ticket /api/ocr-report  GET /api/tickets   (config.js)
 // POST /api/sync      {since, changes: [...]}  -> {now, changes: [...]}   (header Authorization: Bearer <token>)
 //
 // Mỗi bản ghi: {kind: txn|wallet|budget|rule, id, data, u (thời điểm sửa), del}.
@@ -15,6 +16,7 @@
 import { handleDownload } from './download.js';
 import { handleChat, handleReceipt } from './ai.js';
 import { handleAdmin, adminPage, publicNotice } from './admin.js';
+import { publicConfig, redeem, createTicket, myTickets, ocrReport, pushFeed } from './config.js';
 
 const KINDS = new Set(['txn', 'wallet', 'budget', 'rule', 'goal', 'challenge', 'group', 'bill', 'wish', 'gift']);
 const MAX_CHANGES = 1000;
@@ -175,6 +177,13 @@ export default {
         return await handleAdmin(req, env, url, await auth(req, env), { json, readJson, randomHex, hashPassword });
       }
       if (req.method === 'GET' && url.pathname === '/api/notice') return await publicNotice(env, { json });
+      const h = { json, readJson };
+      if (req.method === 'GET' && url.pathname === '/api/config') return await publicConfig(req, env, await auth(req, env), h);
+      if (req.method === 'POST' && url.pathname === '/api/redeem') return await redeem(req, env, await auth(req, env), h);
+      if (req.method === 'POST' && url.pathname === '/api/ticket') return await createTicket(req, env, await auth(req, env), h);
+      if (req.method === 'GET' && url.pathname === '/api/tickets') return await myTickets(req, env, await auth(req, env), h);
+      if (req.method === 'GET' && url.pathname === '/api/push') return await pushFeed(req, env, await auth(req, env), h);
+      if (req.method === 'POST' && url.pathname === '/api/ocr-report') return await ocrReport(req, env, await auth(req, env), h);
       if (url.pathname === '/admin' || url.pathname === '/admin/') return adminPage();
       if (url.pathname === '/api') return json({ app: 'VieTing', ok: true });
       const p = url.pathname.replace(/\/+$/, '') || '/';

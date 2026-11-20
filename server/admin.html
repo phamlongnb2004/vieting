@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>VieTing · Quản trị</title>
+<link rel="icon" href="/icon.png">
+<style>
+  :root{--red:#C1272C;--navy:#152758;--bamboo:#3E8E41;--yellow:#FFCD00;--bg:#F6F4EF;--card:#fff;--line:#E7E2D8;--muted:#6B6A66;--ink:#1C1B19}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14.5px}
+  button,input,select,textarea{font:inherit}
+  .hidden{display:none!important}
+  /* login */
+  #login{min-height:100vh;display:grid;place-items:center;padding:20px;background:var(--navy)}
+  .lbox{width:100%;max-width:360px;background:#fff;border-radius:20px;padding:28px}
+  .lbox h1{margin:10px 0 2px;font-size:22px}
+  .lbox p{margin:0 0 18px;color:var(--muted)}
+  label{display:block;font-size:12.5px;color:var(--muted);margin:12px 0 4px}
+  input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  textarea{min-height:90px;resize:vertical}
+  .btn{border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;background:var(--red);color:#fff}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.navy{background:var(--navy)}
+  .btn.sm{padding:6px 10px;font-size:12.5px;font-weight:600}
+  .err{color:var(--red);min-height:20px;margin-top:10px;font-size:13px}
+  /* layout */
+  header{background:var(--navy);color:#fff;display:flex;align-items:center;gap:12px;padding:12px 20px;position:sticky;top:0;z-index:5}
+  header b{font-size:17px}
+  header .sp{flex:1}
+  header small{opacity:.75}
+  nav{display:flex;gap:2px;padding:10px 20px 0;max-width:1180px;margin:0 auto;overflow-x:auto;scrollbar-width:none}nav::-webkit-scrollbar{display:none}
+  nav button{white-space:nowrap;border:0;background:transparent;padding:10px 14px;border-radius:10px 10px 0 0;cursor:pointer;color:var(--muted);font-weight:600;border-bottom:3px solid transparent}
+  nav button.on{color:var(--red);border-bottom-color:var(--red)}
+  main{max-width:1180px;margin:0 auto;padding:16px 20px 60px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .kpi .n{font-size:28px;font-weight:800;letter-spacing:-.5px}
+  .kpi .l{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  @media (max-width:820px){.row{grid-template-columns:1fr}}
+  h3{margin:0 0 10px;font-size:15px}
+  .bars{display:flex;align-items:flex-end;gap:3px;height:140px;padding-top:6px}
+  .bars div{flex:1;background:var(--red);border-radius:4px 4px 0 0;min-height:2px;position:relative}
+  .bars.navy div{background:var(--navy)}
+  .bars div:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#000;color:#fff;font-size:11px;padding:3px 6px;border-radius:6px;white-space:nowrap;margin-bottom:4px}
+  .axis{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:6px}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+  .tw{overflow-x:auto}
+  .pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700}
+  .pill.red{background:#FBE3E3;color:var(--red)}
+  .pill.navy{background:#E3E8F5;color:var(--navy)}
+  .pill.green{background:#E2F1E2;color:var(--bamboo)}
+  .pill.gray{background:#EEECE7;color:var(--muted)}
+  .tools{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .tools input{max-width:320px}
+  .menu{position:relative;display:inline-block}
+  .menu .list{position:absolute;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px #0002;min-width:200px;z-index:4;padding:4px}
+  .menu .list button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 12px;border-radius:8px;cursor:pointer}
+  .menu .list button:hover{background:var(--bg)}
+  .menu .list button.danger{color:var(--red)}
+  .muted{color:var(--muted)}
+  .note{background:#FFF8E1;border:1px solid #F5E2A8;border-radius:12px;padding:10px 14px;font-size:13px;margin-bottom:12px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;z-index:20;max-width:90vw}
+  .nl{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+  .nl:last-child{border-bottom:0}
+  .nl .t{font-weight:700}
+  .preview{border-radius:14px;padding:12px 14px;margin-top:12px}
+  .preview.info{background:#E3E8F5}.preview.success{background:#E2F1E2}.preview.warning{background:#FFF1D6}
+  .badge{display:inline-block;min-width:18px;padding:0 5px;border-radius:99px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center;margin-left:4px}
+  .sub{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .sub button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;cursor:pointer;font-weight:600;color:var(--muted)}
+  .sub button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .form{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;align-items:end}
+  .form label{margin:0 0 4px}
+  .tk{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;background:#fff}
+  .tk .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+  .tk .b{white-space:pre-wrap}
+  .cell{display:inline-block;min-width:44px;padding:4px 6px;border-radius:6px;text-align:center;font-weight:700;font-size:12.5px}
+  .fbar{height:26px;border-radius:7px;background:var(--red);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;padding:0 8px;min-width:30px}
+  .up{color:var(--red);font-weight:700}.down{color:var(--bamboo);font-weight:700}
+  .occ{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;display:grid;grid-template-columns:1.2fr .6fr .6fr 2fr auto;gap:8px;align-items:center}
+  @media (max-width:820px){.occ{grid-template-columns:1fr 1fr}}
+  dialog{border:0;border-radius:16px;padding:22px;max-width:420px;width:92vw}
+  dialog::backdrop{background:#0006}
+</style>
+</head>
+<body>
+<section id="login">
+  <form class="lbox" id="lf">
+    <svg width="48" height="48" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#C1272C"/><path d="M18 18 L32 46 L46 18" stroke="#FFF8EC" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="14" r="4" fill="#FFCD00"/></svg>
+    <h1>Quản trị VieTing</h1>
+    <p>Đăng nhập bằng tài khoản VieTing có quyền admin.</p>
+    <label>Email</label><input id="em" type="email" autocomplete="username" required>
+    <label>Mật khẩu</label><input id="pw" type="password" autocomplete="current-password" required>
+    <div class="err" id="lerr"></div>
+    <button class="btn" style="width:100%;margin-top:6px">Đăng nhập</button>
+  </form>
+</section>
+
+<section id="app" class="hidden">
+  <header><b>VieTing</b><small>Quản trị</small><span class="sp"></span><small id="me"></small><button class="btn sm ghost" style="color:#fff;border-color:#fff4" id="out">Đăng xuất</button></header>
+  <nav id="tabs">
+    <button data-t="dash" class="on">Tổng quan</button>
+    <button data-t="users">Người dùng</button>
+    <button data-t="support">Hỗ trợ <span class="badge hidden" id="bt"></span></button>
+    <button data-t="ai">AI &amp; hóa đơn <span class="badge hidden" id="bo"></span></button>
+    <button data-t="events">Thử thách &amp; sự kiện</button>
+    <button data-t="catalog">Danh mục &amp; tỷ giá</button>
+    <button data-t="analytics">Phân tích</button>
+    <button data-t="notice">Thông báo tới app</button>
+    <button data-t="log">Nhật ký</button>
+  </nav>
+  <main>
+    <div id="dash">
+      <div class="grid" id="kpis"></div>
+      <div class="row">
+        <div class="card"><h3>Đăng ký mới · 30 ngày</h3><div class="bars" id="b1"></div><div class="axis" id="a1"></div></div>
+        <div class="card"><h3>Giao dịch được đồng bộ · 30 ngày</h3><div class="bars navy" id="b2"></div><div class="axis" id="a2"></div></div>
+      </div>
+      <div class="row">
+        <div class="card"><h3>Trợ lý AI · 14 ngày</h3><div id="ai"></div></div>
+        <div class="card"><h3>Hệ thống</h3><div id="sys"></div></div>
+      </div>
+    </div>
+
+    <div id="users" class="hidden">
+      <div class="note">Vì quyền riêng tư, trang quản trị chỉ hiện số lượng (số giao dịch, lần đồng bộ cuối…), không hiện nội dung chi tiêu của người dùng.</div>
+      <div class="tools">
+        <input id="q" placeholder="Tìm theo email…">
+        <select id="sort" style="max-width:200px"><option value="new">Mới đăng ký</option><option value="active">Hoạt động gần nhất</option></select>
+        <span class="sp"></span>
+      </div>
+      <div class="card tw"><table><thead><tr><th>Email</th><th>Đăng ký</th><th>Đồng bộ cuối</th><th>Giao dịch</th><th>Thiết bị</th><th>Trạng thái</th><th></th></tr></thead><tbody id="ub"></tbody></table>
+      <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:12px"><span class="muted" id="ucount"></span><span><button class="btn sm ghost" id="prev">‹ Trước</button> <button class="btn sm ghost" id="next">Sau ›</button></span></div></div>
+    </div>
+
+    <div id="notice" class="hidden">
+      <div class="row" style="margin-top:0">
+        <div class="card">
+          <h3>Gửi thông báo tới mọi người dùng</h3>
+          <label>Tiêu đề</label><input id="nt" maxlength="120" placeholder="VD: Đã có bản 0.2 – tách hóa đơn siêu thị">
+          <label>Nội dung</label><textarea id="nb" maxlength="1000"></textarea>
+          <label>Kiểu</label><select id="nlv"><option value="info">Thông tin</option><option value="success">Tin vui</option><option value="warning">Cảnh báo / bảo trì</option></select>
+          <div class="preview info" id="npv"><b>Tiêu đề</b><div class="muted">Nội dung</div></div>
+          <label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px;margin-top:14px"><input type="checkbox" id="npush" checked style="width:auto"> 🔔 Đẩy lên máy (hiện trên thanh thông báo, kể cả khi không mở app)</label>
+          <label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px"><input type="checkbox" id="ninapp" checked style="width:auto"> 📌 Ghim ở đầu trang Tổng quan trong app</label>
+          <p class="muted" style="font-size:12.5px">Android: máy tự hỏi server khoảng 30 phút / lần nên tin tới trong vòng ~30 phút. iPhone: hiện khi mở app (thông báo đẩy iOS cần tài khoản Apple Developer + APNs).</p>
+          <button class="btn" style="margin-top:4px" id="nsend">Gửi</button>
+        </div>
+        <div class="card"><h3>Ghim trong app</h3><div id="nlist"></div><h3 style="margin-top:18px">Đã đẩy lên máy</h3><div id="plist"></div></div>
+      </div>
+      <div class="card" style="margin-top:12px"><h3>🤖 Nhắc tự động trên máy người dùng</h3>
+        <p class="muted" style="margin-top:0">App tự hẹn giờ theo dữ liệu của từng người (không spam đồng loạt), chạy cả khi không mở app và không cần mạng. Người dùng tắt được trong Cài đặt. Dùng <code>{name}</code>, <code>{amount}</code> để chèn tên / số tiền. Áp dụng ở lần mở app tiếp theo.</p>
+        <div id="smart"></div>
+        <button class="btn" id="ssave" style="margin-top:10px">Lưu nhắc tự động</button>
+      </div>
+    </div>
+
+
+    <div id="support" class="hidden">
+      <div class="sub" id="ssub"><button data-s="tickets" class="on">Góp ý &amp; báo lỗi</button><button data-s="vouchers">Mã khuyến mãi Pro</button></div>
+      <div id="s-tickets">
+        <div class="tools"><select id="tst" style="max-width:220px"><option value="active">Đang mở / đang xử lý</option><option value="fixed">Đã sửa</option><option value="closed">Đã đóng</option><option value="all">Tất cả</option></select><select id="tft" style="max-width:220px"><option value="">Mọi tính năng</option></select></div>
+        <div id="tlist"></div>
+      </div>
+      <div id="s-vouchers" class="hidden">
+        <div class="card" style="margin-bottom:12px"><h3>Tạo mã khuyến mãi</h3>
+          <div class="form">
+            <div><label>Mã (để trống = tự tạo)</label><input id="vc" placeholder="TET2027"></div>
+            <div><label>Số ngày Pro</label><input id="vd" type="number" value="30" min="1"></div>
+            <div><label>Số lượt dùng</label><input id="vm" type="number" value="1" min="1"></div>
+            <div><label>Hết hạn sau (ngày, 0 = không)</label><input id="ve" type="number" value="0" min="0"></div>
+            <div><label>Ghi chú</label><input id="vn" placeholder="Bù lỗi đồng bộ cho…"></div>
+            <div><button class="btn" id="vadd">Tạo mã</button></div>
+          </div>
+          <p class="muted" style="margin-bottom:0">Pro hiện được 300 lượt trợ lý AI / ngày (Free 80). Thanh toán thật qua Apple / Google sẽ nối vào sau khi có tài khoản nhà phát triển.</p>
+        </div>
+        <div class="card tw"><table><thead><tr><th>Mã</th><th>Ngày Pro</th><th>Đã dùng</th><th>Hết hạn</th><th>Ghi chú</th><th></th></tr></thead><tbody id="vlist"></tbody></table></div>
+      </div>
+    </div>
+
+    <div id="ai" class="hidden">
+      <div class="sub" id="asub"><button data-s="dict" class="on">Từ điển nhận diện</button><button data-s="ocr">Hóa đơn đọc sai</button><button data-s="tone">Giọng trợ lý &amp; dịp</button></div>
+      <div id="s-dict">
+        <div class="card" style="margin-bottom:12px"><h3>Thêm / sửa từ</h3>
+          <p class="muted" style="margin-top:0">Từ lóng, tên thương hiệu… gắn với danh mục. App dùng để tự xếp danh mục khi đọc thông báo / nhập nhanh; trợ lý AI và đọc hóa đơn cũng hiểu theo. Áp dụng ngay, không cần cập nhật app.</p>
+          <div class="form">
+            <div><label>Từ khóa</label><input id="dk" placeholder="đổ xăng a95"></div>
+            <div><label>Danh mục</label><select id="dc" class="catsel"></select></div>
+            <div><label>Ghi chú</label><input id="dn" placeholder="xăng"></div>
+            <div><button class="btn" id="dadd">Lưu</button></div>
+          </div>
+        </div>
+        <div class="tools"><input id="dq" placeholder="Lọc từ khóa…"></div>
+        <div class="card tw"><table><thead><tr><th>Từ khóa</th><th>Danh mục</th><th>Ghi chú</th><th></th></tr></thead><tbody id="dlist"></tbody></table></div>
+      </div>
+      <div id="s-ocr" class="hidden">
+        <div class="note">Người dùng bấm "Báo AI đọc sai" sau khi chụp hóa đơn. Chỉ gửi số AI đọc ra và số người dùng sửa lại — <b>không có ảnh</b>, không có thông tin cá nhân. Dùng để bổ sung từ điển và chỉnh câu lệnh cho bản sau.</div>
+        <div class="card tw"><table><thead><tr><th>Ngày</th><th>AI đọc</th><th>Người dùng sửa thành</th><th>Ghi chú</th><th></th></tr></thead><tbody id="olist"></tbody></table></div>
+      </div>
+      <div id="s-tone" class="hidden">
+        <div class="card" style="margin-bottom:12px"><h3>Tính cách trợ lý</h3>
+          <label>🌿 Nhẹ nhàng</label><textarea id="tg"></textarea>
+          <label>😜 Hài hước</label><textarea id="tf"></textarea>
+          <label>😤 Nghiêm khắc</label><textarea id="ts"></textarea>
+        </div>
+        <div class="card"><h3>Dịp đặc biệt</h3>
+          <p class="muted" style="margin-top:0">Trong khoảng ngày (MM-DD, giờ Việt Nam), trợ lý thêm lời dặn theo dịp. Dịp "Ngày nhận lương" tự bật khi người dùng vừa tới ngày lương của họ.</p>
+          <div id="occ"></div>
+          <button class="btn ghost sm" id="oadd">+ Thêm dịp</button>
+        </div>
+        <button class="btn" style="margin-top:12px" id="tsave">Lưu giọng trợ lý &amp; dịp</button>
+      </div>
+    </div>
+
+    <div id="events" class="hidden">
+      <div class="card" style="margin-bottom:12px"><h3 id="eh">Tạo thử thách / sự kiện</h3>
+        <p class="muted" style="margin-top:0">Hiện trong tab Thói quen của app từ 14 ngày trước ngày bắt đầu tới ngày kết thúc. Người dùng bấm tham gia — không cần cập nhật app.</p>
+        <div class="form">
+          <div><label>Loại</label><select id="ek"><option value="avoid">Thử thách kiêng chi</option><option value="goal">Gom tiền (tạo hũ mục tiêu)</option></select></div>
+          <div><label>Biểu tượng</label><input id="ee" value="🧋" maxlength="8"></div>
+          <div style="grid-column:span 2"><label>Tên</label><input id="et" placeholder="7 ngày không trà sữa"></div>
+          <div><label>Bắt đầu hiện</label><input id="es" type="date"></div>
+          <div><label>Kết thúc</label><input id="eend" type="date"></div>
+          <div class="ea"><label>Số ngày thử thách</label><input id="ed" type="number" value="7" min="1" max="90"></div>
+          <div class="ea"><label>Từ khóa kiêng (phẩy)</label><input id="ew" placeholder="trà sữa, milk tea, phúc long"></div>
+          <div class="ea"><label>Hoặc kiêng cả danh mục</label><select id="ec" class="catsel"><option value="">(không)</option></select></div>
+          <div class="eg hidden"><label>Mục tiêu (₫)</label><input id="eg" type="number" placeholder="5000000"></div>
+        </div>
+        <label>Mô tả ngắn</label><textarea id="eb" style="min-height:60px" placeholder="Mỗi ly ~45k, 7 ngày là đủ một bữa lẩu!"></textarea>
+        <div style="margin-top:12px;display:flex;gap:8px"><button class="btn" id="esave">Lưu sự kiện</button><button class="btn ghost hidden" id="ecancel">Hủy sửa</button></div>
+      </div>
+      <div class="card"><h3>Đã lên lịch</h3><div id="elist"></div></div>
+    </div>
+
+    <div id="catalog" class="hidden">
+      <div class="row" style="margin-top:0">
+        <div class="card"><h3>Gói định kỳ phổ biến</h3>
+          <p class="muted" style="margin-top:0">App gợi ý nhanh khi người dùng thêm khoản định kỳ. Giá tham khảo — cập nhật khi nhà cung cấp đổi giá.</p>
+          <div class="form">
+            <div><label>Tên</label><input id="cn" placeholder="Netflix"></div>
+            <div><label>Giá (₫)</label><input id="ca" type="number"></div>
+            <div><label>Chu kỳ</label><select id="cc"><option value="month">Tháng</option><option value="year">Năm</option><option value="week">Tuần</option></select></div>
+            <div><label>Danh mục</label><select id="ccat" class="catsel"></select></div>
+            <div><button class="btn" id="cadd">Lưu</button></div>
+          </div>
+          <table style="margin-top:10px"><tbody id="clist"></tbody></table>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:12px"><h3>Lãi suất tiết kiệm tham chiếu</h3>
+            <div class="form">
+              <div><label>Kỳ hạn 6 tháng (%/năm)</label><input id="r6" type="number" step="0.1"></div>
+              <div><label>Kỳ hạn 12 tháng (%/năm)</label><input id="r12" type="number" step="0.1"></div>
+              <div><button class="btn" id="rsave">Lưu</button></div>
+            </div>
+            <label>Ghi chú</label><input id="rn" placeholder="Trung bình các ngân hàng lớn, tháng 11/2026">
+            <p class="muted" style="margin-bottom:0">App dùng để ước tính tiền lãi cho hũ mục tiêu.</p>
+          </div>
+          <div class="card"><h3>Tỷ giá ngoại tệ</h3><div id="fx"></div><button class="btn ghost sm" id="fxr" style="margin-top:8px">Cập nhật ngay</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="analytics" class="hidden">
+      <div class="card" style="margin-bottom:12px"><h3>Phễu người dùng</h3><p class="muted" style="margin-top:0">Người dùng rớt ở bước nào (chỉ tính tài khoản có đăng nhập đồng bộ).</p><div id="funnel"></div></div>
+      <div class="card" style="margin-bottom:12px"><h3>Giữ chân theo tuần đăng ký</h3><p class="muted" style="margin-top:0">% người còn dùng ở tuần thứ 1–4 sau khi đăng ký.</p><div class="tw" id="cohort"></div></div>
+      <div class="card"><h3>Xu hướng chi tiêu toàn hệ thống (ẩn danh)</h3><p class="muted" style="margin-top:0" id="tnote"></p><div class="tw" id="trend"></div></div>
+    </div>
+
+    <div id="log" class="hidden"><div class="card tw"><table><thead><tr><th>Thời gian</th><th>Admin</th><th>Thao tác</th><th>Đối tượng</th></tr></thead><tbody id="lb"></tbody></table></div></div>
+  </main>
+</section>
+
+<dialog id="dlg"><div id="dlgc"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn ghost" id="dno">Hủy</button><button class="btn" id="dok">Đồng ý</button></div></dialog>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let token=sessionStorage.getItem('vt_admin')||'';
+const fmt=n=>Number(n||0).toLocaleString('vi-VN');
+const ago=ms=>{if(!ms)return '<span class="muted">chưa</span>';const m=(Date.now()-ms)/60000;if(m<60)return Math.max(1,Math.round(m))+' phút trước';if(m<1440)return Math.round(m/60)+' giờ trước';const d=Math.round(m/1440);return d<60?d+' ngày trước':new Date(ms).toLocaleDateString('vi-VN')};
+const date=ms=>new Date(ms).toLocaleDateString('vi-VN');
+function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),3500)}
+async function api(path,body){
+  const r=await fetch('/api'+path,{method:body?'POST':'GET',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:body?JSON.stringify(body):undefined});
+  const j=await r.json().catch(()=>({error:'Lỗi mạng'}));
+  if(r.status===401||r.status===403){if(path.startsWith('/admin')){logout(j.error);}throw new Error(j.error||'Không có quyền')}
+  if(!r.ok)throw new Error(j.error||'Lỗi');
+  return j;
+}
+function ask(html,okText='Đồng ý'){return new Promise(res=>{$('#dlgc').innerHTML=html;$('#dok').textContent=okText;const d=$('#dlg');d.showModal();$('#dok').onclick=()=>{d.close();res(true)};$('#dno').onclick=()=>{d.close();res(false)}})}
+function logout(msg){token='';sessionStorage.removeItem('vt_admin');$('#app').classList.add('hidden');$('#login').classList.remove('hidden');if(msg)$('#lerr').textContent=msg}
+$('#out').onclick=()=>logout();
+$('#lf').onsubmit=async e=>{e.preventDefault();$('#lerr').textContent='';
+  try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:$('#em').value,password:$('#pw').value})});const j=await r.json();if(!r.ok)throw new Error(j.error||'Sai thông tin');token=j.token;sessionStorage.setItem('vt_admin',token);await start()}catch(err){$('#lerr').textContent=err.message}};
+async function start(){const me=await api('/admin/me');$('#me').textContent=me.email;$('#login').classList.add('hidden');$('#app').classList.remove('hidden');show('dash')}
+$('#tabs').onclick=e=>{const t=e.target.closest('[data-t]')?.dataset.t;if(t)show(t)};
+const LOAD={dash:()=>loadDash(),users:()=>loadUsers(),support:()=>loadSupport(),ai:()=>loadAi(),events:()=>loadEvents(),catalog:()=>loadCatalog(),analytics:()=>loadAnalytics(),notice:()=>loadNotices(),log:()=>loadLog()};
+function show(t){for(const b of document.querySelectorAll('#tabs button'))b.classList.toggle('on',b.dataset.t===t);for(const s of Object.keys(LOAD))$('#'+s).classList.toggle('hidden',s!==t);LOAD[t]().catch(e=>toast(e.message))}
+function bars(el,ax,days,vals){const max=Math.max(1,...vals);$(el).innerHTML=vals.map((v,i)=>'<div style="height:'+(v/max*100)+'%" data-t="'+days[i].slice(8)+'/'+days[i].slice(5,7)+': '+v+'"></div>').join('');$(ax).innerHTML='<span>'+days[0].slice(8)+'/'+days[0].slice(5,7)+'</span><span>hôm nay</span>'}
+async function loadDash(){
+  const s=await api('/admin/stats');
+  const k=[[s.users,'Người dùng'],[s.new7,'Mới trong 7 ngày'],[s.active1,'Hoạt động hôm nay'],[s.active7,'Hoạt động 7 ngày'],[s.active30,'Hoạt động 30 ngày'],[s.txns,'Giao dịch đang lưu'],[s.pro,'Đang dùng Pro'],[s.openTickets,'Phiếu hỗ trợ đang mở'],[s.newOcr,'Báo hóa đơn đọc sai mới'],[s.banned,'Tài khoản bị khóa'],[s.admins,'Admin']];
+  badge('#bt',s.openTickets);badge('#bo',s.newOcr);
+  $('#kpis').innerHTML=k.map(([n,l])=>'<div class="card kpi"><div class="n">'+fmt(n)+'</div><div class="l">'+l+'</div></div>').join('');
+  bars('#b1','#a1',s.days,s.signups);bars('#b2','#a2',s.days,s.txnDays);
+  $('#ai').innerHTML=s.ai.length?'<table><tr><th>Ngày</th><th>Lượt hỏi</th><th>Số người</th></tr>'+s.ai.slice().reverse().map(r=>'<tr><td>'+esc(r.day)+'</td><td>'+fmt(r.n)+'</td><td>'+fmt(r.people)+'</td></tr>').join('')+'</table>':'<p class="muted">Chưa có lượt hỏi nào.</p>';
+  $('#sys').innerHTML='<p>Trợ lý AI đang dùng: <b>'+esc(s.ai_provider)+'</b></p><p class="muted">Giới hạn 80 lượt AI / người / ngày để nằm trong gói miễn phí.</p><p><a href="/tai-app" target="_blank">Mở trang tải app ↗</a></p>';
+}
+let off=0,timer;
+$('#q').oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{off=0;loadUsers()},300)};
+$('#sort').onchange=()=>{off=0;loadUsers()};
+$('#prev').onclick=()=>{off=Math.max(0,off-50);loadUsers()};
+$('#next').onclick=()=>{off+=50;loadUsers()};
+async function loadUsers(){
+  const j=await api('/admin/users?q='+encodeURIComponent($('#q').value)+'&sort='+$('#sort').value+'&offset='+off);
+  $('#ucount').textContent=j.total?('Hiển thị '+(off+1)+'–'+(off+j.users.length)+' / '+fmt(j.total)):'Không có ai';
+  $('#prev').disabled=off===0;$('#next').disabled=off+50>=j.total;
+  $('#ub').innerHTML=j.users.map(u=>'<tr><td><b>'+esc(u.email)+'</b>'+(u.admin?' <span class="pill navy">admin</span>':'')+(u.pro_until?' <span class="pill green" title="đến '+date(u.pro_until)+'">Pro</span>':'')+'</td><td>'+date(u.created)+'</td><td>'+ago(u.last)+'</td><td>'+fmt(u.txn)+'</td><td>'+fmt(u.devices)+'</td><td>'+(u.banned!==null&&u.banned!==undefined?'<span class="pill red">Đã khóa</span>':(u.last&&Date.now()-u.last<7*864e5?'<span class="pill green">Đang dùng</span>':'<span class="pill gray">Ít dùng</span>'))+'</td><td style="text-align:right"><div class="menu"><button class="btn sm ghost" data-m="'+u.id+'">⋯</button><div class="list hidden" id="m'+u.id+'">'
+    +(u.banned!==null&&u.banned!==undefined?'<button data-a="unban" data-id="'+u.id+'" data-e="'+esc(u.email)+'">Mở khóa tài khoản</button>':'<button data-a="ban" data-id="'+u.id+'" data-e="'+esc(u.email)+'">Khóa tài khoản</button>')
+    +'<button data-a="logout" data-id="'+u.id+'" data-e="'+esc(u.email)+'">Đăng xuất mọi thiết bị</button>'
+    +'<button data-a="gift" data-id="'+u.id+'" data-e="'+esc(u.email)+'">Tặng ngày Pro</button>'+(u.pro_until?'<button data-a="unpro" data-id="'+u.id+'" data-e="'+esc(u.email)+'">Hủy Pro (đến '+date(u.pro_until)+')</button>':'')
+    +'<button data-a="reset" data-id="'+u.id+'" data-e="'+esc(u.email)+'">Đặt lại mật khẩu</button>'
+    +(u.admin?'<button data-a="unadmin" data-id="'+u.id+'" data-e="'+esc(u.email)+'">Bỏ quyền admin</button>':'<button data-a="admin" data-id="'+u.id+'" data-e="'+esc(u.email)+'">Cấp quyền admin</button>')
+    +'<button class="danger" data-a="delete" data-id="'+u.id+'" data-e="'+esc(u.email)+'">Xóa tài khoản + dữ liệu</button></div></div></td></tr>').join('');
+}
+document.addEventListener('click',async e=>{
+  const m=e.target.closest('[data-m]');
+  for(const l of document.querySelectorAll('.menu .list'))if(!m||l.id!=='m'+m.dataset.m)l.classList.add('hidden');
+  if(m){$('#m'+m.dataset.m).classList.toggle('hidden');return}
+  const a=e.target.closest('[data-a]');if(!a)return;
+  const id=a.dataset.id,em=a.dataset.e,act=a.dataset.a;
+  const txt={ban:['Khóa tài khoản <b>'+esc(em)+'</b>?','Người này bị đăng xuất và không đăng nhập / đồng bộ được nữa. Dữ liệu vẫn giữ.<label>Lý do (không bắt buộc)</label><input id="why">','Khóa'],
+    gift:['Tặng ngày Pro cho <b>'+esc(em)+'</b>','Cộng thêm vào hạn Pro hiện tại (VD bù cho người gặp lỗi thanh toán / đồng bộ).<label>Số ngày</label><input id="gd" type="number" value="30" min="1"><label>Lý do</label><input id="why">','Tặng'],
+    unpro:['Hủy gói Pro của <b>'+esc(em)+'</b>?','','Hủy Pro'],
+    unban:['Mở khóa <b>'+esc(em)+'</b>?','','Mở khóa'],
+    logout:['Đăng xuất <b>'+esc(em)+'</b> khỏi mọi thiết bị?','Họ cần đăng nhập lại, dữ liệu không mất.','Đăng xuất'],
+    reset:['Đặt lại mật khẩu cho <b>'+esc(em)+'</b>?','Mật khẩu mới sẽ hiện một lần để bạn gửi cho họ. Các thiết bị đang đăng nhập sẽ bị đăng xuất.','Đặt lại'],
+    admin:['Cấp quyền admin cho <b>'+esc(em)+'</b>?','Người này sẽ vào được trang quản trị này.','Cấp quyền'],
+    unadmin:['Bỏ quyền admin của <b>'+esc(em)+'</b>?','','Bỏ quyền'],
+    delete:['Xóa vĩnh viễn <b>'+esc(em)+'</b>?','Toàn bộ giao dịch, ví, ngân sách… của tài khoản này trên server bị xóa và <b>không khôi phục được</b>.<label>Gõ <b>XOA</b> để xác nhận</label><input id="cf">','Xóa vĩnh viễn']}[act];
+  if(!await ask('<h3>'+txt[0]+'</h3><p class="muted">'+txt[1]+'</p>',txt[2]))return;
+  if(act==='delete'&&($('#cf')?.value||'').trim().toUpperCase()!=='XOA'){toast('Chưa gõ XOA, không xóa');return}
+  try{const r=await api('/admin/user',{id:Number(id),action:act,reason:$('#why')?.value||'',days:Number($('#gd')?.value||0)});
+    if(r.password){await ask('<h3>Mật khẩu mới của '+esc(em)+'</h3><p style="font-size:22px;font-weight:800;letter-spacing:1px">'+esc(r.password)+'</p><p class="muted">Gửi riêng cho người dùng và nhắc họ đổi lại. Mật khẩu này không hiện lại nữa.</p>','Đã chép');}
+    else toast(r.until?'Pro đến '+date(r.until):'Xong');loadUsers()}catch(err){toast(err.message)}
+});
+function pv(){const p=$('#npv');p.className='preview '+$('#nlv').value;p.innerHTML='<b>'+esc($('#nt').value||'Tiêu đề')+'</b><div class="muted">'+esc($('#nb').value||'Nội dung')+'</div>'}
+['#nt','#nb','#nlv'].forEach(s=>$(s).addEventListener('input',pv));
+$('#nsend').onclick=async()=>{const push=$('#npush').checked,inApp=$('#ninapp').checked;if(push&&!await ask('<h3>Đẩy thông báo tới máy của mọi người dùng?</h3><p class="muted">Không thu hồi được sau khi máy đã nhận.</p>','Gửi'))return;try{await api('/admin/notice',{title:$('#nt').value,body:$('#nb').value,level:$('#nlv').value,push,inApp});$('#nt').value='';$('#nb').value='';pv();toast('Đã gửi');loadNotices()}catch(e){toast(e.message)}};
+const SMART={daily:['📝 Nhắc ghi chi tiêu mỗi tối','Chỉ nhắc nếu hôm đó chưa ghi gì','hour','Giờ nhắc'],comeback:['🎋 Bỏ app vài ngày','Gửi khi người dùng không mở app N ngày','days','Sau (ngày)'],bill:['🔁 Khoản định kỳ sắp trừ tiền','{name} = tên gói, {amount} = số tiền','before','Trước (ngày)'],wish:['🧊 Món chờ mua đủ 48 giờ','{name} = tên món'],gift:['🧧 Sắp tới dịp hiếu hỉ','{name} = tên người'],payday:['💰 Ngày nhận lương','Theo ngày bắt đầu kỳ chi tiêu người dùng chọn']};
+async function loadSmart(){const j=await api('/admin/smart');$('#smart').innerHTML=Object.entries(SMART).map(([k,m])=>{const v=j.smart[k];return '<div class="occ" data-k="'+k+'" style="grid-template-columns:auto 1.4fr 2.2fr '+(m[2]?'.6fr':'')+'"><input type="checkbox" class="son" '+(v.on?'checked':'')+' style="width:auto" title="Bật"><div><b>'+m[0]+'</b><div class="muted" style="font-size:12px">'+m[1]+'</div><input class="sti" value="'+esc(v.title)+'" style="margin-top:6px"></div><textarea class="sbo" style="min-height:58px">'+esc(v.body)+'</textarea>'+(m[2]?'<div><label style="margin:0">'+m[3]+'</label><input type="number" class="snum" value="'+esc(v[m[2]])+'"></div>':'')+'</div>'}).join('')}
+$('#ssave').onclick=async()=>{const smart={};for(const d of document.querySelectorAll('#smart [data-k]')){const k=d.dataset.k,m=SMART[k];smart[k]={on:d.querySelector('.son').checked,title:d.querySelector('.sti').value,body:d.querySelector('.sbo').value};if(m[2])smart[k][m[2]]=Number(d.querySelector('.snum').value)}try{await api('/admin/smart',{smart});toast('Đã lưu nhắc tự động')}catch(e){toast(e.message)}};
+async function loadNotices(){loadSmart();api('/admin/pushes').then(p=>{$('#plist').innerHTML=p.pushes.map(x=>'<div class="nl"><div style="flex:1"><div class="t">🔔 '+esc(x.title)+'</div><div class="muted">'+esc(x.body)+'</div><small class="muted">'+new Date(x.created).toLocaleString('vi-VN')+'</small></div></div>').join('')||'<p class="muted">Chưa đẩy tin nào.</p>'});const j=await api('/admin/notices');$('#nlist').innerHTML=j.notices.length?j.notices.map(n=>'<div class="nl"><div style="flex:1"><div class="t">'+esc(n.title)+' '+(n.active?'<span class="pill green">đang hiện</span>':'<span class="pill gray">đã tắt</span>')+'</div><div class="muted">'+esc(n.body)+'</div><small class="muted">'+date(n.created)+'</small></div><button class="btn sm ghost" data-nt="'+n.id+'">'+(n.active?'Tắt':'Bật lại')+'</button><button class="btn sm ghost" data-nd="'+n.id+'">Xóa</button></div>').join(''):'<p class="muted">Chưa gửi thông báo nào.</p>'}
+$('#nlist').onclick=async e=>{const t=e.target.dataset.nt,d=e.target.dataset.nd;try{if(t)await api('/admin/notice',{id:Number(t),toggle:true});if(d&&await ask('<h3>Xóa thông báo này?</h3>','Xóa'))await api('/admin/notice',{id:Number(d),remove:true});loadNotices()}catch(err){toast(err.message)}};
+const ACT={gift:'Tặng Pro',unpro:'Hủy Pro',dict:'Từ điển','dict-delete':'Xóa từ',ocr:'Hóa đơn đọc sai','ai-config':'Sửa giọng trợ lý / dịp',campaign:'Lưu sự kiện','campaign-toggle':'Bật/tắt sự kiện','campaign-delete':'Xóa sự kiện',catalog:'Gói định kỳ','catalog-delete':'Xóa gói',rates:'Lãi suất',voucher:'Tạo mã','voucher-delete':'Xóa mã',ban:'Khóa',unban:'Mở khóa',logout:'Đăng xuất mọi thiết bị',reset:'Đặt lại mật khẩu',admin:'Cấp admin',unadmin:'Bỏ admin',delete:'Xóa tài khoản',notice:'Gửi thông báo','notice+push':'Gửi + đẩy thông báo',push:'Đẩy thông báo',smart:'Sửa nhắc tự động','notice-toggle':'Bật/tắt thông báo','notice-delete':'Xóa thông báo'};
+async function loadLog(){const j=await api('/admin/log');$('#lb').innerHTML=j.log.map(l=>'<tr><td>'+new Date(l.created).toLocaleString('vi-VN')+'</td><td>'+esc(l.admin)+'</td><td>'+esc(ACT[l.action]||ACT[l.action.split(' ')[0]]&&(ACT[l.action.split(' ')[0]]+' '+l.action.split(' ').slice(1).join(' '))||l.action)+'</td><td>'+esc(l.target)+'</td></tr>').join('')||'<tr><td colspan="4" class="muted">Chưa có thao tác nào.</td></tr>'}
+function badge(sel,n){const e=$(sel);e.textContent=n;e.classList.toggle('hidden',!n)}
+const CAT={an_uong:'Ăn uống',di_lai:'Đi lại',mua_sam:'Mua sắm',hoa_don:'Hóa đơn',nha_o:'Nhà ở',giai_tri:'Giải trí',suc_khoe:'Sức khỏe',giao_duc:'Giáo dục',gia_dinh:'Gia đình & quà',chuyen_di:'Chuyển khoản đi',chi_ho:'Chi hộ',chuyen_vi:'Chuyển ví',khac_chi:'Chi khác',luong:'Lương',thuong:'Thưởng',dau_tu:'Lãi & đầu tư',nhan_tien:'Nhận chuyển khoản',khac_thu:'Thu khác',thu_ho:'Nhận lại tiền chi hộ',nhan_vi:'Nhận từ ví khác'};
+for(const el of document.querySelectorAll('.catsel'))el.insertAdjacentHTML('beforeend',Object.entries(CAT).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join(''));
+const FEAT={doc_thong_bao:'Đọc thông báo ngân hàng',giong_noi:'Nhập bằng giọng nói',hoa_don:'Chụp hóa đơn',tro_ly:'Trợ lý AI',dong_bo:'Đồng bộ / đăng nhập',so_chung:'Sổ chung / ví nhóm',ngan_sach:'Ngân sách & mục tiêu',giao_dien:'Giao diện',thanh_toan:'Gói Pro / thanh toán',khac:'Khác'};
+$('#tft').insertAdjacentHTML('beforeend',Object.entries(FEAT).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join(''));
+const ST={open:['Mới','red'],doing:['Đang xử lý','navy'],fixed:['Đã sửa','green'],closed:['Đã đóng','gray']};
+const money=n=>fmt(n)+' ₫';
+function subtabs(box,cb){$(box).onclick=e=>{const s=e.target.dataset.s;if(!s)return;for(const b of $(box).querySelectorAll('button'))b.classList.toggle('on',b.dataset.s===s);for(const b of $(box).querySelectorAll('button'))$('#s-'+b.dataset.s).classList.toggle('hidden',b.dataset.s!==s);cb(s)}}
+
+// ----- Hỗ trợ -----
+let supTab='tickets';
+subtabs('#ssub',s=>{supTab=s;loadSupport()});
+$('#tst').onchange=()=>loadSupport();$('#tft').onchange=()=>loadSupport();
+async function loadSupport(){
+  if(supTab==='vouchers')return loadVouchers();
+  const j=await api('/admin/tickets?status='+$('#tst').value);
+  const f=$('#tft').value;const list=j.tickets.filter(t=>!f||t.feature===f);
+  $('#tlist').innerHTML=list.length?list.map(t=>'<div class="tk"><div class="h"><b>#'+t.id+'</b><span class="pill '+ST[t.status][1]+'">'+ST[t.status][0]+'</span><span class="pill gray">'+esc(FEAT[t.feature]||t.feature)+'</span><span class="muted">'+esc(t.email||t.contact||'Khách (chưa đăng nhập)')+' · '+new Date(t.created).toLocaleString('vi-VN')+(t.app?' · '+esc(t.app):'')+'</span></div><div class="b">'+esc(t.body)+'</div>'
+    +'<label>Phản hồi gửi lại người dùng'+(t.user_id?'':' (khách chưa đăng nhập không xem được trong app'+(t.contact?', liên hệ: '+esc(t.contact):'')+')')+'</label><textarea data-r="'+t.id+'" style="min-height:60px">'+esc(t.reply)+'</textarea>'
+    +'<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'+Object.entries(ST).map(([k,v])=>'<button class="btn sm '+(k===t.status?'navy':'ghost')+'" data-ts="'+k+'" data-id="'+t.id+'">'+(k==='fixed'?'✓ ':'')+v[0]+'</button>').join('')+'<button class="btn sm" data-ts="" data-id="'+t.id+'">Gửi phản hồi</button></div></div>').join(''):'<p class="muted">Không có phiếu nào.</p>';
+}
+$('#tlist').onclick=async e=>{const b=e.target.closest('[data-id]');if(!b||b.dataset.ts===undefined)return;const id=b.dataset.id;try{await api('/admin/ticket',{id:Number(id),status:b.dataset.ts||undefined,reply:document.querySelector('[data-r="'+id+'"]').value});toast('Đã lưu — người dùng sẽ thấy trong app');loadSupport()}catch(err){toast(err.message)}};
+async function loadVouchers(){const j=await api('/admin/vouchers');$('#vlist').innerHTML=j.vouchers.map(v=>'<tr><td><b>'+esc(v.code)+'</b></td><td>'+v.days+'</td><td>'+v.used+' / '+v.max_uses+'</td><td>'+(v.expires?date(v.expires):'—')+'</td><td>'+esc(v.note)+'</td><td><button class="btn sm ghost" data-vd="'+esc(v.code)+'">Xóa</button></td></tr>').join('')||'<tr><td colspan="6" class="muted">Chưa có mã nào.</td></tr>'}
+$('#vadd').onclick=async()=>{try{const r=await api('/admin/voucher',{code:$('#vc').value,days:Number($('#vd').value),max_uses:Number($('#vm').value),expires_days:Number($('#ve').value),note:$('#vn').value});$('#vc').value='';toast('Đã tạo mã '+r.code);loadVouchers()}catch(e){toast(e.message)}};
+$('#vlist').onclick=async e=>{const c=e.target.dataset.vd;if(c&&await ask('<h3>Xóa mã '+esc(c)+'?</h3>','Xóa')){await api('/admin/voucher',{code:c,remove:true});loadVouchers()}};
+
+// ----- AI -----
+let aiTab='dict',dictAll=[];
+subtabs('#asub',s=>{aiTab=s;loadAi()});
+async function loadAi(){
+  if(aiTab==='dict'){dictAll=(await api('/admin/dict')).dict;drawDict()}
+  else if(aiTab==='ocr'){const j=await api('/admin/ocr');const f=o=>{try{o=JSON.parse(o)}catch{return''}return '<b>'+money(o.amount)+'</b> · '+esc(CAT[o.category]||o.category)+'<br><span class="muted">'+esc(o.note)+'</span>'};
+    $('#olist').innerHTML=j.reports.map(r=>'<tr style="'+(r.status==='done'?'opacity:.5':'')+'"><td>'+date(r.created)+'</td><td>'+f(r.ai)+'</td><td>'+f(r.fixed)+'</td><td>'+esc(r.comment)+'</td><td style="white-space:nowrap"><button class="btn sm ghost" data-od="'+r.id+'" data-st="'+(r.status==='done'?'new':'done')+'">'+(r.status==='done'?'Mở lại':'Đã xử lý')+'</button> <button class="btn sm ghost" data-ok="'+esc((()=>{try{const x=JSON.parse(r.fixed);return x.note+'|'+x.category}catch{return''}})())+'">+ Từ điển</button></td></tr>').join('')||'<tr><td colspan="5" class="muted">Chưa có báo cáo nào.</td></tr>'}
+  else{const j=await api('/admin/ai-config');$('#tg').value=j.tones.gentle;$('#tf').value=j.tones.funny;$('#ts').value=j.tones.strict;$('#occ').innerHTML='';j.occasions.forEach(addOcc)}
+}
+function drawDict(){const q=$('#dq').value.toLowerCase();$('#dlist').innerHTML=dictAll.filter(d=>!q||d.keyword.includes(q)).map(d=>'<tr><td><b>'+esc(d.keyword)+'</b></td><td>'+esc(CAT[d.category]||d.category)+'</td><td class="muted">'+esc(d.note)+'</td><td style="text-align:right"><button class="btn sm ghost" data-de="'+d.id+'">Sửa</button> <button class="btn sm ghost" data-dd="'+d.id+'">Xóa</button></td></tr>').join('')}
+$('#dq').oninput=drawDict;
+$('#dadd').onclick=async()=>{try{await api('/admin/dict',{keyword:$('#dk').value,category:$('#dc').value,note:$('#dn').value});$('#dk').value='';$('#dn').value='';toast('Đã lưu');loadAi()}catch(e){toast(e.message)}};
+$('#dlist').onclick=async e=>{const ed=e.target.dataset.de,dd=e.target.dataset.dd;if(ed){const d=dictAll.find(x=>x.id==ed);$('#dk').value=d.keyword;$('#dc').value=d.category;$('#dn').value=d.note;$('#dk').focus()}if(dd&&await ask('<h3>Xóa từ này?</h3>','Xóa')){await api('/admin/dict',{id:Number(dd),remove:true});loadAi()}};
+$('#olist').onclick=async e=>{const b=e.target;if(b.dataset.od){await api('/admin/ocr',{id:Number(b.dataset.od),status:b.dataset.st});loadAi()}if(b.dataset.ok!==undefined){const [n,c]=b.dataset.ok.split('|');$('#asub [data-s=dict]').click();$('#dk').value=(n||'').toLowerCase();if(c)$('#dc').value=c;$('#dk').focus()}};
+function addOcc(o={name:'',from:'',to:'',note:''}){const d=document.createElement('div');d.className='occ';d.innerHTML='<input class="on" placeholder="Tên dịp" value="'+esc(o.name)+'">'+(o.payday?'<span class="muted" style="grid-column:span 2">tự bật vào ngày nhận lương</span><input type="hidden" class="op" value="1">':'<input class="of" placeholder="MM-DD" value="'+esc(o.from)+'"><input class="ot" placeholder="MM-DD" value="'+esc(o.to)+'">')+'<input class="onote" placeholder="Lời dặn cho trợ lý trong dịp này" value="'+esc(o.note)+'"><button class="btn sm ghost">✕</button>';d.querySelector('button').onclick=()=>d.remove();$('#occ').append(d)}
+$('#oadd').onclick=()=>addOcc();
+$('#tsave').onclick=async()=>{const occasions=[...document.querySelectorAll('#occ .occ')].map(d=>d.querySelector('.op')?{name:d.querySelector('.on').value,payday:true,note:d.querySelector('.onote').value}:{name:d.querySelector('.on').value,from:d.querySelector('.of').value,to:d.querySelector('.ot').value,note:d.querySelector('.onote').value});try{await api('/admin/ai-config',{tones:{gentle:$('#tg').value,funny:$('#tf').value,strict:$('#ts').value},occasions});toast('Đã lưu — trợ lý áp dụng trong vòng 1 phút');loadAi()}catch(e){toast(e.message)}};
+
+// ----- Sự kiện -----
+let evEdit=null,evAll=[];
+const dIn=ms=>new Date(ms+7*3600000).toISOString().slice(0,10);
+const dOut=s=>Date.parse(s+'T00:00:00+07:00');
+function evKind(){const g=$('#ek').value==='goal';document.querySelectorAll('.ea').forEach(e=>e.classList.toggle('hidden',g));$('.eg').classList.toggle('hidden',!g)}
+$('#ek').onchange=evKind;
+function evReset(){evEdit=null;$('#eh').textContent='Tạo thử thách / sự kiện';$('#ecancel').classList.add('hidden');$('#et').value='';$('#eb').value='';$('#ew').value='';$('#ec').value='';$('#eg').value='';$('#ed').value=7;$('#es').value=dIn(Date.now());$('#eend').value=dIn(Date.now()+30*864e5);evKind()}
+$('#ecancel').onclick=evReset;
+async function loadEvents(){if(!$('#es').value)evReset();evAll=(await api('/admin/campaigns')).campaigns;const now=Date.now();
+  $('#elist').innerHTML=evAll.map(c=>{const st=!c.active?['Đã tắt','gray']:c.end<now?['Đã kết thúc','gray']:c.start>now?['Sắp tới','navy']:['Đang diễn ra','green'];
+    return '<div class="nl"><div style="font-size:26px">'+esc(c.emoji)+'</div><div style="flex:1"><div class="t">'+esc(c.title)+' <span class="pill '+st[1]+'">'+st[0]+'</span></div><div class="muted">'+(c.kind==='goal'?'Gom '+money(c.target):c.days+' ngày kiêng '+esc([c.keywords,CAT[c.category]].filter(Boolean).join(' · ')))+' · '+date(c.start)+' → '+date(c.end)+'</div><div>'+esc(c.body)+'</div></div><button class="btn sm ghost" data-ee="'+c.id+'">Sửa</button><button class="btn sm ghost" data-et="'+c.id+'">'+(c.active?'Tắt':'Bật')+'</button><button class="btn sm ghost" data-ed="'+c.id+'">Xóa</button></div>'}).join('')||'<p class="muted">Chưa có sự kiện nào. Gợi ý: "7 ngày không trà sữa", "Gom tiền lì xì Tết", "Tuần không Shopee".</p>'}
+$('#esave').onclick=async()=>{try{await api('/admin/campaign',{id:evEdit||undefined,kind:$('#ek').value,emoji:$('#ee').value,title:$('#et').value,body:$('#eb').value,keywords:$('#ew').value,category:$('#ec').value,days:Number($('#ed').value),target:Number($('#eg').value),start:dOut($('#es').value),end:dOut($('#eend').value)+864e5-1});toast('Đã lưu sự kiện');evReset();loadEvents()}catch(e){toast(e.message)}};
+$('#elist').onclick=async e=>{const b=e.target.dataset;if(b.ee){const c=evAll.find(x=>x.id==b.ee);evEdit=c.id;$('#eh').textContent='Sửa: '+c.title;$('#ecancel').classList.remove('hidden');$('#ek').value=c.kind;$('#ee').value=c.emoji;$('#et').value=c.title;$('#eb').value=c.body;$('#ew').value=c.keywords;$('#ec').value=c.category;$('#ed').value=c.days;$('#eg').value=c.target||'';$('#es').value=dIn(c.start);$('#eend').value=dIn(c.end);evKind();scrollTo({top:0,behavior:'smooth'})}
+  if(b.et){await api('/admin/campaign',{id:Number(b.et),toggle:true});loadEvents()}
+  if(b.ed&&await ask('<h3>Xóa sự kiện này?</h3><p class="muted">Người đã tham gia vẫn giữ thử thách trong app.</p>','Xóa')){await api('/admin/campaign',{id:Number(b.ed),remove:true});loadEvents()}};
+
+// ----- Danh mục & tỷ giá -----
+let catAll=[];
+async function loadCatalog(){const j=await api('/admin/catalog');catAll=j.catalog;
+  $('#clist').innerHTML=catAll.map(c=>'<tr><td><b>'+esc(c.name)+'</b></td><td>'+money(c.amount)+'/'+({month:'tháng',year:'năm',week:'tuần'}[c.cycle])+'</td><td class="muted">'+esc(CAT[c.category]||c.category)+'</td><td style="text-align:right;white-space:nowrap"><button class="btn sm ghost" data-ce="'+c.id+'">Sửa</button> <button class="btn sm ghost" data-cd="'+c.id+'">Xóa</button></td></tr>').join('');
+  $('#r6').value=j.rates.saving6;$('#r12').value=j.rates.saving12;$('#rn').value=j.rates.note||'';drawFx(j.fx)}
+function drawFx(fx){$('#fx').innerHTML=Object.keys(fx.rates||{}).length?'<table>'+Object.entries(fx.rates).map(([k,v])=>'<tr><td><b>1 '+k+'</b></td><td>'+fmt(v)+' ₫</td></tr>').join('')+'</table><p class="muted">Tự cập nhật mỗi 6 giờ từ '+esc(fx.source)+' · lần cuối '+new Date(fx.at).toLocaleString('vi-VN')+'</p>':'<p class="muted">Chưa lấy được tỷ giá.</p>'}
+$('#cadd').onclick=async()=>{const ex=catAll.find(c=>c.name.toLowerCase()===$('#cn').value.trim().toLowerCase());try{await api('/admin/catalog',{id:ex?.id,sort:ex?.sort,name:$('#cn').value,amount:Number($('#ca').value),cycle:$('#cc').value,category:$('#ccat').value});$('#cn').value='';$('#ca').value='';toast('Đã lưu');loadCatalog()}catch(e){toast(e.message)}};
+$('#clist').onclick=async e=>{const b=e.target.dataset;if(b.ce){const c=catAll.find(x=>x.id==b.ce);$('#cn').value=c.name;$('#ca').value=c.amount;$('#cc').value=c.cycle;$('#ccat').value=c.category}if(b.cd&&await ask('<h3>Xóa gói này?</h3>','Xóa')){await api('/admin/catalog',{id:Number(b.cd),remove:true});loadCatalog()}};
+$('#rsave').onclick=async()=>{try{await api('/admin/rates',{saving6:Number($('#r6').value),saving12:Number($('#r12').value),note:$('#rn').value});toast('Đã lưu lãi suất')}catch(e){toast(e.message)}};
+$('#fxr').onclick=async()=>{try{drawFx((await api('/admin/fx-refresh',{})).fx);toast('Đã cập nhật tỷ giá')}catch(e){toast(e.message)}};
+
+// ----- Phân tích -----
+async function loadAnalytics(){const j=await api('/admin/analytics');
+  const top=Math.max(1,j.funnel[0][1]);
+  $('#funnel').innerHTML=j.funnel.map(([l,n],i)=>'<div style="display:grid;grid-template-columns:200px 1fr 70px;gap:10px;align-items:center;margin:6px 0"><span>'+esc(l)+'</span><div><div class="fbar" style="width:'+Math.max(2,n/top*100)+'%;background:'+(i>4?'var(--navy)':'var(--red)')+'">'+fmt(n)+'</div></div><span class="muted">'+Math.round(n/top*100)+'%</span></div>').join('');
+  const col=v=>v==null?'<span class="cell muted">—</span>':'<span class="cell" style="background:rgba(193,39,44,'+(0.08+v/100*0.8)+');color:'+(v>45?'#fff':'#1C1B19')+'">'+v+'%</span>';
+  $('#cohort').innerHTML='<table><tr><th>Tuần đăng ký</th><th>Số người</th><th>Tuần 1</th><th>Tuần 2</th><th>Tuần 3</th><th>Tuần 4</th></tr>'+j.cohorts.map(c=>'<tr><td>'+esc(c.week)+'</td><td>'+c.size+'</td>'+c.w.map(col).join('')+'</tr>').join('')+'</table>';
+  $('#tnote').innerHTML='So tháng này với tháng trước, theo danh mục. Không gồm khoản riêng tư và chuyển tiền nội bộ. Nhóm dưới <b>'+j.k+' người</b> bị ẩn để không lộ ai. Chưa chia theo độ tuổi vì app chưa hỏi năm sinh.';
+  $('#trend').innerHTML=j.trends.length?'<table><tr><th>Danh mục</th><th>Tháng này (TB / người)</th><th>Tháng trước (TB / người)</th><th>Thay đổi</th><th>Số người</th></tr>'+j.trends.map(t=>{const a=t.cur&&!t.cur.hidden?t.cur.avg:null,b=t.prev&&!t.prev.hidden?t.prev.avg:null;const ch=a!=null&&b?Math.round((a-b)/b*100):null;return '<tr><td>'+esc(CAT[t.cat]||t.cat)+'</td><td>'+(a!=null?money(a):'<span class="muted">ẩn</span>')+'</td><td>'+(b!=null?money(b):'<span class="muted">ẩn</span>')+'</td><td>'+(ch==null?'—':'<span class="'+(ch>0?'up':'down')+'">'+(ch>0?'+':'')+ch+'%</span>')+'</td><td>'+(t.cur?.people||0)+'</td></tr>'}).join('')+'</table>':'<p class="muted">Chưa đủ dữ liệu.</p>';
+}
+
+if(token)start().catch(()=>logout());
+</script>
+</body>
+</html>

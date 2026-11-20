@@ -1,3 +1,4 @@
+import { aiExtras, currentOccasions, dictText, planOf } from './config.js';
 // Trợ lý AI của VieTing: POST /api/chat
 // Dùng Google Gemini (miễn phí, cần khóa GEMINI_API_KEY) và tự chuyển sang Cloudflare Workers AI
 // (miễn phí 10.000 neurons/ngày, không cần khóa) khi chưa có khóa hoặc Gemini báo lỗi / hết lượt.
@@ -12,6 +13,7 @@ const CATS = {
 };
 const INCOME_CATS = new Set(['luong', 'thuong', 'dau_tu', 'nhan_tien', 'khac_thu']);
 const DAILY_LIMIT = 80; // tin nhắn / người / ngày, giữ trong hạn mức miễn phí
+const PRO_LIMIT = 300; // gói Pro
 const WORKERS_AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const WORKERS_AI_FALLBACK = '@cf/meta/llama-3.1-8b-instruct';
 
@@ -21,8 +23,10 @@ const TONES = {
   strict: 'Giọng nghiêm khắc kiểu "mẹ mắng" khi người dùng tiêu hoang (VD chốt đơn Shopee), thẳng thắn, ngắn gọn; vẫn tôn trọng, không xúc phạm.',
 };
 
-function systemPrompt(today, tone) {
-  return `Bạn là "Trợ lý VieTing", trợ lý quản lý chi tiêu cá nhân trong app VieTing. Luôn trả lời bằng tiếng Việt, ngắn gọn (tối đa khoảng 120 từ), dùng số liệu cụ thể. ${TONES[tone] || TONES.gentle} Hôm nay là ${today}. Đơn vị tiền: đồng (₫), viết số có dấu chấm ngăn cách hàng nghìn (VD 1.250.000 ₫).
+function systemPrompt(today, tone, ex) {
+  const tones = ex?.tones || TONES;
+  const occ = currentOccasions(ex?.occasions, today, ex?.payday).map((o) => o.note).filter(Boolean).join(' ');
+  return `Bạn là "Trợ lý VieTing", trợ lý quản lý chi tiêu cá nhân trong app VieTing. Luôn trả lời bằng tiếng Việt, ngắn gọn (tối đa khoảng 120 từ), dùng số liệu cụ thể. ${tones[tone] || tones.gentle || TONES.gentle} ${occ ? 'DỊP ĐẶC BIỆT: ' + occ + ' ' : ''}Hôm nay là ${today}. Đơn vị tiền: đồng (₫), viết số có dấu chấm ngăn cách hàng nghìn (VD 1.250.000 ₫).
 
 Bạn nhận được TÓM TẮT dữ liệu chi tiêu thật của người dùng trong phần "DỮ LIỆU". Chỉ dựa vào dữ liệu đó, không bịa số liệu. Nếu dữ liệu không đủ để trả lời, nói rõ.
 
@@ -114,8 +118,9 @@ async function askWorkersAI(env, sys, messages) {
   return { text, provider: 'workers-ai' };
 }
 
-async function underLimit(env, key) {
+async function underLimit(env, key, userId) {
   if (!env.DB) return true;
+  const limit = (await planOf(env, userId ?? null)).plan === 'pro' ? PRO_LIMIT : DAILY_LIMIT;
   const day = new Date().toISOString().slice(0, 10);
   try {
     await env.DB.prepare(
@@ -123,7 +128,7 @@ async function underLimit(env, key) {
        ON CONFLICT (k, day) DO UPDATE SET n = n + 1`
     ).bind(key, day).run();
     const row = await env.DB.prepare('SELECT n FROM ai_usage WHERE k = ? AND day = ?').bind(key, day).first();
-    return !row || row.n <= DAILY_LIMIT;
+    return !row || row.n <= limit;
   } catch {
     return true; // bảng chưa tạo: không chặn
   }
@@ -140,8 +145,8 @@ export async function handleChat(req, env, userId) {
     return json({ error: 'Dữ liệu không hợp lệ' }, 400);
   }
   const key = userId != null ? 'u' + userId : 'ip' + (req.headers.get('cf-connecting-ip') || '?');
-  if (!(await underLimit(env, key))) {
-    return json({ error: `Hôm nay bạn đã dùng hết ${DAILY_LIMIT} lượt hỏi trợ lý, mai quay lại nhé.` }, 429);
+  if (!(await underLimit(env, key, userId))) {
+    return json({ error: 'Hôm nay bạn đã dùng hết lượt hỏi trợ lý, mai quay lại nhé.' }, 429);
   }
 
   const today = /^\d{4}-\d{2}-\d{2}$/.test(b.today || '') ? b.today : new Date().toISOString().slice(0, 10);
@@ -152,7 +157,9 @@ export async function handleChat(req, env, userId) {
     .map((m) => ({ role: m.role === 'model' ? 'model' : 'user', text: m.text.slice(0, 2000) }));
   if (!history.length || history[history.length - 1].role !== 'user') return json({ error: 'Thiếu câu hỏi' }, 400);
 
-  const sys = systemPrompt(today, b.tone) + '\n\nDỮ LIỆU:\n' + context;
+  const ex = { ...(await aiExtras(env).catch(() => null)), payday: !!b.payday };
+  const dt = dictText(ex.dict);
+  const sys = systemPrompt(today, b.tone, ex) + (dt ? '\n\n' + dt : '') + '\n\nDỮ LIỆU:\n' + context;
   let out = null;
   if (env.GEMINI_API_KEY) {
     try {
@@ -190,7 +197,8 @@ export async function handleReceipt(req, env, userId) {
   const img = String(b.image || '');
   if (!img || img.length > 6_000_000) return json({ error: 'Ảnh trống hoặc quá lớn' }, 400);
   const key = userId != null ? 'u' + userId : 'ip' + (req.headers.get('cf-connecting-ip') || '?');
-  if (!(await underLimit(env, key))) return json({ error: `Hôm nay bạn đã dùng hết ${DAILY_LIMIT} lượt AI.` }, 429);
+  if (!(await underLimit(env, key, userId))) return json({ error: 'Hôm nay bạn đã dùng hết lượt AI, mai quay lại nhé.' }, 429);
+  const dt = dictText((await aiExtras(env).catch(() => null))?.dict);
   const today = /^\d{4}-\d{2}-\d{2}$/.test(b.today || '') ? b.today : new Date().toISOString().slice(0, 10);
   const prompt = `Đây là ảnh hóa đơn, biên lai, hoặc ảnh chụp màn hình chuyển khoản / mã QR thanh toán ở Việt Nam. Hôm nay là ${today}.
 Đọc và trả về MỘT đối tượng JSON:
@@ -200,7 +208,7 @@ export async function handleReceipt(req, env, userId) {
 - category: một trong ${Object.keys(CATS).join(', ')}.
 - date: ngày trên hóa đơn nếu có, không có thì để trống.
 - items: nếu là hóa đơn siêu thị / đơn hàng nhiều món thuộc NHIỀU danh mục khác nhau, gộp các món theo danh mục, mỗi danh mục một phần tử (tổng các phần tử bằng amount; phân bổ giảm giá / phí ship theo tỉ lệ). Nếu chỉ một danh mục thì để mảng rỗng.
-Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do ngắn bằng tiếng Việt"}.`;
+Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do ngắn bằng tiếng Việt"}.${dt ? '\n' + dt : ''}`;
   const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {

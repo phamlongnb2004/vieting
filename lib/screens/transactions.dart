@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../categories.dart';
 import '../models.dart';
 import '../store.dart';
+import '../ui_keys.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../util/text.dart';
@@ -129,10 +130,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               ),
                               onDismissed: (_) {
                                 store.deleteTxn(t.id);
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: const Text('Đã xóa giao dịch'),
-                                  action: SnackBarAction(label: 'Hoàn tác', onPressed: () => store.restoreTxn(t.id)),
-                                ));
+                                showToast(context, 'Đã xóa giao dịch',
+                                    actionLabel: 'Hoàn tác', onAction: () => store.restoreTxn(t.id));
                               },
                               child: TxnTile(txn: t, onTap: () => openEditTxn(context, t)),
                             ),

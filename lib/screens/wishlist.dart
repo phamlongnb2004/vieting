@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../insights.dart';
 import '../models.dart';
 import '../store.dart';
+import '../ui_keys.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import 'edit_txn.dart';
@@ -82,10 +83,8 @@ class WishlistScreen extends StatelessWidget {
     } else {
       final goals = store.activeGoals.where((g) => g.progress < 1).toList();
       if (goals.isNotEmpty && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Giữ lại được ${money(w.price)}! Cất vào hũ "${goals.first.name}"?'),
-          action: SnackBarAction(label: 'Cất', onPressed: () => GoalsScreen.addMoney(context, goals.first)),
-        ));
+        showToast(context, 'Giữ lại được ${money(w.price)}! Cất vào hũ "${goals.first.name}"?',
+            actionLabel: 'Cất', onAction: () => GoalsScreen.addMoney(context, goals.first), duration: const Duration(seconds: 6));
       }
     }
   }
