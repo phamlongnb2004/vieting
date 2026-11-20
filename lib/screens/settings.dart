@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../config.dart';
 import '../services/notify_bridge.dart';
 import '../store.dart';
 import '../util/format.dart';
@@ -69,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
                 onTap: () => _go(context, const LoginScreen()),
               ),
           ]),
-          group('Trợ lý AI & server', [
+          if (kServerUrl.isEmpty) group('Nâng cao', [
             ListTile(
               leading: const Icon(Icons.dns_outlined),
               title: const Text('Địa chỉ server'),

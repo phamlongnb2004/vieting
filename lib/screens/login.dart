@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../config.dart';
 import '../store.dart';
 import '../widgets/logo.dart';
 
@@ -14,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _register = false;
   bool _busy = false;
   bool _hide = true;
+  bool _advanced = false;
   String? _error;
   late final TextEditingController _server;
   final _email = TextEditingController();
@@ -23,7 +25,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _server = TextEditingController(text: StoreScope.read(context).serverUrl);
+    final saved = StoreScope.read(context).serverUrl;
+    _server = TextEditingController(text: kServerUrl.isNotEmpty ? kServerUrl : saved);
   }
 
   @override
@@ -36,11 +39,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    final server = _server.text.trim();
+    final server = kServerUrl.isNotEmpty ? kServerUrl : _server.text.trim();
     final email = _email.text.trim();
     String? err;
     if (server.isEmpty || !server.startsWith('http')) {
-      err = 'Nhập địa chỉ server (https://...)';
+      err = 'Server đồng bộ chưa được cài đặt';
     } else if (!email.contains('@')) {
       err = 'Email chưa đúng';
     } else if (_pass.text.length < 6) {
@@ -71,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hideServer = const String.fromEnvironment('SERVER_URL').isNotEmpty;
+    final hideServer = kServerUrl != '' || !_advanced;
     return Scaffold(
       appBar: AppBar(),
       body: Center(
@@ -122,6 +125,16 @@ class _LoginScreenState extends State<LoginScreen> {
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ],
+              if (kServerUrl.isEmpty && !_advanced) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => setState(() => _advanced = true),
+                    child: const Text('Nâng cao', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
               ],
               const SizedBox(height: 20),
               FilledButton(

@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import 'categories.dart';
+import 'config.dart';
 import 'models.dart';
 import 'parser/bank_parser.dart';
 import 'parser/banks.dart';
@@ -40,7 +41,7 @@ class AppStore extends ChangeNotifier {
   Set<String> allowedApps = {};
 
   bool dark = false;
-  String serverUrl = const String.fromEnvironment('SERVER_URL');
+  String serverUrl = kServerUrl;
   String token = '';
   String email = '';
   int lastSync = 0; // mốc thời gian server lần đồng bộ trước

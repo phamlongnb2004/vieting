@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../config.dart';
 import '../models.dart';
 import '../services/assistant.dart';
 import '../store.dart';
@@ -102,11 +103,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
           PopupMenuButton<String>(
             onSelected: (v) {
               if (v == 'server') _serverDialog();
+              // (chỉ hiện khi app chưa gắn sẵn server)
               if (v == 'clear') store.clearChat();
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'server', child: Text('Địa chỉ server')),
-              PopupMenuItem(value: 'clear', child: Text('Xóa cuộc trò chuyện')),
+            itemBuilder: (_) => [
+              if (kServerUrl.isEmpty) const PopupMenuItem(value: 'server', child: Text('Địa chỉ server')),
+              const PopupMenuItem(value: 'clear', child: Text('Xóa cuộc trò chuyện')),
             ],
           ),
         ],
@@ -121,7 +123,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 leading: const Icon(Icons.cloud_off_outlined),
                 title: const Text('Chưa nối server AI', style: TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: const Text('Vẫn ghi nhanh được câu kiểu "phở 45k". Nhập địa chỉ server để hỏi đáp.'),
-                trailing: TextButton(onPressed: _serverDialog, child: const Text('Nhập')),
+                trailing: kServerUrl.isEmpty ? TextButton(onPressed: _serverDialog, child: const Text('Nhập')) : null,
               ),
             ),
           ),

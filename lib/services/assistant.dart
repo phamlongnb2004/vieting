@@ -75,7 +75,7 @@ class Assistant {
     if (base.isEmpty) {
       return _offline(question, s, why: 'Chưa nối server trợ lý AI nên mình chỉ ghi nhanh được thôi.') ??
           const AssistantReply(
-              'Chưa nối server trợ lý AI. Vào Cài đặt → Trợ lý AI để nhập địa chỉ server (Cloudflare) nhé. Trong lúc đó mình vẫn ghi nhanh được câu kiểu "phở 45k".',
+              'Trợ lý AI chưa sẵn sàng trên bản app này. Trong lúc đó mình vẫn ghi nhanh được câu kiểu "phở 45k".',
               []);
     }
     final history = s.chat
