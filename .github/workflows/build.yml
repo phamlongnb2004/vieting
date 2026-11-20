@@ -63,8 +63,8 @@ jobs:
           VIETING_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           BUILD_NUMBER=$GITHUB_RUN_NUMBER
-          flutter build apk --release --build-number=$BUILD_NUMBER --dart-define=SERVER_URL=$SERVER_URL
-          flutter build appbundle --release --build-number=$BUILD_NUMBER --dart-define=SERVER_URL=$SERVER_URL
+          flutter build apk --release --build-number=$BUILD_NUMBER ${SERVER_URL:+--dart-define=SERVER_URL=$SERVER_URL}
+          flutter build appbundle --release --build-number=$BUILD_NUMBER ${SERVER_URL:+--dart-define=SERVER_URL=$SERVER_URL}
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk dist/VieTing.apk
           cp build/app/outputs/bundle/release/app-release.aab dist/VieTing.aab
@@ -87,7 +87,7 @@ jobs:
           channel: stable
           cache: true
       - run: bash tools/setup-platforms.sh
-      - run: flutter build windows --release --dart-define=SERVER_URL=$SERVER_URL
+      - run: flutter build windows --release ${SERVER_URL:+--dart-define=SERVER_URL=$SERVER_URL}
       - name: Đóng gói bộ cài + bản portable
         run: |
           mkdir -p dist

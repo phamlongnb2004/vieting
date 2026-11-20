@@ -19,8 +19,8 @@ workflows:
       - name: Dựng APK + AAB
         script: |
           set -e
-          flutter build apk --release --build-number=${BUILD_NUMBER:-1} --dart-define=SERVER_URL=${SERVER_URL:-}
-          flutter build appbundle --release --build-number=${BUILD_NUMBER:-1} --dart-define=SERVER_URL=${SERVER_URL:-}
+          flutter build apk --release --build-number=${BUILD_NUMBER:-1} ${SERVER_URL:+--dart-define=SERVER_URL=$SERVER_URL}
+          flutter build appbundle --release --build-number=${BUILD_NUMBER:-1} ${SERVER_URL:+--dart-define=SERVER_URL=$SERVER_URL}
           cp build/app/outputs/flutter-apk/app-release.apk "$CM_BUILD_DIR/VieTing.apk"
           cp build/app/outputs/bundle/release/app-release.aab "$CM_BUILD_DIR/VieTing.aab"
     artifacts:
@@ -41,7 +41,7 @@ workflows:
       - name: Dựng .app không ký và đóng gói .ipa
         script: |
           set -e
-          flutter build ios --release --no-codesign --build-number=${BUILD_NUMBER:-1} --dart-define=SERVER_URL=${SERVER_URL:-}
+          flutter build ios --release --no-codesign --build-number=${BUILD_NUMBER:-1} ${SERVER_URL:+--dart-define=SERVER_URL=$SERVER_URL}
           cd build/ios/iphoneos
           rm -rf Payload && mkdir Payload && cp -R Runner.app Payload/
           zip -qry "$CM_BUILD_DIR/VieTing.ipa" Payload
@@ -72,7 +72,7 @@ workflows:
       - name: Dựng .ipa
         script: |
           flutter build ipa --release --build-number=$BUILD_NUMBER \
-            --export-options-plist=/Users/builder/export_options.plist --dart-define=SERVER_URL=${SERVER_URL:-}
+            --export-options-plist=/Users/builder/export_options.plist ${SERVER_URL:+--dart-define=SERVER_URL=$SERVER_URL}
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
