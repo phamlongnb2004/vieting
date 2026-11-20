@@ -1,0 +1,56 @@
+# Codemagic (máy Mac miễn phí ~500 phút/tháng): dựng VieTing iOS.
+# Codemagic → Add application → chọn kho GitHub vieting → Start new build → chọn workflow.
+# Biến môi trường SERVER_URL (tùy chọn): gắn sẵn địa chỉ server đồng bộ.
+workflows:
+  ios-unsigned:
+    name: iOS IPA chưa ký (cài thử bằng Sideloadly / AltStore)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Tạo thư mục iOS + icon
+        script: bash tools/setup-platforms.sh
+      - name: Dựng .app không ký và đóng gói .ipa
+        script: |
+          set -e
+          flutter build ios --release --no-codesign --build-number=${BUILD_NUMBER:-1} --dart-define=SERVER_URL=${SERVER_URL:-}
+          cd build/ios/iphoneos
+          rm -rf Payload && mkdir Payload && cp -R Runner.app Payload/
+          zip -qry "$CM_BUILD_DIR/VieTing.ipa" Payload
+          ls -la "$CM_BUILD_DIR/VieTing.ipa"
+    artifacts:
+      - VieTing.ipa
+
+  # Bản lên App Store: cần tài khoản Apple Developer (99 USD/năm).
+  # Trong Codemagic: Teams → Integrations → App Store Connect (API key), rồi đổi tên integration bên dưới cho khớp.
+  ios-app-store:
+    name: iOS lên App Store (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: VieTing App Store
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: vn.thlong.vieting
+    scripts:
+      - name: Tạo thư mục iOS + icon
+        script: bash tools/setup-platforms.sh
+      - name: Gắn chứng chỉ ký
+        script: xcode-project use-profiles
+      - name: Dựng .ipa
+        script: |
+          flutter build ipa --release --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist --dart-define=SERVER_URL=${SERVER_URL:-}
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

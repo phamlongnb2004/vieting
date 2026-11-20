@@ -1,0 +1,40 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+dist/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+*.iml
+.idea/
+.vscode/
+*.log
+
+# Thư mục nền tảng do "bash tools/setup-platforms.sh" tạo ra (không đưa lên GitHub),
+# trừ các file riêng của VieTing trong android/
+/ios/
+/windows/
+/linux/
+/macos/
+/web/
+/android/*
+!/android/app/
+/android/app/*
+!/android/app/src/
+/android/app/src/*
+!/android/app/src/main/
+/android/app/src/main/*
+!/android/app/src/main/AndroidManifest.xml
+!/android/app/src/main/kotlin/
+
+# Khóa ký app: KHÔNG BAO GIỜ đưa lên GitHub
+*.jks
+*.keystore
+key.properties
+
+# Server
+server/node_modules/
+server/.wrangler/

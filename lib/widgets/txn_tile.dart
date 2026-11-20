@@ -1,0 +1,79 @@
+import 'package:flutter/material.dart';
+
+import '../categories.dart';
+import '../models.dart';
+import '../store.dart';
+import '../theme.dart';
+import '../util/format.dart';
+
+class CatAvatar extends StatelessWidget {
+  final Cat cat;
+  final double size;
+  const CatAvatar({super.key, required this.cat, this.size = 42});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: cat.color.withAlpha(36), borderRadius: BorderRadius.circular(size * 0.32)),
+        child: Icon(cat.icon, color: cat.color, size: size * 0.52),
+      );
+}
+
+class TxnTile extends StatelessWidget {
+  final Txn txn;
+  final VoidCallback? onTap;
+  const TxnTile({super.key, required this.txn, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final cat = catById(txn.categoryId);
+    final cs = Theme.of(context).colorScheme;
+    final subtitle = [
+      hm(txn.date),
+      store.walletName(txn.walletId),
+      if (txn.note.isNotEmpty) txn.note,
+    ].join(' · ');
+    return ListTile(
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: CatAvatar(cat: cat),
+      title: Row(children: [
+        Flexible(child: Text(cat.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
+        if (txn.auto) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(color: Brand.bamboo.withAlpha(30), borderRadius: BorderRadius.circular(6)),
+            child: const Text('tự động', style: TextStyle(fontSize: 10, color: Brand.bamboo, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ]),
+      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: cs.onSurfaceVariant)),
+      trailing: Text(
+        money(txn.signed, signed: true),
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
+          color: txn.income ? Brand.income : cs.onSurface,
+        ),
+      ),
+    );
+  }
+}
+
+class SectionTitle extends StatelessWidget {
+  final String text;
+  final Widget? trailing;
+  const SectionTitle(this.text, {super.key, this.trailing});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
+        child: Row(children: [
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+          if (trailing != null) trailing!,
+        ]),
+      );
+}

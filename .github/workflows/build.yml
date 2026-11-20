@@ -1,0 +1,115 @@
+# Dựng VieTing mỗi lần đẩy code: kiểm tra + APK/AAB Android + bộ cài Windows.
+# Tải file cài: tab Actions → chọn lần chạy → mục Artifacts.
+# Đẩy tag dạng v0.1.0 thì file cài được đăng luôn vào mục Releases.
+name: Dựng app
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  SERVER_URL: ${{ vars.SERVER_URL }}
+
+jobs:
+  test:
+    name: Kiểm tra code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: bash tools/setup-platforms.sh
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter test
+
+  android:
+    name: Android (APK + AAB)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: bash tools/setup-platforms.sh
+      - name: Khóa ký app (nếu đã thêm secrets)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/vieting.jks"
+            echo "VIETING_KEYSTORE=$RUNNER_TEMP/vieting.jks" >> "$GITHUB_ENV"
+            echo "Ký bằng khóa riêng"
+          else
+            echo "::warning::Chưa có secret ANDROID_KEYSTORE_BASE64 - APK ký bằng khóa debug, không cài đè được bản cũ và không đưa lên CH Play được."
+          fi
+      - name: Dựng
+        env:
+          VIETING_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          VIETING_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          VIETING_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          BUILD_NUMBER=$GITHUB_RUN_NUMBER
+          flutter build apk --release --build-number=$BUILD_NUMBER --dart-define=SERVER_URL=$SERVER_URL
+          flutter build appbundle --release --build-number=$BUILD_NUMBER --dart-define=SERVER_URL=$SERVER_URL
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/VieTing.apk
+          cp build/app/outputs/bundle/release/app-release.aab dist/VieTing.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VieTing-Android
+          path: dist/*
+
+  windows:
+    name: Windows (bộ cài .exe)
+    needs: test
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: bash tools/setup-platforms.sh
+      - run: flutter build windows --release --dart-define=SERVER_URL=$SERVER_URL
+      - name: Đóng gói bộ cài + bản portable
+        run: |
+          mkdir -p dist
+          choco install innosetup -y --no-progress > /dev/null
+          VIETING_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//') \
+            "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" installer/vieting.iss
+          powershell -NoProfile -Command "Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath dist/VieTing-Windows-portable.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VieTing-Windows
+          path: dist/*
+
+  release:
+    name: Đăng bản phát hành
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
