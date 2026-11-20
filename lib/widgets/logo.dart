@@ -4,19 +4,19 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// Đồng xu VieTing: viền đốt tre xanh, mặt đỏ cờ, ngôi sao vàng, sóng "ting".
+/// Logo VieTing (flat vector): chữ V ghép từ 2 thân tre, sao vàng, sóng "ting", nền đỏ cờ.
 class CoinLogo extends StatelessWidget {
   final double size;
   const CoinLogo({super.key, this.size = 36});
 
   @override
-  Widget build(BuildContext context) => CustomPaint(size: Size.square(size), painter: _CoinPainter());
+  Widget build(BuildContext context) => CustomPaint(size: Size.square(size), painter: _VLogoPainter());
 }
 
 Path starPath(Offset c, double r) {
   final p = Path();
   for (var i = 0; i < 10; i++) {
-    final rr = i.isEven ? r : r * 0.4;
+    final rr = i.isEven ? r : r * 0.42;
     final a = -pi / 2 + i * pi / 5;
     final o = Offset(c.dx + rr * cos(a), c.dy + rr * sin(a));
     if (i == 0) {
@@ -28,42 +28,47 @@ Path starPath(Offset c, double r) {
   return p..close();
 }
 
-class _CoinPainter extends CustomPainter {
+class _VLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final s = size.width;
-    final c = Offset(s * 0.46, s * 0.54);
-    final r = s * 0.42;
-    // viền tre
-    canvas.drawCircle(c, r, Paint()..color = Brand.bamboo);
-    final node = Paint()
-      ..color = const Color(0xFF2B6A2E)
-      ..strokeWidth = s * 0.035
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(s * 0.22)),
+      Paint()..color = Brand.red,
+    );
+    const cream = Color(0xFFFFF8EC);
+    final bottom = Offset(s * 0.5, s * 0.80);
+    final tops = [Offset(s * 0.25, s * 0.34), Offset(s * 0.75, s * 0.34)];
+    final stalk = Paint()
+      ..color = cream
+      ..strokeWidth = s * 0.17
       ..strokeCap = StrokeCap.round;
-    for (var i = 0; i < 8; i++) {
-      final a = i * pi / 4 + pi / 8;
-      canvas.drawLine(c + Offset(cos(a), sin(a)) * (r * 0.8), c + Offset(cos(a), sin(a)) * r, node);
+    final band = Paint()
+      ..color = Brand.red
+      ..strokeWidth = s * 0.03
+      ..strokeCap = StrokeCap.butt;
+    for (final t in tops) {
+      canvas.drawLine(t, bottom, stalk);
     }
-    canvas.drawCircle(
-        c,
-        r * 0.96,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = s * 0.02
-          ..color = Brand.bambooLight.withAlpha(150));
-    // mặt đỏ + sao
-    canvas.drawCircle(c, r * 0.76, Paint()..color = Brand.red);
-    canvas.drawPath(starPath(c, r * 0.5), Paint()..color = Brand.yellow);
-    // sóng "ting"
+    for (final t in tops) {
+      final d = bottom - t;
+      final len = d.distance;
+      final dir = d / len;
+      final normal = Offset(-dir.dy, dir.dx) * (s * 0.09);
+      for (final k in [0.33, 0.66]) {
+        final c = t + d * k;
+        canvas.drawLine(c - normal, c + normal, band);
+      }
+    }
+    canvas.drawPath(starPath(Offset(s * 0.47, s * 0.28), s * 0.12), Paint()..color = Brand.yellow);
     final wave = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * 0.05
+      ..strokeWidth = s * 0.045
       ..color = Brand.yellow;
-    final wc = Offset(s * 0.80, s * 0.20);
-    for (var i = 0; i < 2; i++) {
-      final rr = s * (0.08 + i * 0.09);
-      canvas.drawArc(Rect.fromCircle(center: wc, radius: rr), -pi * 0.85, pi * 0.7, false, wave);
+    final wc = Offset(s * 0.60, s * 0.25);
+    for (final r in [s * 0.10, s * 0.17]) {
+      canvas.drawArc(Rect.fromCircle(center: wc, radius: r), -pi * 0.42, pi * 0.34, false, wave);
     }
   }
 
