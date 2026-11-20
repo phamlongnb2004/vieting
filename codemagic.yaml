@@ -1,7 +1,32 @@
-# Codemagic (máy Mac miễn phí ~500 phút/tháng): dựng VieTing iOS.
+# Codemagic (máy Mac miễn phí ~500 phút/tháng): dựng VieTing Android + iOS.
 # Codemagic → Add application → chọn kho GitHub vieting → Start new build → chọn workflow.
 # Biến môi trường SERVER_URL (tùy chọn): gắn sẵn địa chỉ server đồng bộ.
 workflows:
+  android:
+    name: Android APK + AAB
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      java: 17
+    scripts:
+      - name: Tạo thư mục nền tảng + icon
+        script: bash tools/setup-platforms.sh
+      - name: Kiểm tra
+        script: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Dựng APK + AAB
+        script: |
+          set -e
+          flutter build apk --release --build-number=${BUILD_NUMBER:-1} --dart-define=SERVER_URL=${SERVER_URL:-}
+          flutter build appbundle --release --build-number=${BUILD_NUMBER:-1} --dart-define=SERVER_URL=${SERVER_URL:-}
+          cp build/app/outputs/flutter-apk/app-release.apk "$CM_BUILD_DIR/VieTing.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "$CM_BUILD_DIR/VieTing.aab"
+    artifacts:
+      - VieTing.apk
+      - VieTing.aab
+
   ios-unsigned:
     name: iOS IPA chưa ký (cài thử bằng Sideloadly / AltStore)
     instance_type: mac_mini_m2
