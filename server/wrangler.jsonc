@@ -1,8 +1,14 @@
 {
-  // Server đồng bộ VieTing. Chạy server\trien-khai-server.bat để đưa lên Cloudflare.
+  // VieTing trên Cloudflare: trang tải app (/tai-app) + server đồng bộ (/api).
+  // Chạy tai-len-cloudflare.bat (thư mục gốc) để đưa lên.
   "name": "vieting",
   "main": "worker.js",
-  "compatibility_date": "2025-01-01",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./site",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -10,5 +16,6 @@
       // Dán ID nhận được sau lệnh "wrangler d1 create vieting" vào đây
       "database_id": "DIEN-ID-D1-VAO-DAY"
     }
-  ]
+  ],
+  "observability": { "enabled": true }
 }

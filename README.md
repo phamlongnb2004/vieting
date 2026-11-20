@@ -10,7 +10,8 @@ App thật (Flutter, biên dịch ra mã máy, không phải web). Có tiền v�
 | `lib/parser/` | Bộ đọc thông báo ngân hàng (số tiền +/−, số dư, nội dung) |
 | `android/app/src/main/kotlin/` | Dịch vụ đọc thông báo Android (Kotlin) |
 | `test/` | Kiểm tra bộ đọc thông báo với mẫu của các ngân hàng |
-| `server/` | Server đồng bộ (Cloudflare Workers + D1, miễn phí) |
+| `server/` | Trang tải app + server đồng bộ (Cloudflare Workers + D1, miễn phí) |
+| `tai-len-cloudflare.bat` | Đưa trang tải + file cài + server lên Cloudflare |
 | `installer/` | Bộ cài Windows (Inno Setup) |
 | `tools/` | Tạo thư mục nền tảng + gắn cấu hình |
 | `.github/workflows/build.yml` | GitHub Actions tự dựng APK/AAB + bộ cài Windows |
@@ -49,10 +50,14 @@ flutter build apk      # Android
 flutter build windows  # Windows
 ```
 
-## Server đồng bộ (tùy chọn)
-1. Cài Node.js. Bấm đúp `server\trien-khai-server.bat`. Lần đầu nó tạo cơ sở dữ liệu D1 và in ra `database_id`.
-2. Dán ID đó vào `server/wrangler.jsonc`, chạy lại file `.bat`.
-3. Địa chỉ server: `https://vieting.<tài-khoản>.workers.dev`. Nhập vào app khi đăng nhập, hoặc đặt biến `SERVER_URL` (GitHub → Settings → Variables) để gắn sẵn vào app.
+## Trang tải + server đồng bộ (Cloudflare, miễn phí)
+Một Worker trên Cloudflare lo cả **trang tải app** (`/tai-app`) lẫn **server đồng bộ** (`/api`). File cài không đưa lên GitHub.
+1. Cài Node.js. Lần đầu bấm đúp `tai-len-cloudflare.bat`: nó tạo cơ sở dữ liệu D1 và in ra `database_id`. Dán ID đó vào `server/wrangler.jsonc`.
+2. Chép file cài vào thư mục `dist\` (`VieTing.apk`, `VieTing-Setup.exe`, `VieTing-Windows-portable.zip`, `VieTing.ipa` – có file nào chép file đó).
+3. Bấm đúp lại `tai-len-cloudflare.bat`. Trang tải: `https://vieting.<tài-khoản>.workers.dev/tai-app`, link cố định `/tai/android`, `/tai/windows`, `/tai/windows-portable`, `/tai/ios`.
+4. Địa chỉ server đồng bộ (nhập vào app khi đăng nhập): `https://vieting.<tài-khoản>.workers.dev`. Hoặc đặt biến `SERVER_URL` (GitHub → Settings → Variables) để gắn sẵn vào app.
+
+Cloudflare chỉ nhận file tối đa 25 MB nên `tools/pack-cloudflare.js` cắt file thành phần 20 MB, Worker ghép lại khi tải (có tải tiếp). Mỗi lần có bản mới: chép file vào `dist\` rồi chạy lại file .bat.
 
 ## Đưa lên CH Play / App Store
 - **CH Play:** tài khoản nhà phát triển 25 USD (một lần). Nộp `VieTing.aab`. Quyền đọc thông báo cần: trang chính sách quyền riêng tư, màn hình giải thích (đã có trong app), khai báo Data safety.

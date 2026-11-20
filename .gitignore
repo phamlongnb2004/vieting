@@ -38,3 +38,4 @@ key.properties
 # Server
 server/node_modules/
 server/.wrangler/
+server/site/files/

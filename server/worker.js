@@ -1,12 +1,15 @@
-// Server đồng bộ VieTing trên Cloudflare Workers + D1 (gói miễn phí).
+// Server VieTing trên Cloudflare Workers + D1 (gói miễn phí): trang tải app + đồng bộ dữ liệu.
 // Tác giả: Phạm Thành Long (thlong)
 //
+// GET  /tai-app, /tai/<android|windows|windows-portable|ios>  trang tải + link tải (download.js)
 // POST /api/register  {email, password}        -> {token}
 // POST /api/login     {email, password}        -> {token}
 // POST /api/sync      {since, changes: [...]}  -> {now, changes: [...]}   (header Authorization: Bearer <token>)
 //
 // Mỗi bản ghi: {kind: txn|wallet|budget|rule, id, data, u (thời điểm sửa), del}.
 // Bản nào sửa sau thì thắng (last-write-wins).
+
+import { handleDownload } from './download.js';
 
 const KINDS = new Set(['txn', 'wallet', 'budget', 'rule']);
 const MAX_CHANGES = 1000;
@@ -155,7 +158,13 @@ export default {
       if (req.method === 'POST' && url.pathname === '/api/register') return await register(req, env);
       if (req.method === 'POST' && url.pathname === '/api/login') return await login(req, env);
       if (req.method === 'POST' && url.pathname === '/api/sync') return await sync(req, env);
-      if (url.pathname === '/' || url.pathname === '/api') return json({ app: 'VieTing', ok: true });
+      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true });
+      const p = url.pathname.replace(/\/+$/, '') || '/';
+      if (env.ASSETS) {
+        const r = await handleDownload(req, env, p);
+        if (r) return r;
+        return env.ASSETS.fetch(req);
+      }
       return json({ error: 'Không tìm thấy' }, 404);
     } catch (e) {
       return json({ error: 'Lỗi server: ' + (e && e.message ? e.message : e) }, 500);
