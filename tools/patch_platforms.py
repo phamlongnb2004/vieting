@@ -79,6 +79,16 @@ def patch_android():
             write(groovy, s)
 
 
+    # Lint "vital" của một số plugin (image_picker) bị crash với JDK mới -> tắt, không ảnh hưởng app.
+    for root in (p("android", "build.gradle.kts"), p("android", "build.gradle")):
+        if os.path.exists(root):
+            s = read(root)
+            if "lintVital" not in s:
+                s += '\nsubprojects {\n    tasks.matching { it.name.startsWith("lintVital") }.configureEach { enabled = false }\n}\n'
+                write(root, s)
+            break
+
+
 # ---------------- iOS ----------------
 def patch_ios():
     path = p("ios", "Runner", "Info.plist")
