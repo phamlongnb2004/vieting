@@ -13,7 +13,7 @@
 import { handleDownload } from './download.js';
 import { handleChat, handleReceipt } from './ai.js';
 
-const KINDS = new Set(['txn', 'wallet', 'budget', 'rule', 'goal', 'challenge', 'group']);
+const KINDS = new Set(['txn', 'wallet', 'budget', 'rule', 'goal', 'challenge', 'group', 'bill', 'wish', 'gift']);
 const MAX_CHANGES = 1000;
 
 function json(body, status = 200) {

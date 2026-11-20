@@ -20,7 +20,8 @@ class HabitsScreen extends StatelessWidget {
     final allowance = store.dailyAllowance;
     final streak = store.streak;
     final ch = store.activeChallenge;
-    final tags = store.expenseByTag(now.year, now.month);
+    final per = store.currentPeriod;
+    final tags = store.expenseByTag(per.year, per.month);
     final tagTotal = tags.values.fold<int>(0, (s, v) => s + v);
 
     return Scaffold(
@@ -28,6 +29,16 @@ class HabitsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
+          Card(
+            child: SwitchListTile(
+              secondary: const Text('💛', style: TextStyle(fontSize: 22)),
+              title: const Text('Hôm nay là ngày ngoại lệ'),
+              subtitle: const Text('Sinh nhật, đám cưới, đi chơi… tiêu nhiều cũng không mất chuỗi'),
+              value: store.isSkipDay(DateTime.now()),
+              onChanged: (_) => store.toggleSkipDay(DateTime.now()),
+            ),
+          ),
+          const SizedBox(height: 8),
           // ---- Chuỗi ngày ----
           Container(
             padding: const EdgeInsets.all(18),
@@ -76,7 +87,7 @@ class HabitsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           // ---- Thẻ cảm xúc ----
-          Text('Tiền đi đâu vì lý do gì (tháng ${now.month})', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text('Tiền đi đâu vì lý do gì (${store.periodLabel(per.year, per.month)})', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 8),
           Card(
             child: Padding(

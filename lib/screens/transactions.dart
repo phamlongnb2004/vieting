@@ -25,9 +25,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _year = now.year;
-    _month = now.month;
+    final p = StoreScope.read(context).currentPeriod;
+    _year = p.year;
+    _month = p.month;
   }
 
   void _shift(int d) {
@@ -47,6 +47,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       if (_filter == 1 && t.income) return false;
       if (_filter == 2 && !t.income) return false;
       if (q.isEmpty) return true;
+      if (t.hidden && !store.revealHidden) return false;
       return fold('${t.note} ${catById(t.categoryId).name} ${store.walletName(t.walletId)} ${t.amount}').contains(q);
     }).toList();
     final totals = store.monthTotals(_year, _month);
@@ -62,7 +63,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         title: const Text('Giao dịch', style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(onPressed: () => _shift(-1), icon: const Icon(Icons.chevron_left)),
-          Text(monthLabel(_year, _month), style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(store.periodLabel(_year, _month), style: const TextStyle(fontWeight: FontWeight.w600)),
           IconButton(onPressed: () => _shift(1), icon: const Icon(Icons.chevron_right)),
           const SizedBox(width: 4),
         ],

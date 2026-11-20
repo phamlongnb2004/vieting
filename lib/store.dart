@@ -40,12 +40,21 @@ class AppStore extends ChangeNotifier {
   final Map<String, Goal> goals = {};
   final Map<String, Challenge> challenges = {};
   final Map<String, Group> groups = {};
+  final Map<String, Bill> bills = {};
+  final Map<String, Wish> wishes = {};
+  final Map<String, GiftEntry> gifts = {};
+  int hourlyWage = 0; // 0 = tự tính từ thu nhập
+  bool revealHidden = false; // đã mở khóa xem khoản riêng tư (chỉ trong phiên)
   String pinHash = ''; // khóa app (chỉ trên máy này)
   bool bioLock = false;
   final List<Map<String, int>> _recentSigs = []; // chống ghi trùng: {sig, t}
   Set<String> allowedApps = {};
 
   bool dark = false;
+  int cycleDay = 1; // ngày bắt đầu kỳ chi tiêu (ngày nhận lương)
+  String aiTone = 'gentle'; // gentle | funny | strict
+  Set<String> skipDays = {}; // ngày ngoại lệ (yyyy-mm-dd) không tính vào chuỗi
+  Set<String> sweptDays = {}; // ngày đã cất tiền dư vào hũ
   String serverUrl = kServerUrl;
   String token = '';
   String email = '';
@@ -100,6 +109,18 @@ class AppStore extends ChangeNotifier {
           final g = Group.fromJson(Map<String, dynamic>.from(e as Map));
           groups[g.id] = g;
         }
+        for (final e in (j['bills'] as List? ?? [])) {
+          final b = Bill.fromJson(Map<String, dynamic>.from(e as Map));
+          bills[b.id] = b;
+        }
+        for (final e in (j['wishes'] as List? ?? [])) {
+          final w = Wish.fromJson(Map<String, dynamic>.from(e as Map));
+          wishes[w.id] = w;
+        }
+        for (final e in (j['gifts'] as List? ?? [])) {
+          final g = GiftEntry.fromJson(Map<String, dynamic>.from(e as Map));
+          gifts[g.id] = g;
+        }
         for (final e in (j['chat'] as List? ?? [])) {
           chat.add(ChatMsg.fromJson(Map<String, dynamic>.from(e as Map)));
         }
@@ -116,6 +137,11 @@ class AppStore extends ChangeNotifier {
         lastPush = (s['lastPush'] as num?)?.toInt() ?? 0;
         allowedApps = ((s['allowed'] as List?) ?? []).map((e) => e.toString()).toSet();
         pinHash = (s['pin'] ?? '') as String;
+        cycleDay = ((s['cycle'] as num?)?.toInt() ?? 1).clamp(1, 28);
+        aiTone = (s['tone'] ?? 'gentle') as String;
+        hourlyWage = (s['wage'] as num?)?.toInt() ?? 0;
+        skipDays = ((s['skip'] as List?) ?? []).map((e) => e.toString()).toSet();
+        sweptDays = ((s['swept'] as List?) ?? []).map((e) => e.toString()).toSet();
         bioLock = s['bio'] == true;
       }
     } catch (e) {
@@ -143,6 +169,9 @@ class AppStore extends ChangeNotifier {
         'goals': goals.values.map((e) => e.toJson()).toList(),
         'challenges': challenges.values.map((e) => e.toJson()).toList(),
         'groups': groups.values.map((e) => e.toJson()).toList(),
+        'bills': bills.values.map((e) => e.toJson()).toList(),
+        'wishes': wishes.values.map((e) => e.toJson()).toList(),
+        'gifts': gifts.values.map((e) => e.toJson()).toList(),
         'settings': {
           'dark': dark,
           'server': serverUrl,
@@ -152,6 +181,11 @@ class AppStore extends ChangeNotifier {
           'lastPush': lastPush,
           'allowed': allowedApps.toList(),
           'pin': pinHash,
+          'cycle': cycleDay,
+          'tone': aiTone,
+          'wage': hourlyWage,
+          'skip': skipDays.toList(),
+          'swept': sweptDays.toList(),
           'bio': bioLock,
         },
       };
@@ -189,8 +223,60 @@ class AppStore extends ChangeNotifier {
 
   List<Txn> get activeTxns => txns.values.where((t) => !t.deleted).toList()..sort((a, b) => b.date.compareTo(a.date));
 
-  List<Txn> monthTxns(int year, int month) =>
-      activeTxns.where((t) => t.date.year == year && t.date.month == month).toList();
+  // ---- Kỳ chi tiêu: mặc định theo tháng, hoặc theo ngày nhận lương (VD 10/11 – 9/12) ----
+
+  ({int year, int month}) periodOf(DateTime d) {
+    if (d.day >= cycleDay) return (year: d.year, month: d.month);
+    final p = DateTime(d.year, d.month - 1);
+    return (year: p.year, month: p.month);
+  }
+
+  ({int year, int month}) get currentPeriod => periodOf(DateTime.now());
+  DateTime periodStart(int year, int month) => DateTime(year, month, cycleDay);
+  DateTime periodEnd(int year, int month) => DateTime(year, month + 1, cycleDay);
+  int periodDays(int year, int month) => periodEnd(year, month).difference(periodStart(year, month)).inDays;
+
+  /// Số ngày còn lại của kỳ hiện tại, tính cả hôm nay.
+  int get daysLeftInPeriod {
+    final p = currentPeriod;
+    final now = DateTime.now();
+    return periodEnd(p.year, p.month).difference(DateTime(now.year, now.month, now.day)).inDays.clamp(1, 31);
+  }
+
+  String periodLabel(int year, int month) {
+    if (cycleDay == 1) return 'Tháng $month/$year';
+    final a = periodStart(year, month), b = periodEnd(year, month).subtract(const Duration(days: 1));
+    return '${a.day}/${a.month} – ${b.day}/${b.month}/${b.year}';
+  }
+
+  void setCycleDay(int d) {
+    cycleDay = d.clamp(1, 28);
+    _changed(syncSoon: false);
+  }
+
+  void setAiTone(String t) {
+    aiTone = t;
+    _changed(syncSoon: false);
+  }
+
+  String dayKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
+  bool isSkipDay(DateTime d) => skipDays.contains(dayKey(d));
+  void markSwept(DateTime d, {String? key}) {
+    sweptDays.add(key ?? dayKey(d));
+    if (sweptDays.length > 120) sweptDays.remove(sweptDays.first);
+    _changed(syncSoon: false);
+  }
+
+  void toggleSkipDay(DateTime d) {
+    final k = dayKey(d);
+    if (!skipDays.remove(k)) skipDays.add(k);
+    _changed(syncSoon: false);
+  }
+
+  List<Txn> monthTxns(int year, int month) {
+    final a = periodStart(year, month), b = periodEnd(year, month);
+    return activeTxns.where((t) => !t.date.isBefore(a) && t.date.isBefore(b)).toList();
+  }
 
   int walletBalance(Wallet w) {
     var s = w.initial;
@@ -211,6 +297,7 @@ class AppStore extends ChangeNotifier {
   ({int income, int expense}) monthTotals(int year, int month) {
     var i = 0, e = 0;
     for (final t in monthTxns(year, month)) {
+      if (!countsInTotals(t.categoryId)) continue;
       if (t.income) {
         i += t.amount;
       } else {
@@ -223,7 +310,9 @@ class AppStore extends ChangeNotifier {
   Map<String, int> expenseByCategory(int year, int month) {
     final m = <String, int>{};
     for (final t in monthTxns(year, month)) {
-      if (!t.income) m[t.categoryId] = (m[t.categoryId] ?? 0) + t.amount;
+      if (t.income || !countsInTotals(t.categoryId)) continue;
+      final k = t.hidden && !revealHidden ? 'khac_chi' : t.categoryId;
+      m[k] = (m[k] ?? 0) + t.amount;
     }
     return m;
   }
@@ -235,7 +324,7 @@ class AppStore extends ChangeNotifier {
     final out = List.generate(days, (i) => start.add(Duration(days: i)));
     final sums = List.filled(days, 0);
     for (final t in activeTxns) {
-      if (t.income) continue;
+      if (t.income || !countsInTotals(t.categoryId)) continue;
       final d = DateTime(t.date.year, t.date.month, t.date.day);
       final idx = d.difference(start).inDays;
       if (idx >= 0 && idx < days) sums[idx] += t.amount;
@@ -364,6 +453,82 @@ class AppStore extends ChangeNotifier {
     g.deleted = true;
     g.updatedAt = nowMs();
     _changed();
+  }
+
+  // ---------------- Khoản định kỳ, danh sách chờ, hiếu hỉ ----------------
+
+  List<Bill> get activeBills => bills.values.where((b) => !b.deleted && !b.finished).toList()
+    ..sort((a, b) => a.next.compareTo(b.next));
+
+  void saveBill(Bill b) {
+    b.updatedAt = nowMs();
+    bills[b.id] = b;
+    _changed();
+  }
+
+  void deleteBill(String id) {
+    final b = bills[id];
+    if (b == null) return;
+    b.deleted = true;
+    b.updatedAt = nowMs();
+    _changed();
+  }
+
+  /// Đánh dấu đã trả kỳ này: ghi giao dịch, lùi hạn sang kỳ sau.
+  Txn payBill(Bill b, {String? walletId}) {
+    final wallets = activeWallets;
+    final t = Txn(
+      id: newId(),
+      amount: b.amount,
+      income: false,
+      categoryId: b.categoryId,
+      walletId: walletId ?? (wallets.any((w) => w.id == 'cash') ? 'cash' : wallets.first.id),
+      date: DateTime.now(),
+      note: b.isInstallment ? 'Trả góp: ${b.name}' : b.name,
+      source: 'bill',
+    );
+    txns[t.id] = t;
+    b.next = b.after(b.next);
+    if (b.remaining != null) b.remaining = b.remaining! - 1;
+    b.updatedAt = nowMs();
+    _changed();
+    return t;
+  }
+
+  List<Wish> get activeWishes => wishes.values.where((w) => !w.deleted).toList()
+    ..sort((a, b) => b.created.compareTo(a.created));
+
+  void saveWish(Wish w) {
+    w.updatedAt = nowMs();
+    wishes[w.id] = w;
+    _changed();
+  }
+
+  List<GiftEntry> get activeGifts => gifts.values.where((g) => !g.deleted).toList()
+    ..sort((a, b) => b.date.compareTo(a.date));
+
+  void saveGift(GiftEntry g) {
+    g.updatedAt = nowMs();
+    gifts[g.id] = g;
+    _changed();
+  }
+
+  void deleteGift(String id) {
+    final g = gifts[id];
+    if (g == null) return;
+    g.deleted = true;
+    g.updatedAt = nowMs();
+    _changed();
+  }
+
+  void setHourlyWage(int v) {
+    hourlyWage = v < 0 ? 0 : v;
+    _changed(syncSoon: false);
+  }
+
+  void setRevealHidden(bool v) {
+    revealHidden = v;
+    notifyListeners();
   }
 
   // ---------------- Khóa app ----------------
@@ -632,6 +797,15 @@ class AppStore extends ChangeNotifier {
     for (final g in groups.values) {
       add('group', g.id, g.toJson(), g.updatedAt, g.deleted);
     }
+    for (final b in bills.values) {
+      add('bill', b.id, b.toJson(), b.updatedAt, b.deleted);
+    }
+    for (final w in wishes.values) {
+      add('wish', w.id, w.toJson(), w.updatedAt, w.deleted);
+    }
+    for (final g in gifts.values) {
+      add('gift', g.id, g.toJson(), g.updatedAt, g.deleted);
+    }
     return out;
   }
 
@@ -655,6 +829,12 @@ class AppStore extends ChangeNotifier {
         if ((challenges[id]?.updatedAt ?? -1) < u) challenges[id] = Challenge.fromJson(data)..updatedAt = u;
       case 'group':
         if ((groups[id]?.updatedAt ?? -1) < u) groups[id] = Group.fromJson(data)..updatedAt = u;
+      case 'bill':
+        if ((bills[id]?.updatedAt ?? -1) < u) bills[id] = Bill.fromJson(data)..updatedAt = u;
+      case 'wish':
+        if ((wishes[id]?.updatedAt ?? -1) < u) wishes[id] = Wish.fromJson(data)..updatedAt = u;
+      case 'gift':
+        if ((gifts[id]?.updatedAt ?? -1) < u) gifts[id] = GiftEntry.fromJson(data)..updatedAt = u;
     }
   }
 

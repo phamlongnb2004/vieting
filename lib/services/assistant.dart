@@ -23,27 +23,28 @@ class Assistant {
   /// Tóm tắt dữ liệu chi tiêu gửi kèm câu hỏi (không gửi nội dung thông báo gốc).
   static String buildContext(AppStore s) {
     final now = DateTime.now();
-    final prev = DateTime(now.year, now.month - 1);
+    final cur = s.currentPeriod;
+    final prev = DateTime(cur.year, cur.month - 1);
     final b = StringBuffer();
     b.writeln('Tổng số dư các ví: ${_m(s.totalBalance)} đ');
     b.writeln('Ví: ${s.activeWallets.map((w) => '${w.name} ${_m(s.walletBalance(w))} đ').join('; ')}');
     void month(String label, int y, int m) {
       final t = s.monthTotals(y, m);
       final cats = s.expenseByCategory(y, m).entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-      b.writeln('$label (tháng $m/$y): thu ${_m(t.income)} đ, chi ${_m(t.expense)} đ');
+      b.writeln('$label (${s.periodLabel(y, m)}): thu ${_m(t.income)} đ, chi ${_m(t.expense)} đ');
       if (cats.isNotEmpty) {
         b.writeln('  Chi theo danh mục: ${cats.map((e) => '${catById(e.key).name} ${_m(e.value)} đ').join('; ')}');
       }
     }
 
-    month('Tháng này', now.year, now.month);
-    b.writeln('  Đã qua ${now.day}/${DateTime(now.year, now.month + 1, 0).day} ngày của tháng');
-    month('Tháng trước', prev.year, prev.month);
+    month('Kỳ này', cur.year, cur.month);
+    b.writeln('  Còn ${s.daysLeftInPeriod}/${s.periodDays(cur.year, cur.month)} ngày của kỳ (kỳ bắt đầu ngày ${s.cycleDay} hằng tháng)');
+    month('Kỳ trước', prev.year, prev.month);
     final budgets = s.activeBudgets;
     if (budgets.isNotEmpty) {
       b.writeln('Ngân sách tháng: ${budgets.map((x) {
         final name = x.id == 'all' ? 'Tổng chi' : catById(x.id).name;
-        return '$name đã chi ${_m(s.spentFor(x.id, now.year, now.month))} / hạn mức ${_m(x.limit)} đ';
+        return '$name đã chi ${_m(s.spentFor(x.id, cur.year, cur.month))} / hạn mức ${_m(x.limit)} đ';
       }).join('; ')}');
     } else {
       b.writeln('Chưa đặt ngân sách.');
@@ -51,6 +52,10 @@ class Assistant {
     final recent = s.activeTxns.take(40).toList();
     b.writeln('${recent.length} giao dịch gần nhất (ngày | số tiền | danh mục | ví | ghi chú):');
     for (final t in recent) {
+      if (t.hidden) {
+        b.writeln('${_d(t.date)} | ${t.income ? '+' : '-'}${_m(t.amount)} | Khoản riêng tư | - | -');
+        continue;
+      }
       final note = t.note.length > 50 ? '${t.note.substring(0, 50)}…' : t.note;
       b.writeln('${_d(t.date)} | ${t.income ? '+' : '-'}${_m(t.amount)} | ${catById(t.categoryId).name} | ${s.walletName(t.walletId)} | $note');
     }
@@ -96,7 +101,7 @@ class Assistant {
               'content-type': 'application/json',
               if (s.token.isNotEmpty) 'authorization': 'Bearer ${s.token}',
             },
-            body: jsonEncode({'messages': history, 'context': buildContext(s), 'today': _d(DateTime.now())}),
+            body: jsonEncode({'messages': history, 'context': buildContext(s), 'today': _d(DateTime.now()), 'tone': s.aiTone}),
           )
           .timeout(const Duration(seconds: 45));
       Map<String, dynamic> body;

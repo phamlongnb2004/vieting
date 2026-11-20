@@ -5,6 +5,7 @@ import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
+import '../screens/lock.dart';
 
 class CatAvatar extends StatelessWidget {
   final Cat cat;
@@ -28,20 +29,36 @@ class TxnTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final cat = catById(txn.categoryId);
+    final masked = txn.hidden && !store.revealHidden;
+    final cat = masked ? catById('khac_chi') : catById(txn.categoryId);
     final cs = Theme.of(context).colorScheme;
-    final subtitle = [
-      hm(txn.date),
-      store.walletName(txn.walletId),
-      if (txn.note.isNotEmpty) txn.note,
-    ].join(' · ');
+    final subtitle = masked
+        ? '${hm(txn.date)} · chạm để mở khóa'
+        : [
+            hm(txn.date),
+            store.walletName(txn.walletId),
+            if (txn.note.isNotEmpty) txn.note,
+          ].join(' · ');
     return ListTile(
-      onTap: onTap,
+      onTap: masked
+          ? () async {
+              if (await unlockHidden(context)) store.setRevealHidden(true);
+            }
+          : onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      leading: CatAvatar(cat: cat),
+      leading: masked
+          ? Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(13)),
+              child: const Icon(Icons.lock_outline),
+            )
+          : CatAvatar(cat: cat),
       title: Row(children: [
-        Flexible(child: Text(cat.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
-        if (txn.auto) ...[
+        Flexible(
+            child: Text(masked ? 'Khoản riêng tư' : cat.name,
+                overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
+        if (txn.auto && !masked) ...[
           const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),

@@ -14,6 +14,11 @@ import 'goals.dart';
 import 'habits.dart';
 import 'notify_setup.dart';
 import 'paste.dart';
+import 'bills.dart';
+import 'cleanup.dart';
+import 'gifts.dart';
+import 'wrapped.dart';
+import '../widgets/nudge.dart';
 
 class OverviewScreen extends StatefulWidget {
   final VoidCallback onSeeAll;
@@ -54,8 +59,9 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final now = DateTime.now();
-    final totals = store.monthTotals(now.year, now.month);
-    final byCat = store.expenseByCategory(now.year, now.month).entries.toList()
+    final per = store.currentPeriod;
+    final totals = store.monthTotals(per.year, per.month);
+    final byCat = store.expenseByCategory(per.year, per.month).entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final recent = store.activeTxns.take(6).toList();
     final budgets = store.activeBudgets;
@@ -100,10 +106,13 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
             ),
             const SizedBox(height: 12),
           ],
-          _BalanceCard(total: store.totalBalance, income: totals.income, expense: totals.expense, month: now.month),
+          _BalanceCard(total: store.totalBalance, income: totals.income, expense: totals.expense, label: store.cycleDay == 1 ? 'tháng ${now.month}' : 'kỳ này'),
           const SizedBox(height: 12),
           _TodayRow(store: store),
-          SectionTitle('Chi tiêu tháng ${now.month}'),
+          const SizedBox(height: 4),
+          _Alerts(store: store),
+          _ForecastCard(store: store),
+          SectionTitle(store.cycleDay == 1 ? 'Chi tiêu tháng ${now.month}' : 'Chi tiêu kỳ ${store.periodLabel(per.year, per.month)}'),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -167,10 +176,10 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
                       Expanded(
                           child: Text(b.id == 'all' ? 'Tổng chi tiêu' : catById(b.id).name,
                               style: const TextStyle(fontWeight: FontWeight.w600))),
-                      Text('${compactMoney(store.spentFor(b.id, now.year, now.month))} / ${compactMoney(b.limit)}'),
+                      Text('${compactMoney(store.spentFor(b.id, per.year, per.month))} / ${compactMoney(b.limit)}'),
                     ]),
                     const SizedBox(height: 6),
-                    BudgetBar(spent: store.spentFor(b.id, now.year, now.month), limit: b.limit),
+                    BudgetBar(spent: store.spentFor(b.id, per.year, per.month), limit: b.limit),
                     const SizedBox(height: 12),
                   ],
                 ]),
@@ -203,8 +212,8 @@ class _BalanceCard extends StatelessWidget {
   final int total;
   final int income;
   final int expense;
-  final int month;
-  const _BalanceCard({required this.total, required this.income, required this.expense, required this.month});
+  final String label;
+  const _BalanceCard({required this.total, required this.income, required this.expense, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -254,9 +263,9 @@ class _BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Row(children: [
-            stat(Icons.south_west, 'Thu tháng $month', income),
+            stat(Icons.south_west, 'Thu $label', income),
             const SizedBox(width: 12),
-            stat(Icons.north_east, 'Chi tháng $month', expense),
+            stat(Icons.north_east, 'Chi $label', expense),
           ]),
         ]),
       ]),
@@ -276,7 +285,7 @@ class _TodayRow extends StatelessWidget {
     final now = DateTime.now();
     final allowance = store.dailyAllowance;
     final spentToday = store.activeTxns
-        .where((t) => !t.income && sameDay(t.date, now))
+        .where((t) => !t.income && countsInTotals(t.categoryId) && sameDay(t.date, now))
         .fold<int>(0, (s, t) => s + t.amount);
     final goals = store.activeGoals.where((g) => g.progress < 1).toList()
       ..sort((a, b) => b.progress.compareTo(a.progress));
@@ -315,5 +324,142 @@ class _TodayRow extends StatelessWidget {
         () => open(const GoalsScreen()),
       ),
     ]);
+  }
+}
+
+
+/// Các thẻ nhắc nhẹ trong ngày: khoản định kỳ sắp đến hạn, dịp hiếu hỉ, cất tiền dư, dọn dẹp Chủ nhật, tổng kết kỳ.
+class _Alerts extends StatelessWidget {
+  final AppStore store;
+  const _Alerts({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final items = <Widget>[];
+    Widget card(IconData icon, Color color, String title, String sub, {VoidCallback? onTap, Widget? trailing}) => Card(
+          color: color.withAlpha(28),
+          child: ListTile(
+            leading: Icon(icon, color: color),
+            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(sub),
+            onTap: onTap,
+            trailing: trailing ?? (onTap == null ? null : const Icon(Icons.chevron_right)),
+          ),
+        );
+    void open(Widget w) => Navigator.push(context, MaterialPageRoute(builder: (_) => w));
+
+    for (final b in store.billsDueSoon.take(2)) {
+      final days = DateTime(b.next.year, b.next.month, b.next.day).difference(DateTime(now.year, now.month, now.day)).inDays;
+      items.add(card(
+        Icons.autorenew,
+        const Color(0xFFEF8F00),
+        '${b.name} ${days <= 0 ? 'đến hạn hôm nay' : 'còn $days ngày nữa trừ tiền'}',
+        '${money(b.amount)} · còn dùng không? Không thì hủy kịp nhé',
+        onTap: () => open(const BillsScreen()),
+        trailing: TextButton(
+          onPressed: () {
+            final t = store.payBill(b);
+            showNudges(store.nudgesFor(t));
+          },
+          child: const Text('Đã trả'),
+        ),
+      ));
+    }
+    for (final g in store.upcomingGiftEvents.take(1)) {
+      items.add(card(Icons.redeem, Brand.red, 'Sắp tới dịp của ${g.person}', 'Ngày ${dmy(g.remind!)} · xem lần trước đi bao nhiêu',
+          onTap: () => open(const GiftsScreen())));
+    }
+    final left = store.yesterdayLeftover;
+    if (left > 0) {
+      final goals = store.activeGoals.where((g) => g.progress < 1).toList();
+      items.add(card(
+        Icons.savings_outlined,
+        Brand.bamboo,
+        'Hôm qua còn dư ${money(left)} 🎉',
+        goals.isEmpty ? 'Tạo một hũ mục tiêu để cất tiền dư mỗi ngày' : 'Cất vào hũ "${goals.first.name}" cho cây tre lớn thêm?',
+        onTap: goals.isEmpty ? () => open(const GoalsScreen()) : null,
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (goals.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                final g = goals.first;
+                g.saved += left;
+                store.saveGoal(g);
+                store.markSwept(now.subtract(const Duration(days: 1)));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã cất ${money(left)} vào "${g.name}" 🎋')));
+              },
+              child: const Text('Cất'),
+            ),
+          IconButton(
+            tooltip: 'Bỏ qua',
+            icon: const Icon(Icons.close, size: 18),
+            onPressed: () => store.markSwept(now.subtract(const Duration(days: 1))),
+          ),
+        ]),
+      ));
+    }
+    if (now.weekday == DateTime.sunday && !store.sweptDays.contains('clean-${store.dayKey(now)}')) {
+      items.add(card(Icons.cleaning_services_outlined, Brand.navy, 'Dọn dẹp tài chính 60 giây', 'Chủ nhật rồi: xếp lại vài khoản, đối chiếu số dư',
+          onTap: () {
+        store.markSwept(DateTime(0), key: 'clean-${store.dayKey(now)}');
+        open(const CleanupScreen());
+      }));
+    }
+    final per = store.currentPeriod;
+    final prev = DateTime(per.year, per.month - 1);
+    if (store.periodStart(per.year, per.month).add(const Duration(days: 5)).isAfter(now) && store.monthTxns(prev.year, prev.month).length >= 5) {
+      items.add(card(Icons.auto_awesome, const Color(0xFF8E24AA), 'Tổng kết kỳ trước đã có!', 'Xem danh hiệu của bạn và chia sẻ lên story',
+          onTap: () => open(const WrappedScreen())));
+    }
+    if (store.isSkipDay(now)) {
+      items.add(card(Icons.celebration_outlined, Brand.yellow, 'Hôm nay là ngày ngoại lệ', 'Cứ vui vẻ, chuỗi ngày của bạn không bị mất 💛'));
+    }
+    return Column(children: items);
+  }
+}
+
+/// Dự báo cuối kỳ + "đường băng sinh tồn".
+class _ForecastCard extends StatelessWidget {
+  final AppStore store;
+  const _ForecastCard({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    if (store.activeTxns.length < 3) return const SizedBox.shrink();
+    final f = store.forecast;
+    final runway = store.runwayDays;
+    final bad = f.zeroDay != null || f.endBalance < 0;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('🔮 Dự báo cuối kỳ', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+              const SizedBox(height: 2),
+              Text(compactMoney(f.endBalance),
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: bad ? const Color(0xFFEF8F00) : Brand.income)),
+              Text(
+                f.zeroDay != null ? 'tiêu như hiện tại có thể hết tiền ngày ${dmy(f.zeroDay!)}' : 'tiêu ~${compactMoney(f.dailyRate)}/ngày như hiện tại',
+                style: TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant),
+              ),
+            ]),
+          ),
+          if (runway != null) ...[
+            Container(width: 1, height: 48, color: cs.outlineVariant, margin: const EdgeInsets.symmetric(horizontal: 12)),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('🛟 Đường băng sinh tồn', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                const SizedBox(height: 2),
+                Text(runway >= 365 ? '> 1 năm' : '$runway ngày', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                Text('sống được nếu mất thu nhập (chỉ chi thiết yếu)', style: TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant)),
+              ]),
+            ),
+          ],
+        ]),
+      ),
+    );
   }
 }

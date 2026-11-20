@@ -19,6 +19,8 @@ import 'notify_log.dart';
 import 'notify_setup.dart';
 import 'paste.dart';
 import 'wallets.dart';
+import 'cleanup.dart';
+import 'wrapped.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -135,6 +137,114 @@ class SettingsScreen extends StatelessWidget {
               subtitle: Text('${store.activeWallets.length} ví · tổng ${money(store.totalBalance)}'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _go(context, const WalletsScreen()),
+            ),
+          ]),
+          group('Chi tiêu & trợ lý', [
+            ListTile(
+              leading: const Icon(Icons.event_repeat),
+              title: const Text('Ngày bắt đầu kỳ chi tiêu'),
+              subtitle: Text(store.cycleDay == 1
+                  ? 'Ngày 1 hằng tháng (theo tháng dương lịch)'
+                  : 'Ngày ${store.cycleDay} hằng tháng (ngày nhận lương)'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                final d = await showDialog<int>(
+                  context: context,
+                  builder: (c) => SimpleDialog(
+                    title: const Text('Kỳ chi tiêu bắt đầu ngày nào?'),
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
+                        child: Text('Chọn ngày bạn nhận lương để ngân sách, hạn mức ngày và tổng kết tính từ ngày đó.'),
+                      ),
+                      SizedBox(
+                        width: 320,
+                        child: Wrap(alignment: WrapAlignment.center, children: [
+                          for (var i = 1; i <= 28; i++)
+                            Padding(
+                              padding: const EdgeInsets.all(3),
+                              child: ChoiceChip(label: Text('$i'), selected: store.cycleDay == i, onSelected: (_) => Navigator.pop(c, i)),
+                            ),
+                        ]),
+                      ),
+                    ],
+                  ),
+                );
+                if (d != null) store.setCycleDay(d);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.record_voice_over_outlined),
+              title: const Text('Giọng trợ lý'),
+              subtitle: Text(switch (store.aiTone) {
+                'funny' => 'Hài hước, cà khịa nhẹ',
+                'strict' => 'Nghiêm khắc kiểu "mẹ mắng"',
+                _ => 'Nhẹ nhàng, động viên',
+              }),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                final t = await showDialog<String>(
+                  context: context,
+                  builder: (c) => SimpleDialog(title: const Text('Trợ lý nói chuyện kiểu gì?'), children: [
+                    for (final o in const [
+                      ('gentle', '🌿 Nhẹ nhàng', 'Động viên, không phán xét'),
+                      ('funny', '😜 Hài hước', 'Cà khịa nhẹ như bạn thân'),
+                      ('strict', '😤 Nghiêm khắc', 'Nhắc thẳng khi tiêu hoang'),
+                    ])
+                      ListTile(
+                        title: Text(o.$2),
+                        subtitle: Text(o.$3),
+                        trailing: store.aiTone == o.$1 ? const Icon(Icons.check) : null,
+                        onTap: () => Navigator.pop(c, o.$1),
+                      ),
+                  ]),
+                );
+                if (t != null) store.setAiTone(t);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.timer_outlined),
+              title: const Text('Thu nhập mỗi giờ làm'),
+              subtitle: Text(store.hourlyWage > 0
+                  ? '${money(store.hourlyWage)}/giờ'
+                  : store.effectiveHourlyWage > 0
+                      ? 'Tự tính từ lương: ~${money(store.effectiveHourlyWage)}/giờ'
+                      : 'Để quy đổi giá món đồ ra số giờ làm việc'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                final c = TextEditingController(text: store.hourlyWage > 0 ? groupDigits(store.hourlyWage) : '');
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Bạn kiếm bao nhiêu mỗi giờ?'),
+                    content: TextField(
+                      controller: c,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [ThousandsFormatter()],
+                      decoration: const InputDecoration(suffixText: '₫/giờ', helperText: 'Để trống = tự tính từ khoản lương (22 ngày × 8 giờ)'),
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Lưu')),
+                    ],
+                  ),
+                );
+                if (ok == true) store.setHourlyWage(parseMoneyInput(c.text));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.auto_awesome_outlined),
+              title: const Text('Tổng kết kỳ (Wrapped)'),
+              subtitle: const Text('Thẻ tổng kết vui để chia sẻ'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _go(context, const WrappedScreen()),
+            ),
+            ListTile(
+              leading: const Icon(Icons.cleaning_services_outlined),
+              title: const Text('Dọn dẹp 60 giây'),
+              subtitle: const Text('Xếp lại khoản chưa phân loại, đối chiếu số dư'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _go(context, const CleanupScreen()),
             ),
           ]),
           group('Tự động ghi giao dịch', [

@@ -15,6 +15,7 @@ class Txn {
   String raw; // nội dung thông báo gốc (nếu có)
   int? balanceAfter;
   String tag; // thẻ cảm xúc: can_thiet | xa_stress | dau_tu | boc_dong | ''
+  bool hidden; // khoản riêng tư: ẩn chi tiết, mở bằng vân tay / PIN
   int updatedAt;
   bool deleted;
 
@@ -30,6 +31,7 @@ class Txn {
     this.raw = '',
     this.balanceAfter,
     this.tag = '',
+    this.hidden = false,
     int? updatedAt,
     this.deleted = false,
   }) : updatedAt = updatedAt ?? nowMs();
@@ -51,6 +53,7 @@ class Txn {
         'raw': raw,
         if (balanceAfter != null) 'bal': balanceAfter,
         if (tag.isNotEmpty) 'tag': tag,
+        if (hidden) 'hid': true,
         'u': updatedAt,
         'del': deleted,
       };
@@ -67,6 +70,7 @@ class Txn {
         raw: (j['raw'] ?? '') as String,
         balanceAfter: (j['bal'] as num?)?.toInt(),
         tag: (j['tag'] ?? '') as String,
+        hidden: j['hid'] == true,
         updatedAt: (j['u'] as num?)?.toInt() ?? 0,
         deleted: j['del'] == true,
       );
@@ -414,3 +418,189 @@ class Group {
         deleted: j['del'] == true,
       );
 }
+
+
+/// Khoản định kỳ: gói đăng ký (Netflix, gym...) hoặc trả góp còn N kỳ.
+class Bill {
+  String id;
+  String name;
+  int amount;
+  String cycle; // month | year | week
+  DateTime next; // ngày đến hạn kế tiếp
+  int? remaining; // trả góp: số kỳ còn lại; null = gói đăng ký không thời hạn
+  String categoryId;
+  int updatedAt;
+  bool deleted;
+  Bill({
+    required this.id,
+    required this.name,
+    required this.amount,
+    this.cycle = 'month',
+    required this.next,
+    this.remaining,
+    this.categoryId = 'hoa_don',
+    int? updatedAt,
+    this.deleted = false,
+  }) : updatedAt = updatedAt ?? nowMs();
+
+  bool get isInstallment => remaining != null;
+  bool get finished => remaining != null && remaining! <= 0;
+
+  DateTime after(DateTime d) => switch (cycle) {
+        'year' => DateTime(d.year + 1, d.month, d.day),
+        'week' => d.add(const Duration(days: 7)),
+        _ => DateTime(d.year, d.month + 1, d.day),
+      };
+
+  /// Các ngày đến hạn trong [from, to).
+  List<DateTime> dueBetween(DateTime from, DateTime to) {
+    final out = <DateTime>[];
+    var d = next;
+    var left = remaining;
+    var guard = 0;
+    while (d.isBefore(to) && guard++ < 400) {
+      if (left != null && left <= 0) break;
+      if (!d.isBefore(from)) out.add(d);
+      d = after(d);
+      if (left != null) left--;
+    }
+    return out;
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'amount': amount,
+        'cycle': cycle,
+        'next': next.millisecondsSinceEpoch,
+        if (remaining != null) 'left': remaining,
+        'cat': categoryId,
+        'u': updatedAt,
+        'del': deleted,
+      };
+  factory Bill.fromJson(Map<String, dynamic> j) => Bill(
+        id: j['id'] as String,
+        name: (j['name'] ?? '') as String,
+        amount: (j['amount'] as num?)?.toInt() ?? 0,
+        cycle: (j['cycle'] ?? 'month') as String,
+        next: DateTime.fromMillisecondsSinceEpoch((j['next'] as num?)?.toInt() ?? nowMs()),
+        remaining: (j['left'] as num?)?.toInt(),
+        categoryId: (j['cat'] ?? 'hoa_don') as String,
+        updatedAt: (j['u'] as num?)?.toInt() ?? 0,
+        deleted: j['del'] == true,
+      );
+}
+
+/// Món muốn mua, chờ 48 giờ "làm nguội" trước khi quyết định. Sau khi mua thì theo dõi số lần dùng.
+class Wish {
+  String id;
+  String name;
+  int price;
+  DateTime created;
+  String status; // waiting | bought | skipped
+  DateTime? decidedAt;
+  int uses;
+  int updatedAt;
+  bool deleted;
+  Wish({
+    required this.id,
+    required this.name,
+    required this.price,
+    DateTime? created,
+    this.status = 'waiting',
+    this.decidedAt,
+    this.uses = 0,
+    int? updatedAt,
+    this.deleted = false,
+  })  : created = created ?? DateTime.now(),
+        updatedAt = updatedAt ?? nowMs();
+
+  static const cooldown = Duration(hours: 48);
+  DateTime get readyAt => created.add(cooldown);
+  bool get ready => DateTime.now().isAfter(readyAt);
+  int get costPerUse => uses <= 0 ? price : (price / uses).round();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'price': price,
+        'created': created.millisecondsSinceEpoch,
+        'status': status,
+        if (decidedAt != null) 'decided': decidedAt!.millisecondsSinceEpoch,
+        'uses': uses,
+        'u': updatedAt,
+        'del': deleted,
+      };
+  factory Wish.fromJson(Map<String, dynamic> j) => Wish(
+        id: j['id'] as String,
+        name: (j['name'] ?? '') as String,
+        price: (j['price'] as num?)?.toInt() ?? 0,
+        created: DateTime.fromMillisecondsSinceEpoch((j['created'] as num?)?.toInt() ?? nowMs()),
+        status: (j['status'] ?? 'waiting') as String,
+        decidedAt: j['decided'] == null ? null : DateTime.fromMillisecondsSinceEpoch((j['decided'] as num).toInt()),
+        uses: (j['uses'] as num?)?.toInt() ?? 0,
+        updatedAt: (j['u'] as num?)?.toInt() ?? 0,
+        deleted: j['del'] == true,
+      );
+}
+
+/// Một lần mừng / được mừng trong sổ hiếu hỉ.
+class GiftEntry {
+  String id;
+  String person;
+  String event; // cuoi | day_thang | tan_gia | sinh_nhat | ma_chay | om_dau | khac
+  bool given; // true: mình mừng họ; false: họ mừng mình
+  int amount;
+  DateTime date;
+  String note;
+  DateTime? remind; // ngày sắp tới của người đó (VD đám cưới họ) để nhắc
+  int updatedAt;
+  bool deleted;
+  GiftEntry({
+    required this.id,
+    required this.person,
+    this.event = 'cuoi',
+    this.given = true,
+    required this.amount,
+    required this.date,
+    this.note = '',
+    this.remind,
+    int? updatedAt,
+    this.deleted = false,
+  }) : updatedAt = updatedAt ?? nowMs();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'person': person,
+        'event': event,
+        'given': given,
+        'amount': amount,
+        'date': date.millisecondsSinceEpoch,
+        'note': note,
+        if (remind != null) 'remind': remind!.millisecondsSinceEpoch,
+        'u': updatedAt,
+        'del': deleted,
+      };
+  factory GiftEntry.fromJson(Map<String, dynamic> j) => GiftEntry(
+        id: j['id'] as String,
+        person: (j['person'] ?? '') as String,
+        event: (j['event'] ?? 'khac') as String,
+        given: j['given'] != false,
+        amount: (j['amount'] as num?)?.toInt() ?? 0,
+        date: DateTime.fromMillisecondsSinceEpoch((j['date'] as num?)?.toInt() ?? nowMs()),
+        note: (j['note'] ?? '') as String,
+        remind: j['remind'] == null ? null : DateTime.fromMillisecondsSinceEpoch((j['remind'] as num).toInt()),
+        updatedAt: (j['u'] as num?)?.toInt() ?? 0,
+        deleted: j['del'] == true,
+      );
+}
+
+const Map<String, String> kGiftEvents = {
+  'cuoi': '💒 Đám cưới',
+  'day_thang': '👶 Đầy tháng / thôi nôi',
+  'tan_gia': '🏠 Tân gia',
+  'sinh_nhat': '🎂 Sinh nhật',
+  'om_dau': '🏥 Thăm ốm',
+  'ma_chay': '🕯️ Đám hiếu',
+  'khac': '🎁 Dịp khác',
+};

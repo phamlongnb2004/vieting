@@ -37,6 +37,8 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
       _leftAt ??= DateTime.now();
+      final st = StoreScope.read(context);
+      if (st.revealHidden) st.setRevealHidden(false);
     } else if (state == AppLifecycleState.resumed) {
       final left = _leftAt;
       _leftAt = null;
@@ -229,4 +231,31 @@ Future<String?> askNewPin(BuildContext context) async {
       ),
     ),
   );
+}
+
+
+/// Mở khóa xem khoản riêng tư: vân tay / khuôn mặt nếu bật, không thì nhập mã PIN.
+Future<bool> unlockHidden(BuildContext context) async {
+  final store = StoreScope.read(context);
+  if (store.bioLock && await Biometric.available()) {
+    if (await Biometric.authenticate()) return true;
+  }
+  if (!store.locked) return true;
+  if (!context.mounted) return false;
+  final c = TextEditingController();
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Nhập mã PIN để xem'),
+      content: SizedBox(
+        width: 300,
+        child: TextField(controller: c, autofocus: true, obscureText: true, keyboardType: TextInputType.number, maxLength: 6),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, store.checkPin(c.text.trim())), child: const Text('Mở')),
+      ],
+    ),
+  );
+  return ok == true;
 }

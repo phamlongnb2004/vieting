@@ -57,8 +57,8 @@ class BudgetsScreen extends StatelessWidget {
     final now = DateTime.now();
     final budgets = store.activeBudgets;
     final cs = Theme.of(context).colorScheme;
-    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-    final daysLeft = daysInMonth - now.day + 1;
+    final per = store.currentPeriod;
+    final daysLeft = store.daysLeftInPeriod;
 
     return Scaffold(
       appBar: embedded ? null : AppBar(title: const Text('Ngân sách', style: TextStyle(fontWeight: FontWeight.w800))),
@@ -82,12 +82,12 @@ class BudgetsScreen extends StatelessWidget {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
               children: [
-                Text('${monthLabel(now.year, now.month)} · còn $daysLeft ngày',
+                Text('${store.periodLabel(per.year, per.month)} · còn $daysLeft ngày',
                     style: TextStyle(color: cs.onSurfaceVariant)),
                 const SizedBox(height: 10),
                 for (final b in budgets) ...[
                   Builder(builder: (context) {
-                    final spent = store.spentFor(b.id, now.year, now.month);
+                    final spent = store.spentFor(b.id, per.year, per.month);
                     final left = b.limit - spent;
                     final perDay = left > 0 ? left ~/ daysLeft : 0;
                     final cat = b.id == 'all' ? null : catById(b.id);

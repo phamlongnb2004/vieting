@@ -15,8 +15,14 @@ const DAILY_LIMIT = 80; // tin nhắn / người / ngày, giữ trong hạn mứ
 const WORKERS_AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const WORKERS_AI_FALLBACK = '@cf/meta/llama-3.1-8b-instruct';
 
-function systemPrompt(today) {
-  return `Bạn là "Trợ lý VieTing", trợ lý quản lý chi tiêu cá nhân trong app VieTing. Luôn trả lời bằng tiếng Việt, thân thiện, ngắn gọn (tối đa khoảng 120 từ), dùng số liệu cụ thể. Hôm nay là ${today}. Đơn vị tiền: đồng (₫), viết số có dấu chấm ngăn cách hàng nghìn (VD 1.250.000 ₫).
+const TONES = {
+  gentle: 'Giọng nhẹ nhàng, đồng cảm, động viên, không phán xét; khi người dùng tiêu quá tay thì gợi ý điều chỉnh nhẹ nhàng.',
+  funny: 'Giọng hài hước, cà khịa nhẹ kiểu bạn thân, dùng vài emoji, nhưng vẫn đưa lời khuyên hữu ích; không xúc phạm.',
+  strict: 'Giọng nghiêm khắc kiểu "mẹ mắng" khi người dùng tiêu hoang (VD chốt đơn Shopee), thẳng thắn, ngắn gọn; vẫn tôn trọng, không xúc phạm.',
+};
+
+function systemPrompt(today, tone) {
+  return `Bạn là "Trợ lý VieTing", trợ lý quản lý chi tiêu cá nhân trong app VieTing. Luôn trả lời bằng tiếng Việt, ngắn gọn (tối đa khoảng 120 từ), dùng số liệu cụ thể. ${TONES[tone] || TONES.gentle} Hôm nay là ${today}. Đơn vị tiền: đồng (₫), viết số có dấu chấm ngăn cách hàng nghìn (VD 1.250.000 ₫).
 
 Bạn nhận được TÓM TẮT dữ liệu chi tiêu thật của người dùng trong phần "DỮ LIỆU". Chỉ dựa vào dữ liệu đó, không bịa số liệu. Nếu dữ liệu không đủ để trả lời, nói rõ.
 
@@ -146,7 +152,7 @@ export async function handleChat(req, env, userId) {
     .map((m) => ({ role: m.role === 'model' ? 'model' : 'user', text: m.text.slice(0, 2000) }));
   if (!history.length || history[history.length - 1].role !== 'user') return json({ error: 'Thiếu câu hỏi' }, 400);
 
-  const sys = systemPrompt(today) + '\n\nDỮ LIỆU:\n' + context;
+  const sys = systemPrompt(today, b.tone) + '\n\nDỮ LIỆU:\n' + context;
   let out = null;
   if (env.GEMINI_API_KEY) {
     try {
@@ -188,11 +194,12 @@ export async function handleReceipt(req, env, userId) {
   const today = /^\d{4}-\d{2}-\d{2}$/.test(b.today || '') ? b.today : new Date().toISOString().slice(0, 10);
   const prompt = `Đây là ảnh hóa đơn, biên lai, hoặc ảnh chụp màn hình chuyển khoản / mã QR thanh toán ở Việt Nam. Hôm nay là ${today}.
 Đọc và trả về MỘT đối tượng JSON:
-{"found":true,"amount":125000,"income":false,"category":"an_uong","note":"tên cửa hàng hoặc nội dung ngắn","date":"YYYY-MM-DD"}
+{"found":true,"amount":125000,"income":false,"category":"an_uong","note":"tên cửa hàng hoặc nội dung ngắn","date":"YYYY-MM-DD","items":[{"amount":80000,"category":"an_uong","note":"thực phẩm"},{"amount":45000,"category":"mua_sam","note":"đồ gia dụng"}]}
 - amount: TỔNG số tiền phải trả / đã chuyển (đồng, số nguyên).
 - income: true chỉ khi ảnh là tiền NHẬN vào.
 - category: một trong ${Object.keys(CATS).join(', ')}.
 - date: ngày trên hóa đơn nếu có, không có thì để trống.
+- items: nếu là hóa đơn siêu thị / đơn hàng nhiều món thuộc NHIỀU danh mục khác nhau, gộp các món theo danh mục, mỗi danh mục một phần tử (tổng các phần tử bằng amount; phân bổ giảm giá / phí ship theo tỉ lệ). Nếu chỉ một danh mục thì để mảng rỗng.
 Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do ngắn bằng tiếng Việt"}.`;
   const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
   try {
@@ -210,7 +217,8 @@ Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do 
     if (!p || !p.found) return json({ found: false, reason: (p && p.reason) || 'Không thấy số tiền trong ảnh' });
     const acts = cleanActions([{ type: 'add_txn', ...p }]);
     if (!acts.length) return json({ found: false, reason: 'Không thấy số tiền hợp lệ' });
-    return json({ found: true, ...acts[0] });
+    const items = cleanActions((Array.isArray(p.items) ? p.items : []).slice(0, 8).map((x) => ({ type: 'add_txn', income: acts[0].income, date: acts[0].date, ...x })));
+    return json({ found: true, ...acts[0], items: items.length > 1 ? items : [] });
   } catch (e) {
     return json({ error: 'AI đang bận, thử lại sau.' }, 502);
   }

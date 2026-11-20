@@ -8,6 +8,7 @@ import '../services/receipt.dart';
 import '../services/voice.dart';
 import '../store.dart';
 import '../widgets/nudge.dart';
+import 'lock.dart';
 import '../theme.dart';
 import '../util/format.dart';
 
@@ -46,6 +47,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
   final _note = TextEditingController();
   String? _originalCat;
   String _tag = '';
+  bool _hidden = false;
   bool _listening = false;
   bool _reading = false;
   String _heard = '';
@@ -65,6 +67,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
     if (amt != null) _amount.text = groupDigits(amt);
     _note.text = t?.note ?? widget.presetNote ?? '';
     _tag = t?.tag ?? '';
+    _hidden = t?.hidden ?? false;
   }
 
   /// Điền form từ câu nói / ảnh hóa đơn / gợi ý.
@@ -123,6 +126,54 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
       return;
     }
     final a = r.action!;
+    final items = ((a['items'] as List?) ?? []).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+    if (items.length > 1) {
+      final split = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text('Hóa đơn có ${items.length} nhóm hàng'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            for (final it in items)
+              ListTile(
+                dense: true,
+                leading: Icon(catById((it['category'] ?? '') as String).icon, color: catById((it['category'] ?? '') as String).color),
+                title: Text(catById((it['category'] ?? '') as String).name),
+                subtitle: Text((it['note'] ?? '') as String),
+                trailing: Text(money((it['amount'] as num).toInt())),
+              ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Gộp 1 khoản')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Tách từng khoản')),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (split == true) {
+        final store = StoreScope.read(context);
+        final d = DateTime.tryParse((a['date'] ?? '') as String);
+        final date = d == null ? _date : DateTime(d.year, d.month, d.day, _date.hour, _date.minute);
+        final shop = (a['note'] ?? '') as String;
+        final added = <Txn>[];
+        for (final it in items) {
+          final t = Txn(
+            id: newId(),
+            amount: (it['amount'] as num).toInt(),
+            income: it['income'] == true,
+            categoryId: (it['category'] ?? 'khac_chi') as String,
+            walletId: _wallet,
+            date: date,
+            note: [shop, (it['note'] ?? '') as String].where((x) => x.isNotEmpty).join(' · '),
+            source: 'receipt',
+          );
+          store.saveTxn(t);
+          added.add(t);
+        }
+        Navigator.pop(context);
+        showNudges([for (final t in added) ...store.nudgesFor(t)]);
+        return;
+      }
+    }
     _fill(
       amount: (a['amount'] as num).toInt(),
       income: a['income'] == true,
@@ -173,7 +224,8 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
       ..walletId = _wallet
       ..date = _date
       ..note = _note.text.trim()
-      ..tag = _income ? '' : _tag;
+      ..tag = _income ? '' : _tag
+      ..hidden = _hidden;
     // Người dùng sửa danh mục của giao dịch tự động -> ghi nhớ cho lần sau
     if (widget.txn != null && widget.txn!.auto && _originalCat != _cat && t.note.isNotEmpty) {
       store.learnCategory(t.note, _cat);
@@ -362,7 +414,23 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
               ),
             ]),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 6),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            secondary: const Icon(Icons.lock_outline),
+            title: const Text('Khoản riêng tư'),
+            subtitle: const Text('Ẩn chi tiết (VD quà bí mật), chỉ mở bằng vân tay / mã PIN'),
+            value: _hidden,
+            onChanged: (v) async {
+              if (v && !store.locked) {
+                final pin = await askNewPin(context);
+                if (pin == null) return;
+                store.setPin(pin);
+              }
+              setState(() => _hidden = v);
+            },
+          ),
+          const SizedBox(height: 8),
           TextField(
             controller: _note,
             maxLines: 2,

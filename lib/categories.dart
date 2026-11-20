@@ -9,7 +9,9 @@ class Cat {
   final Color color;
   final bool income;
   final List<String> keywords;
-  const Cat(this.id, this.name, this.icon, this.color, this.income, this.keywords);
+  /// Tiền đi qua tay (chi hộ, chuyển giữa ví...): không tính vào thu / chi thật.
+  final bool neutral;
+  const Cat(this.id, this.name, this.icon, this.color, this.income, this.keywords, {this.neutral = false});
 }
 
 const List<Cat> kCategories = [
@@ -51,6 +53,8 @@ const List<Cat> kCategories = [
     'gui me', 'gui bo', 'bieu', 'cho con', 'sinh nhat', 'dam cuoi', 'mung cuoi', 'li xi', 'qua tang'
   ]),
   Cat('chuyen_di', 'Chuyển khoản đi', Icons.send, Color(0xFF546E7A), false, []),
+  Cat('chi_ho', 'Chi hộ / ứng trước', Icons.handshake_outlined, Color(0xFF90A4AE), false, ['chi ho', 'ung truoc', 'tra ho', 'mua ho'], neutral: true),
+  Cat('chuyen_vi', 'Chuyển sang ví/thẻ khác', Icons.swap_horiz, Color(0xFF90A4AE), false, ['chuyen sang the', 'nap vi', 'chuyen tien sang tai khoan'], neutral: true),
   Cat('khac_chi', 'Chi khác', Icons.more_horiz, Color(0xFF757575), false, []),
   // ----- Thu -----
   Cat('luong', 'Lương', Icons.payments, Color(0xFF2E7D32), true, ['tien luong', 'tra luong', 'luong thang', 'salary', 'payroll']),
@@ -60,6 +64,8 @@ const List<Cat> kCategories = [
   ]),
   Cat('nhan_tien', 'Nhận chuyển khoản', Icons.call_received, Color(0xFF388E3C), true, []),
   Cat('khac_thu', 'Thu khác', Icons.attach_money, Color(0xFF7CB342), true, ['hoan tien', 'refund']),
+  Cat('thu_ho', 'Nhận lại tiền chi hộ', Icons.handshake, Color(0xFF90A4AE), true, ['tra lai tien', 'hoan ung'], neutral: true),
+  Cat('nhan_vi', 'Nhận từ ví/thẻ khác', Icons.swap_horiz, Color(0xFF90A4AE), true, [], neutral: true),
 ];
 
 Cat catById(String id) =>
@@ -95,3 +101,10 @@ String guessCategory(bool income, String text, Map<String, String> learned) {
   if (f.contains('chuyen')) return 'chuyen_di';
   return 'khac_chi';
 }
+
+
+/// Khoản có tính vào thu / chi thật không (loại trừ tiền đi qua tay).
+bool countsInTotals(String categoryId) => !catById(categoryId).neutral;
+
+/// Danh mục chi "thiết yếu" dùng để tính "sống được bao lâu".
+const Set<String> kEssentialCats = {'an_uong', 'di_lai', 'hoa_don', 'nha_o', 'suc_khoe', 'giao_duc', 'gia_dinh'};
