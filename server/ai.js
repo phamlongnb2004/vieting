@@ -440,7 +440,8 @@ Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do 
     const acts = cleanActions([{ type: 'add_txn', ...p }]);
     if (!acts.length) return json({ found: false, reason: 'Không thấy số tiền hợp lệ' });
     const items = cleanActions((Array.isArray(p.items) ? p.items : []).slice(0, 8).map((x) => ({ type: 'add_txn', income: acts[0].income, date: acts[0].date, ...x })));
-    return json({ found: true, ...acts[0], items: items.length > 1 ? items : [] });
+    const cats = new Set(items.map((x) => x.category));
+    return json({ found: true, ...acts[0], items: items.length > 1 && cats.size > 1 ? items : [] });
   } catch (e) {
     return json({ error: 'AI đang bận, thử lại sau.' }, 502);
   }
