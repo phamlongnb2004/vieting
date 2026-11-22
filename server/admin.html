@@ -170,7 +170,7 @@
         <div class="card"><h3>Giao dịch được đồng bộ · 30 ngày</h3><div class="bars navy" id="b2"></div><div class="axis" id="a2"></div></div>
       </div>
       <div class="row">
-        <div class="card"><h3>Trợ lý AI · 14 ngày</h3><div id="ai"></div></div>
+        <div class="card"><h3>Trợ lý AI · 14 ngày</h3><div id="aistat"></div></div>
         <div class="card"><h3>Hệ thống</h3><div id="sys"></div></div>
       </div>
     </div>
@@ -358,7 +358,7 @@ async function loadDash(){
   badge('#bt',s.openTickets);badge('#bo',s.newOcr);
   $('#kpis').innerHTML=k.map(([n,l])=>'<div class="card kpi"><div class="n">'+fmt(n)+'</div><div class="l">'+l+'</div></div>').join('');
   bars('#b1','#a1',s.days,s.signups);bars('#b2','#a2',s.days,s.txnDays);
-  $('#ai').innerHTML=s.ai.length?'<table><tr><th>Ngày</th><th>Lượt hỏi</th><th>Số người</th></tr>'+s.ai.slice().reverse().map(r=>'<tr><td>'+esc(r.day)+'</td><td>'+fmt(r.n)+'</td><td>'+fmt(r.people)+'</td></tr>').join('')+'</table>':'<p class="muted">Chưa có lượt hỏi nào.</p>';
+  $("#aistat").innerHTML=s.ai.length?'<table><tr><th>Ngày</th><th>Lượt hỏi</th><th>Số người</th></tr>'+s.ai.slice().reverse().map(r=>'<tr><td>'+esc(r.day)+'</td><td>'+fmt(r.n)+'</td><td>'+fmt(r.people)+'</td></tr>').join('')+'</table>':'<p class="muted">Chưa có lượt hỏi nào.</p>';
   $('#sys').innerHTML='<p>Trợ lý AI đang dùng: <b>'+esc(s.ai_provider)+'</b></p>'+(s.ai_error?'<p class="muted" style="font-size:12.5px">Lỗi Gemini gần nhất ('+new Date(s.ai_error.at).toLocaleString('vi-VN')+', '+esc(s.ai_error.where)+', mã '+s.ai_error.status+'): '+esc(s.ai_error.message)+'</p>':'')+'<p class="muted">Gói miễn phí: 30 lượt trợ lý / ngày, 5 ảnh hóa đơn + 10 lần AI đọc tin nhắn / tháng. Pro: 300 lượt / ngày, không giới hạn theo tháng. Tài khoản mới được dùng thử Pro 7 ngày.</p><p><a href="/tai-app" target="_blank">Mở trang tải app ↗</a></p>';
 }
 let off=0,timer;
