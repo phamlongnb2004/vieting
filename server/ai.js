@@ -94,7 +94,8 @@ export function cleanActions(list) {
 // 1) hỏi Google danh sách model khóa này dùng được, chọn model Flash mới nhất hỗ trợ generateContent;
 // 2) model nào lỗi 404/400 thì thử model kế; 3) nếu generateContent không dùng được thì chuyển sang Interactions API.
 // Lỗi thật của Google được lưu lại (bảng config, khóa "ai_error") để xem ở trang /admin.
-const GEMINI_FALLBACK = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash'];
+// Gói miễn phí (11/2026): Flash-Lite 15 lượt/phút, 500 lượt/ngày; Flash chỉ 5 lượt/phút, 20 lượt/ngày -> ưu tiên Lite.
+const GEMINI_FALLBACK = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
 const G_BASE = 'https://generativelanguage.googleapis.com';
 let modelCache = { at: 0, list: null };
 
@@ -163,7 +164,7 @@ async function saveAiError(env, where, status, text) {
   } catch {}
 }
 
-/** Đổi body kiểu generateContent sang Interactions API. */
+/** Đổi body kiểu generateContent sang Interactions API (system_instruction, generation_config, input là mảng nội dung). */
 function toInteraction(model, body) {
   const input = [];
   const sys = (body.systemInstruction?.parts || []).map((p) => p.text).join('\n');
@@ -175,24 +176,28 @@ function toInteraction(model, body) {
       else if (p.text != null) flat.push((turns.length > 1 ? (c.role === 'model' ? 'Trợ lý: ' : 'Người dùng: ') : '') + p.text);
     }
   }
-  const text = (sys ? sys + '\n\n' : '') + flat.join('\n');
-  input.push({ type: 'text', text });
+  input.push({ type: 'text', text: flat.join('\n') + (body.generationConfig?.responseMimeType === 'application/json' ? '\n\nChỉ trả về JSON hợp lệ.' : '') });
   const out = { model, input, store: false };
-  if (body.generationConfig?.responseMimeType === 'application/json') {
-    out.response_format = [{ type: 'text', mime_type: 'application/json' }];
-  }
+  if (sys) out.system_instruction = sys;
+  const max = body.generationConfig?.maxOutputTokens;
+  if (max) out.generation_config = { max_output_tokens: max };
   return out;
 }
 
+/** Lấy chữ trả lời của model từ phản hồi Interactions (chấp nhận nhiều dạng: output_text, outputs, steps). */
 function interactionText(j) {
-  const steps = j.steps || j.outputs || [];
+  if (typeof j?.output_text === 'string' && j.output_text) return j.output_text;
   const parts = [];
-  for (const st of steps) {
-    if (st.type && st.type !== 'model_output') continue;
-    for (const c of st.content || st.parts || []) if (c.text) parts.push(c.text);
-    if (typeof st.text === 'string') parts.push(st.text);
-  }
-  if (!parts.length && typeof j.output_text === 'string') parts.push(j.output_text);
+  const walk = (it, inModel) => {
+    if (!it || typeof it !== 'object') return;
+    if (Array.isArray(it)) return it.forEach((x) => walk(x, inModel));
+    const t = it.type || '';
+    if (/user_input|thought|function_call/.test(t)) return;
+    const model = inModel || /model_output|text/.test(t) || t === '';
+    if (model && typeof it.text === 'string' && (t === 'text' || t === '' || t === 'model_output')) parts.push(it.text);
+    for (const k of ['content', 'contents', 'parts', 'outputs', 'steps', 'output']) if (it[k]) walk(it[k], model || /model_output/.test(t));
+  };
+  walk(j.outputs ?? j.steps ?? j.output ?? [], false);
   return parts.join('');
 }
 
@@ -203,10 +208,10 @@ let route = null; // { api: 'gen' | 'int', ver, model } lần gọi thành công
 async function loadState(env) {
   if (Date.now() - cool.at < 20000) return;
   try {
-    const r = await env.DB.prepare("SELECT k, v FROM config WHERE k IN ('ai_cool', 'ai_route')").all();
+    const r = await env.DB.prepare("SELECT k, v FROM config WHERE k IN ('ai_cool2', 'ai_route2')").all();
     for (const row of r.results || []) {
-      if (row.k === 'ai_cool') cool.map = JSON.parse(row.v) || {};
-      if (row.k === 'ai_route') route = JSON.parse(row.v);
+      if (row.k === 'ai_cool2') cool.map = JSON.parse(row.v) || {};
+      if (row.k === 'ai_route2') route = JSON.parse(row.v);
     }
   } catch {}
   cool.at = Date.now();
@@ -221,7 +226,7 @@ async function saveState(env, k, v) {
 async function coolDown(env, model, ms) {
   cool.map[model] = Date.now() + ms;
   for (const [m, t] of Object.entries(cool.map)) if (t < Date.now()) delete cool.map[m];
-  await saveState(env, 'ai_cool', cool.map);
+  await saveState(env, 'ai_cool2', cool.map);
 }
 
 function retryMs(text) {
@@ -252,8 +257,9 @@ async function geminiFetch(env, body, prefer = 'flash') {
   await loadState(env);
   const found = (await listModels(env)) || [];
   const isLite = (m) => /lite/.test(m);
-  const models = [...new Set([env.GEMINI_MODEL, ...found, ...GEMINI_FALLBACK].filter(Boolean))];
-  models.sort((a, b) => (prefer === 'lite' ? isLite(b) - isLite(a) : isLite(a) - isLite(b)));
+  // luôn ưu tiên Lite (hạn mức miễn phí rộng gấp 25 lần); Lite đọc được cả ảnh
+  const models = [...new Set([env.GEMINI_MODEL, ...GEMINI_FALLBACK, ...found].filter(Boolean))];
+  models.sort((a, b) => isLite(b) - isLite(a));
   const now = Date.now();
   const cands = [];
   if (route && !(cool.map[route.model] > now) && !(cool.map[route.api + ':' + route.model] > now)) cands.push(route);
@@ -279,7 +285,7 @@ async function geminiFetch(env, body, prefer = 'flash') {
     if (res.ok) {
       if (!route || route.api !== r.api || route.model !== r.model) {
         route = r;
-        await saveState(env, 'ai_route', r);
+        await saveState(env, 'ai_route2', r);
       }
       return res;
     }
@@ -287,11 +293,11 @@ async function geminiFetch(env, body, prefer = 'flash') {
     const text = await res.clone().text();
     await saveAiError(env, (r.api === 'gen' ? 'generateContent ' : r.ver + ' interactions ') + r.model, res.status, text);
     if (res.status === 429) await coolDown(env, r.model, retryMs(text));
-    else if (res.status === 404 || res.status === 400) await coolDown(env, r.api + ':' + r.model, 6 * 3600000);
+    else if (res.status === 404 || (res.status === 400 && /model|not (found|supported)/i.test(text))) await coolDown(env, r.api + ':' + r.model, 6 * 3600000);
     else if (res.status === 401 || res.status === 403) break;
     if (route && route.model === r.model && route.api === r.api && res.status !== 429) {
       route = null;
-      await saveState(env, 'ai_route', null);
+      await saveState(env, 'ai_route2', null);
     }
   }
   return last;
