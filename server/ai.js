@@ -206,7 +206,7 @@ async function geminiFetch(env, body) {
   const list = [...new Set([env.GEMINI_MODEL, geminiOk, ...(found || []).slice(0, 4), ...GEMINI_FALLBACK].filter(Boolean))];
   let last = null;
   // 1) generateContent
-  for (const model of list.slice(0, 6)) {
+  for (const model of list.slice(0, 8)) {
     const res = await fetch(`${G_BASE}/v1beta/models/${model}:generateContent`, {
       method: 'POST',
       headers: gHeaders(env),
@@ -217,7 +217,7 @@ async function geminiFetch(env, body) {
       return res;
     }
     last = res;
-    if (res.status === 429 || res.status >= 500) return res; // đúng model nhưng đang bận / hết lượt
+    // 429: model này hết lượt miễn phí (mỗi model có hạn mức riêng) -> thử model khác
     await saveAiError(env, 'generateContent ' + model, res.status, await res.clone().text());
     if (res.status === 401) break;
   }
@@ -238,7 +238,6 @@ async function geminiFetch(env, body) {
           });
         }
         last = res;
-        if (res.status === 429) return res;
         await saveAiError(env, ver + ' interactions ' + model, res.status, await res.clone().text());
         if (res.status === 404 && !/model/i.test(await res.clone().text())) break; // endpoint không có ở bản này
       } catch {}
@@ -257,6 +256,35 @@ async function askGemini(env, sys, contents) {
   const j = await res.json();
   const text = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('');
   return { text, provider: 'gemini' };
+}
+
+/** Đọc ảnh bằng Cloudflare Workers AI (dự phòng khi Gemini hết lượt / lỗi). Trả về chuỗi trả lời hoặc null. */
+async function visionWorkersAI(env, prompt, imgB64, mime) {
+  if (!env.AI) return null;
+  const url = `data:${mime || 'image/jpeg'};base64,${imgB64}`;
+  const tries = [
+    () =>
+      env.AI.run('@cf/meta/llama-4-scout-17b-16e-instruct', {
+        messages: [{ role: 'user', content: [{ type: 'text', text: prompt + '\nCHỈ trả JSON.' }, { type: 'image_url', image_url: { url } }] }],
+        max_tokens: 700,
+        temperature: 0.1,
+      }),
+    async () => {
+      const bytes = [...Uint8Array.from(atob(imgB64), (c) => c.charCodeAt(0))];
+      try {
+        await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', { prompt: 'agree' }); // chấp nhận giấy phép (một lần)
+      } catch {}
+      return env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', { prompt: prompt + '\nCHỈ trả JSON.', image: bytes, max_tokens: 700 });
+    },
+  ];
+  for (const t of tries) {
+    try {
+      const r = await t();
+      const text = typeof r?.response === 'string' ? r.response : r?.choices?.[0]?.message?.content || JSON.stringify(r?.response ?? '');
+      if (text && extractJson(text)) return text;
+    } catch {}
+  }
+  return null;
 }
 
 async function askWorkersAI(env, sys, messages) {
@@ -361,7 +389,7 @@ export async function handleChat(req, env, userId) {
 // ---------------- Đọc hóa đơn / ảnh chuyển khoản: POST /api/receipt {image: base64, mime, today} ----------------
 
 export async function handleReceipt(req, env, userId) {
-  if (!env.GEMINI_API_KEY) {
+  if (!env.GEMINI_API_KEY && !env.AI) {
     return json({ error: 'Đọc ảnh hóa đơn cần khóa Gemini trên server (chạy dat-khoa-gemini.bat).' }, 503);
   }
   let b;
@@ -388,19 +416,26 @@ export async function handleReceipt(req, env, userId) {
 - items: nếu là hóa đơn siêu thị / đơn hàng nhiều món thuộc NHIỀU danh mục khác nhau, gộp các món theo danh mục, mỗi danh mục một phần tử (tổng các phần tử bằng amount; phân bổ giảm giá / phí ship theo tỉ lệ). Nếu chỉ một danh mục thì để mảng rỗng.
 Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do ngắn bằng tiếng Việt"}.${dt ? '\n' + dt : ''}`;
   try {
-    const res = await geminiFetch(env, {
+    const res = !env.GEMINI_API_KEY ? null : await geminiFetch(env, {
       contents: [{ role: 'user', parts: [{ inline_data: { mime_type: b.mime || 'image/jpeg', data: img } }, { text: prompt }] }],
       generationConfig: { temperature: 0.1, maxOutputTokens: 1024, responseMimeType: 'application/json' },
     });
-    if (!res.ok) {
+    let rawText = null;
+    if (res && res.ok) {
+      const jj = await res.json();
+      rawText = (jj.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('');
+    } else {
+      rawText = await visionWorkersAI(env, prompt, img, b.mime);
+    }
+    if (rawText == null) {
+      if (!res) return json({ error: 'AI chưa đọc được ảnh, thử lại sau.' }, 502);
       const msg =
         res.status === 429
-          ? 'AI đọc ảnh đang quá tải (hết lượt miễn phí trong phút / ngày), thử lại sau ít phút.'
+          ? 'AI đọc ảnh đã hết lượt miễn phí của Google (' + (await googleMsg(res)) + '). Thử lại sau ít phút.'
           : 'AI chưa đọc được ảnh (' + res.status + '): ' + (await googleMsg(res)) + '. Thử lại sau.';
       return json({ error: msg }, 502);
     }
-    const j = await res.json();
-    const p = extractJson((j.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join(''));
+    const p = extractJson(rawText);
     if (!p || !p.found) return json({ found: false, reason: (p && p.reason) || 'Không thấy số tiền trong ảnh' });
     const acts = cleanActions([{ type: 'add_txn', ...p }]);
     if (!acts.length) return json({ found: false, reason: 'Không thấy số tiền hợp lệ' });
@@ -437,9 +472,10 @@ Trả về JSON: {"txns":[{"amount":50000,"income":false,"category":"an_uong","n
 - date: ngày trong tin, không có thì để trống.
 Không thấy giao dịch nào: {"txns":[]}.${dt ? '\n' + dt : ''}`;
   try {
-    const out = env.GEMINI_API_KEY
-      ? await askGemini(env, sys, [{ role: 'user', parts: [{ text }] }])
-      : await askWorkersAI(env, sys + '\nCHỈ trả JSON, không giải thích.', [{ role: 'user', text }]);
+    let out = null;
+    if (env.GEMINI_API_KEY) out = await askGemini(env, sys, [{ role: 'user', parts: [{ text }] }]).catch(() => null);
+    if (!out && env.AI) out = await askWorkersAI(env, sys + '\nCHỈ trả JSON, không giải thích.', [{ role: 'user', text }]);
+    if (!out) throw new Error('no ai');
     const p = extractJson(out.text) || {};
     const list = Array.isArray(p.txns) ? p.txns : Array.isArray(p) ? p : [];
     const acts = cleanActions(list.slice(0, 20).map((x) => ({ type: 'add_txn', ...x })));
