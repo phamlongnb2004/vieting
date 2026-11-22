@@ -5,6 +5,7 @@ import '../categories.dart';
 import '../models.dart';
 import '../parser/bank_parser.dart';
 import '../store.dart';
+import '../ui_keys.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/txn_tile.dart';
@@ -34,10 +35,38 @@ class _PasteScreenState extends State<PasteScreen> {
     super.dispose();
   }
 
-  Future<void> _paste() async {
+  bool _ai = false;
+
+  Future<void> _paste({bool force = false}) async {
     final d = await Clipboard.getData(Clipboard.kTextPlain);
     final t = d?.text ?? '';
-    if (t.isNotEmpty && BankParser.parse(t) != null && mounted) setState(() => _ctrl.text = t);
+    final looksMoney = RegExp(r'\d[\d.,]*\s*(vnd|đ|d\b|₫)|[+-]\s?\d', caseSensitive: false).hasMatch(t);
+    if (t.isNotEmpty && (force || BankParser.parse(t) != null || looksMoney) && mounted) setState(() => _ctrl.text = t);
+  }
+
+  Future<void> _askAi() async {
+    final store = StoreScope.read(context);
+    setState(() => _ai = true);
+    try {
+      final list = await store.aiParse(_ctrl.text);
+      if (!mounted) return;
+      if (list.isEmpty) {
+        showToast(context, 'AI cũng không thấy giao dịch nào trong nội dung này');
+        return;
+      }
+      final added = store.addParsed(list, walletId: _wallet);
+      if (!mounted) return;
+      if (added.length == 1) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => EditTxnScreen(txn: added.first)));
+      } else {
+        Navigator.pop(context);
+        showToast(null, 'Đã ghi ${added.length} giao dịch từ nội dung dán');
+      }
+    } catch (e) {
+      if (mounted) showToast(context, '$e'.replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _ai = false);
+    }
   }
 
   void _add() {
@@ -73,7 +102,7 @@ class _PasteScreenState extends State<PasteScreen> {
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               hintText: 'VD: TK 1234 -50,000VND lúc 15:20. SD: 1,234,567VND. ND: thanh toan highlands',
-              suffixIcon: IconButton(icon: const Icon(Icons.content_paste), onPressed: _paste),
+              suffixIcon: IconButton(icon: const Icon(Icons.content_paste), onPressed: () => _paste(force: true)),
             ),
           ),
           const SizedBox(height: 16),
@@ -117,9 +146,17 @@ class _PasteScreenState extends State<PasteScreen> {
                 ]),
               ),
             )
-          else if (_ctrl.text.trim().isNotEmpty)
-            Text('Chưa đọc được số tiền. Nội dung cần có số tiền kèm VND/đ hoặc dấu +/−.',
-                style: TextStyle(color: cs.error)),
+          else if (_ctrl.text.trim().isNotEmpty) ...[
+            Text('Bộ đọc có sẵn chưa hiểu mẫu tin này.', style: TextStyle(color: cs.onSurfaceVariant)),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _ai ? null : _askAi,
+              icon: _ai
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.auto_awesome),
+              label: const Text('Nhờ AI đọc (MoMo, ZaloPay, nhiều tin một lúc…)'),
+            ),
+          ],
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: p == null ? null : _add,

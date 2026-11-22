@@ -14,7 +14,7 @@
 // Bản nào sửa sau thì thắng (last-write-wins).
 
 import { handleDownload } from './download.js';
-import { handleChat, handleReceipt } from './ai.js';
+import { handleChat, handleReceipt, handleParse } from './ai.js';
 import { handleAdmin, adminPage, publicNotice } from './admin.js';
 import { publicConfig, redeem, createTicket, myTickets, ocrReport, pushFeed } from './config.js';
 
@@ -182,6 +182,7 @@ export default {
       if (req.method === 'POST' && url.pathname === '/api/redeem') return await redeem(req, env, await auth(req, env), h);
       if (req.method === 'POST' && url.pathname === '/api/ticket') return await createTicket(req, env, await auth(req, env), h);
       if (req.method === 'GET' && url.pathname === '/api/tickets') return await myTickets(req, env, await auth(req, env), h);
+      if (req.method === 'POST' && url.pathname === '/api/parse') return await handleParse(req, env, await auth(req, env));
       if (req.method === 'GET' && url.pathname === '/api/push') return await pushFeed(req, env, await auth(req, env), h);
       if (req.method === 'POST' && url.pathname === '/api/ocr-report') return await ocrReport(req, env, await auth(req, env), h);
       if (url.pathname === '/admin' || url.pathname === '/admin/') return adminPage();

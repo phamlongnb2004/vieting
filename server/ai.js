@@ -21,6 +21,7 @@ const TONES = {
   gentle: 'Giọng nhẹ nhàng, đồng cảm, động viên, không phán xét; khi người dùng tiêu quá tay thì gợi ý điều chỉnh nhẹ nhàng.',
   funny: 'Giọng hài hước, cà khịa nhẹ kiểu bạn thân, dùng vài emoji, nhưng vẫn đưa lời khuyên hữu ích; không xúc phạm.',
   strict: 'Giọng nghiêm khắc kiểu "mẹ mắng" khi người dùng tiêu hoang (VD chốt đơn Shopee), thẳng thắn, ngắn gọn; vẫn tôn trọng, không xúc phạm.',
+  expert: 'Giọng chuyên gia tài chính: điềm tĩnh, dựa trên số liệu, đưa con số và quy tắc cụ thể (VD quy tắc 50/30/20, quỹ dự phòng 3–6 tháng), ngắn gọn, không phán xét.',
 };
 
 function systemPrompt(today, tone, ex) {
@@ -228,6 +229,42 @@ Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do 
     const items = cleanActions((Array.isArray(p.items) ? p.items : []).slice(0, 8).map((x) => ({ type: 'add_txn', income: acts[0].income, date: acts[0].date, ...x })));
     return json({ found: true, ...acts[0], items: items.length > 1 ? items : [] });
   } catch (e) {
+    return json({ error: 'AI đang bận, thử lại sau.' }, 502);
+  }
+}
+
+/** POST /api/parse {text, today}: AI bóc tách tin nhắn biến động số dư / ví điện tử (MoMo, ZaloPay, ngân hàng...)
+ *  khi bộ đọc có sẵn trong app không hiểu. Có thể ra nhiều giao dịch nếu dán nhiều tin. */
+export async function handleParse(req, env, userId) {
+  let b;
+  try {
+    b = await req.json();
+  } catch {
+    return json({ error: 'Dữ liệu không hợp lệ' }, 400);
+  }
+  const text = String(b.text || '').trim().slice(0, 4000);
+  if (text.length < 6) return json({ error: 'Nội dung quá ngắn' }, 400);
+  const key = userId != null ? 'u' + userId : 'ip' + (req.headers.get('cf-connecting-ip') || '?');
+  if (!(await underLimit(env, key, userId))) return json({ error: 'Hôm nay bạn đã dùng hết lượt AI, mai quay lại nhé.' }, 429);
+  const dt = dictText((await aiExtras(env).catch(() => null))?.dict);
+  const today = /^\d{4}-\d{2}-\d{2}$/.test(b.today || '') ? b.today : new Date().toISOString().slice(0, 10);
+  const sys = `Bạn bóc tách tin nhắn / thông báo biến động số dư của ngân hàng và ví điện tử Việt Nam (MoMo, ZaloPay, ShopeePay, VNPay, Viettel Money...). Hôm nay là ${today}.
+Trả về JSON: {"txns":[{"amount":50000,"income":false,"category":"an_uong","note":"nội dung ngắn / tên người nhận","date":"YYYY-MM-DD"}]}
+- Mỗi biến động tiền là một phần tử (văn bản có thể chứa nhiều tin). Bỏ qua tin quảng cáo, mã OTP, tin không có tiền đi / đến.
+- amount: số tiền giao dịch (đồng, số nguyên), KHÔNG lấy số dư.
+- income: true nếu tiền vào (+, nhận, hoàn tiền), false nếu tiền ra (-, thanh toán, chuyển đi).
+- category: một trong ${Object.keys(CATS).join(', ')}. Chuyển tiền cho người khác mà không rõ mục đích: chuyen_di; nhận tiền không rõ: nhan_tien.
+- date: ngày trong tin, không có thì để trống.
+Không thấy giao dịch nào: {"txns":[]}.${dt ? '\n' + dt : ''}`;
+  try {
+    const out = env.GEMINI_API_KEY
+      ? await askGemini(env, sys, [{ role: 'user', parts: [{ text }] }])
+      : await askWorkersAI(env, sys + '\nCHỈ trả JSON, không giải thích.', [{ role: 'user', text }]);
+    const p = extractJson(out.text) || {};
+    const list = Array.isArray(p.txns) ? p.txns : Array.isArray(p) ? p : [];
+    const acts = cleanActions(list.slice(0, 20).map((x) => ({ type: 'add_txn', ...x })));
+    return json({ txns: acts, provider: out.provider });
+  } catch {
     return json({ error: 'AI đang bận, thử lại sau.' }, 502);
   }
 }

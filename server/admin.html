@@ -205,8 +205,9 @@
       <div id="s-tone" class="hidden">
         <div class="card" style="margin-bottom:12px"><h3>Tính cách trợ lý</h3>
           <label>🌿 Nhẹ nhàng</label><textarea id="tg"></textarea>
-          <label>😜 Hài hước</label><textarea id="tf"></textarea>
-          <label>😤 Nghiêm khắc</label><textarea id="ts"></textarea>
+          <label>😜 Bạn thân cà khịa</label><textarea id="tf"></textarea>
+          <label>😤 Mẹ khó tính</label><textarea id="ts"></textarea>
+          <label>📊 Chuyên gia tài chính</label><textarea id="tx"></textarea>
         </div>
         <div class="card"><h3>Dịp đặc biệt</h3>
           <p class="muted" style="margin-top:0">Trong khoảng ngày (MM-DD, giờ Việt Nam), trợ lý thêm lời dặn theo dịp. Dịp "Ngày nhận lương" tự bật khi người dùng vừa tới ngày lương của họ.</p>
@@ -392,7 +393,7 @@ async function loadAi(){
   if(aiTab==='dict'){dictAll=(await api('/admin/dict')).dict;drawDict()}
   else if(aiTab==='ocr'){const j=await api('/admin/ocr');const f=o=>{try{o=JSON.parse(o)}catch{return''}return '<b>'+money(o.amount)+'</b> · '+esc(CAT[o.category]||o.category)+'<br><span class="muted">'+esc(o.note)+'</span>'};
     $('#olist').innerHTML=j.reports.map(r=>'<tr style="'+(r.status==='done'?'opacity:.5':'')+'"><td>'+date(r.created)+'</td><td>'+f(r.ai)+'</td><td>'+f(r.fixed)+'</td><td>'+esc(r.comment)+'</td><td style="white-space:nowrap"><button class="btn sm ghost" data-od="'+r.id+'" data-st="'+(r.status==='done'?'new':'done')+'">'+(r.status==='done'?'Mở lại':'Đã xử lý')+'</button> <button class="btn sm ghost" data-ok="'+esc((()=>{try{const x=JSON.parse(r.fixed);return x.note+'|'+x.category}catch{return''}})())+'">+ Từ điển</button></td></tr>').join('')||'<tr><td colspan="5" class="muted">Chưa có báo cáo nào.</td></tr>'}
-  else{const j=await api('/admin/ai-config');$('#tg').value=j.tones.gentle;$('#tf').value=j.tones.funny;$('#ts').value=j.tones.strict;$('#occ').innerHTML='';j.occasions.forEach(addOcc)}
+  else{const j=await api('/admin/ai-config');$('#tg').value=j.tones.gentle;$('#tf').value=j.tones.funny;$('#ts').value=j.tones.strict;$('#tx').value=j.tones.expert||'';$('#occ').innerHTML='';j.occasions.forEach(addOcc)}
 }
 function drawDict(){const q=$('#dq').value.toLowerCase();$('#dlist').innerHTML=dictAll.filter(d=>!q||d.keyword.includes(q)).map(d=>'<tr><td><b>'+esc(d.keyword)+'</b></td><td>'+esc(CAT[d.category]||d.category)+'</td><td class="muted">'+esc(d.note)+'</td><td style="text-align:right"><button class="btn sm ghost" data-de="'+d.id+'">Sửa</button> <button class="btn sm ghost" data-dd="'+d.id+'">Xóa</button></td></tr>').join('')}
 $('#dq').oninput=drawDict;
@@ -401,7 +402,7 @@ $('#dlist').onclick=async e=>{const ed=e.target.dataset.de,dd=e.target.dataset.d
 $('#olist').onclick=async e=>{const b=e.target;if(b.dataset.od){await api('/admin/ocr',{id:Number(b.dataset.od),status:b.dataset.st});loadAi()}if(b.dataset.ok!==undefined){const [n,c]=b.dataset.ok.split('|');$('#asub [data-s=dict]').click();$('#dk').value=(n||'').toLowerCase();if(c)$('#dc').value=c;$('#dk').focus()}};
 function addOcc(o={name:'',from:'',to:'',note:''}){const d=document.createElement('div');d.className='occ';d.innerHTML='<input class="on" placeholder="Tên dịp" value="'+esc(o.name)+'">'+(o.payday?'<span class="muted" style="grid-column:span 2">tự bật vào ngày nhận lương</span><input type="hidden" class="op" value="1">':'<input class="of" placeholder="MM-DD" value="'+esc(o.from)+'"><input class="ot" placeholder="MM-DD" value="'+esc(o.to)+'">')+'<input class="onote" placeholder="Lời dặn cho trợ lý trong dịp này" value="'+esc(o.note)+'"><button class="btn sm ghost">✕</button>';d.querySelector('button').onclick=()=>d.remove();$('#occ').append(d)}
 $('#oadd').onclick=()=>addOcc();
-$('#tsave').onclick=async()=>{const occasions=[...document.querySelectorAll('#occ .occ')].map(d=>d.querySelector('.op')?{name:d.querySelector('.on').value,payday:true,note:d.querySelector('.onote').value}:{name:d.querySelector('.on').value,from:d.querySelector('.of').value,to:d.querySelector('.ot').value,note:d.querySelector('.onote').value});try{await api('/admin/ai-config',{tones:{gentle:$('#tg').value,funny:$('#tf').value,strict:$('#ts').value},occasions});toast('Đã lưu — trợ lý áp dụng trong vòng 1 phút');loadAi()}catch(e){toast(e.message)}};
+$('#tsave').onclick=async()=>{const occasions=[...document.querySelectorAll('#occ .occ')].map(d=>d.querySelector('.op')?{name:d.querySelector('.on').value,payday:true,note:d.querySelector('.onote').value}:{name:d.querySelector('.on').value,from:d.querySelector('.of').value,to:d.querySelector('.ot').value,note:d.querySelector('.onote').value});try{await api('/admin/ai-config',{tones:{gentle:$('#tg').value,funny:$('#tf').value,strict:$('#ts').value,expert:$('#tx').value},occasions});toast('Đã lưu — trợ lý áp dụng trong vòng 1 phút');loadAi()}catch(e){toast(e.message)}};
 
 // ----- Sự kiện -----
 let evEdit=null,evAll=[];

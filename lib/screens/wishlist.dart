@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../util/format.dart';
 import 'edit_txn.dart';
 import 'goals.dart';
+import 'time_cost.dart';
 
 /// Danh sách chờ 48 giờ: "làm nguội" trước khi mua món không thiết yếu.
 /// Món đã mua thì theo dõi giá chia theo số lần dùng (cost-per-use).
@@ -103,6 +104,15 @@ class WishlistScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
+          Card(
+            child: ListTile(
+              leading: const Text('⏱️', style: TextStyle(fontSize: 24)),
+              title: const Text('Đổi giá ra giờ làm việc', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('Xem món đồ tốn bao nhiêu giờ làm, chia sẻ lên story'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TimeCostScreen())),
+            ),
+          ),
           if (skipped > 0)
             Card(
               color: Brand.bamboo.withAlpha(30),

@@ -445,6 +445,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
             autofocus: widget.txn == null && widget.presetAmount == null,
             keyboardType: TextInputType.number,
             inputFormatters: [ThousandsFormatter()],
+            onChanged: (_) => setState(() {}),
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: color),
             decoration: InputDecoration(
               hintText: '0',
@@ -454,6 +455,12 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
               prefixStyle: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color),
             ),
           ),
+          if (!_income && parseMoneyInput(_amount.text) >= 50000 && store.workHours(parseMoneyInput(_amount.text)).isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('⏱️ ≈ ${store.workHours(parseMoneyInput(_amount.text))} của bạn',
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
+            ),
           if (_aiRead != null)
             Align(
               alignment: Alignment.centerLeft,

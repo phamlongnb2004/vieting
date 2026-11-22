@@ -132,6 +132,7 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
           ],
           _BalanceCard(total: store.totalBalance, income: totals.income, expense: totals.expense, label: store.cycleDay == 1 ? 'tháng ${now.month}' : 'kỳ này'),
           const SizedBox(height: 12),
+          _GuiltFreeCard(store: store),
           _TodayRow(store: store),
           const SizedBox(height: 4),
           _Alerts(store: store),
@@ -483,6 +484,111 @@ class _ForecastCard extends StatelessWidget {
             ),
           ],
         ]),
+      ),
+    );
+  }
+}
+
+
+/// Quỹ "tiêu xài không áy náy": số tiền còn được tiêu hôm nay, to rõ, kèm 1 câu theo tính cách trợ lý.
+class _GuiltFreeCard extends StatelessWidget {
+  final AppStore store;
+  const _GuiltFreeCard({required this.store});
+
+  static Future<void> setup(BuildContext context) async {
+    final store = StoreScope.read(context);
+    final inc = TextEditingController(text: store.incomePlan > 0 ? groupDigits(store.incomePlan) : '');
+    var pct = store.savePct.toDouble();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, setS) {
+          final income = parseMoneyInput(inc.text) > 0 ? parseMoneyInput(inc.text) : store.plannedIncome;
+          final save = (income * pct / 100).round();
+          final pool = income - store.monthlyBills - save;
+          return AlertDialog(
+            title: const Text('Quỹ tiêu thoải mái'),
+            content: SizedBox(
+              width: 360,
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Đầu kỳ trừ sẵn khoản cố định và tiền tiết kiệm, phần còn lại chia đều mỗi ngày. Tiêu trong hạn mức thì không cần áy náy.'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: inc,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsFormatter()],
+                  onChanged: (_) => setS(() {}),
+                  decoration: InputDecoration(
+                    labelText: 'Thu nhập mỗi kỳ',
+                    suffixText: '₫',
+                    helperText: store.plannedIncome > 0 && store.incomePlan == 0 ? 'Để trống = tự tính (${compactMoney(store.plannedIncome)})' : 'Lương + thu nhập đều đặn',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text('Trích tiết kiệm ${pct.round()}% = ${money(save)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                Slider(value: pct, min: 0, max: 50, divisions: 50, label: '${pct.round()}%', onChanged: (v) => setS(() => pct = v)),
+                Text('Khoản cố định (tab Kế hoạch → Định kỳ): ${money(store.monthlyBills)}'),
+                const Divider(),
+                Text('Còn ${money(pool)} để tiêu thoải mái trong kỳ', style: TextStyle(fontWeight: FontWeight.w800, color: pool < 0 ? Brand.red : Brand.bamboo)),
+              ]),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Hủy')),
+              FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Lưu')),
+            ],
+          );
+        },
+      ),
+    );
+    if (ok == true) store.setGuiltFree(income: parseMoneyInput(inc.text), pct: pct.round());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final g = store.guiltFree;
+    final cs = Theme.of(context).colorScheme;
+    if (g == null) {
+      return Card(
+        child: ListTile(
+          leading: const Text('💛', style: TextStyle(fontSize: 26)),
+          title: const Text('Mỗi ngày được tiêu bao nhiêu?', style: TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: const Text('Nhập thu nhập, VieTing trừ sẵn tiền cố định + tiết kiệm rồi chia hạn mức từng ngày'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => setup(context),
+        ),
+      );
+    }
+    final over = g.leftToday < 0;
+    final ratio = g.daily <= 0 ? 1.0 : (g.spentToday / g.daily).clamp(0.0, 1.0);
+    return Card(
+      color: over ? const Color(0xFFFFF1D6) : Brand.bamboo.withAlpha(30),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => setup(context),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(over ? 'Hôm nay đã vượt' : 'Hôm nay còn được tiêu thoải mái',
+                style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
+            Text(money(over ? -g.leftToday : g.leftToday),
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: over ? Brand.red : Brand.bamboo, height: 1.15)),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: ratio,
+                minHeight: 8,
+                color: over ? Brand.red : Brand.bamboo,
+                backgroundColor: cs.surface.withAlpha(160),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text('Hạn mức ngày ${compactMoney(g.daily)} · đã trừ cố định ${compactMoney(g.fixed)} + tiết kiệm ${compactMoney(g.save)}',
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+            const SizedBox(height: 6),
+            Text(store.personaLine, style: const TextStyle(fontWeight: FontWeight.w600)),
+          ]),
+        ),
       ),
     );
   }

@@ -108,6 +108,17 @@ def patch_ios():
     with open(path, "wb") as f:
         plistlib.dump(pl, f)
 
+    # Ghi nhanh từ Phím tắt / Siri / Action Button / Back Tap (App Intents, iOS 16+)
+    app = p("ios", "Runner", "AppDelegate.swift")
+    extra = p("tools", "ios", "QuickIntents.swift")
+    if os.path.exists(app) and os.path.exists(extra):
+        s = read(app)
+        if "VieTingQuickQueue" not in s:
+            if "import AppIntents" not in s:
+                s = s.replace("import UIKit", "import UIKit\nimport AppIntents", 1)
+            s += "\n" + read(extra)
+            write(app, s)
+
 
 # ---------------- Windows ----------------
 def patch_windows():

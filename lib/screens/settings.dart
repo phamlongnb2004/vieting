@@ -238,21 +238,23 @@ class SettingsScreen extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.record_voice_over_outlined),
-              title: const Text('Giọng trợ lý'),
+              title: const Text('Tính cách trợ lý'),
               subtitle: Text(switch (store.aiTone) {
-                'funny' => 'Hài hước, cà khịa nhẹ',
-                'strict' => 'Nghiêm khắc kiểu "mẹ mắng"',
+                'funny' => 'Bạn thân cà khịa',
+                'strict' => 'Mẹ khó tính',
+                'expert' => 'Chuyên gia tài chính',
                 _ => 'Nhẹ nhàng, động viên',
               }),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
                 final t = await showDialog<String>(
                   context: context,
-                  builder: (c) => SimpleDialog(title: const Text('Trợ lý nói chuyện kiểu gì?'), children: [
+                  builder: (c) => SimpleDialog(title: const Text('Chọn tính cách cho trợ lý'), children: [
                     for (final o in const [
                       ('gentle', '🌿 Nhẹ nhàng', 'Động viên, không phán xét'),
-                      ('funny', '😜 Hài hước', 'Cà khịa nhẹ như bạn thân'),
-                      ('strict', '😤 Nghiêm khắc', 'Nhắc thẳng khi tiêu hoang'),
+                      ('funny', '😜 Bạn thân cà khịa', 'Thực tế, trêu nhẹ khi bạn tiêu hoang'),
+                      ('strict', '😤 Mẹ khó tính', 'Mắng thẳng khi lố tay'),
+                      ('expert', '📊 Chuyên gia tài chính', 'Điềm tĩnh, nói bằng số liệu'),
                     ])
                       ListTile(
                         title: Text(o.$2),

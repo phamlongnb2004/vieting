@@ -9,6 +9,7 @@ import '../insights.dart';
 import '../models.dart';
 import '../widgets/nudge.dart';
 import '../services/notify_bridge.dart';
+import '../services/quick_queue.dart';
 import '../services/reminders.dart';
 import '../store.dart';
 import '../ui_keys.dart';
@@ -82,13 +83,15 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     _draining = true;
     try {
       final items = await NotifyBridge.drain();
-      if (!mounted || items.isEmpty) return;
+      if (!mounted) return;
       final store = StoreScope.read(context);
-      final added = <Txn>[];
+      final added = <Txn>[...await QuickQueue.drain(store)];
+      if (!mounted) return;
       for (final n in items) {
         final r = store.ingest(n);
         if (r.status == 'added') added.add(r.txn!);
       }
+      if (added.isEmpty) return;
       final nudges = [for (final t in added) ...store.nudgesFor(t)];
       if (nudges.isNotEmpty) {
         showNudges(nudges);
@@ -97,7 +100,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       if (added.isNotEmpty && mounted) {
         final msg = added.length == 1
             ? 'Đã ghi ${money(added.first.signed, signed: true)} · ${store.walletName(added.first.walletId)}'
-            : 'Đã tự ghi ${added.length} giao dịch từ thông báo ngân hàng';
+            : 'Đã tự ghi ${added.length} giao dịch';
         showToast(context, msg,
             actionLabel: added.length == 1 ? 'Sửa' : null,
             onAction: added.length == 1 ? () => openEditTxn(context, added.first) : null);
@@ -131,9 +134,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       return;
     }
     final amount = int.tryParse(uri.queryParameters['amount'] ?? '');
+    final income = (uri.queryParameters['type'] ?? '').toLowerCase().startsWith('thu');
     if (amount != null && amount > 0) {
-      final income = (uri.queryParameters['type'] ?? '').toLowerCase().startsWith('thu');
       openEditTxn(context, null, presetAmount: amount, presetIncome: income, presetNote: uri.queryParameters['note']);
+    } else {
+      // vieting://add (nút + trên widget, phím tắt): mở ô ghi nhanh
+      openEditTxn(context, null, presetIncome: income);
     }
   }
 

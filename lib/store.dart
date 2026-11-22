@@ -45,6 +45,8 @@ class AppStore extends ChangeNotifier {
   final Map<String, GiftEntry> gifts = {};
   int hourlyWage = 0; // 0 = tự tính từ thu nhập
   int noticeSeen = 0; // id thông báo admin đã tắt
+  int savePct = 10; // Quỹ tiêu thoải mái: % thu nhập trích tiết kiệm đầu kỳ
+  int incomePlan = 0; // thu nhập dự kiến mỗi kỳ; 0 = tự tính
   Map<String, dynamic>? notice; // thông báo admin đang hiện
   Map<String, dynamic> remote = {}; // cấu hình từ server (/api/config): thử thách, gói định kỳ, tỷ giá, lãi suất, nhắc tự động...
   bool remindersOn = true;
@@ -146,6 +148,8 @@ class AppStore extends ChangeNotifier {
         aiTone = (s['tone'] ?? 'gentle') as String;
         hourlyWage = (s['wage'] as num?)?.toInt() ?? 0;
         noticeSeen = (s['notice'] as num?)?.toInt() ?? 0;
+        savePct = (s['savePct'] as num?)?.toInt() ?? 10;
+        incomePlan = (s['incomePlan'] as num?)?.toInt() ?? 0;
         remindersOn = s['remind'] != false;
         if (s['remote'] is Map) _applyRemote(Map<String, dynamic>.from(s['remote'] as Map), notify: false);
         skipDays = ((s['skip'] as List?) ?? []).map((e) => e.toString()).toSet();
@@ -192,6 +196,8 @@ class AppStore extends ChangeNotifier {
           'cycle': cycleDay,
           'tone': aiTone,
           'notice': noticeSeen,
+          'savePct': savePct,
+          'incomePlan': incomePlan,
           'remind': remindersOn,
           'remote': remote,
           'wage': hourlyWage,
@@ -599,6 +605,12 @@ class AppStore extends ChangeNotifier {
 
   Map<String, dynamic> smartRule(String k) => Map<String, dynamic>.from(((remote['smart'] as Map?)?[k] as Map?) ?? const {});
 
+  void setGuiltFree({required int income, required int pct}) {
+    incomePlan = income < 0 ? 0 : income;
+    savePct = pct.clamp(0, 90);
+    _changed(syncSoon: false);
+  }
+
   void setRemindersOn(bool v) {
     remindersOn = v;
     _changed(syncSoon: false);
@@ -659,6 +671,49 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
     return [for (final e in (j['tickets'] as List? ?? const [])) Map<String, dynamic>.from(e as Map)];
   }
+
+  /// Nhờ AI bóc tách tin nhắn ví điện tử / ngân hàng mà bộ đọc có sẵn không hiểu.
+  Future<List<Map<String, dynamic>>> aiParse(String text) async {
+    final d = DateTime.now();
+    final j = await _post('/api/parse', {
+      'text': text,
+      'today': '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+    });
+    return [for (final e in (j['txns'] as List? ?? const [])) Map<String, dynamic>.from(e as Map)];
+  }
+
+  /// Ghi các giao dịch AI đọc được (dán tin nhắn) vào ví đã chọn.
+  List<Txn> addParsed(List<Map<String, dynamic>> list, {String? walletId}) {
+    final out = <Txn>[];
+    final wallets = activeWallets;
+    for (final a in list) {
+      final income = a['income'] == true;
+      var cat = '${a['category'] ?? ''}';
+      if (catById(cat).id != cat || catById(cat).income != income) {
+        cat = guessCategory(income, '${a['note'] ?? ''}', learnedRules);
+      }
+      final now = DateTime.now();
+      final d = DateTime.tryParse('${a['date'] ?? ''}');
+      final date = d == null || sameDayDt(d, now) ? now : DateTime(d.year, d.month, d.day, 12);
+      final t = Txn(
+        id: newId(),
+        amount: ((a['amount'] as num?) ?? 0).toInt(),
+        income: income,
+        categoryId: cat,
+        walletId: walletId ?? (wallets.any((w) => w.id == 'cash') ? 'cash' : wallets.first.id),
+        date: date,
+        note: '${a['note'] ?? ''}',
+        source: 'paste',
+      );
+      if (t.amount <= 0) continue;
+      txns[t.id] = t;
+      out.add(t);
+    }
+    if (out.isNotEmpty) _changed();
+    return out;
+  }
+
+  static bool sameDayDt(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
   /// Báo AI đọc hóa đơn sai: chỉ gửi số AI đọc và số người dùng sửa (không gửi ảnh).
   Future<void> reportReceipt(Map<String, dynamic> ai, Map<String, dynamic> fixed, String comment) =>

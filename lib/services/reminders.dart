@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
+import '../insights.dart';
 import '../store.dart';
 import '../util/format.dart';
 import 'notify_bridge.dart';
@@ -88,9 +89,31 @@ class Reminders {
     return out;
   }
 
+  static String _lastWidget = '';
+
+  /// Cập nhật widget màn hình chính (Android): hạn mức còn lại hôm nay + 1 câu theo tính cách trợ lý.
+  static Future<void> updateWidget(AppStore s) async {
+    if (!NotifyBridge.supported) return;
+    final g = s.guiltFree;
+    final over = g != null && g.leftToday < 0;
+    final data = {
+      'label': g == null ? 'VieTing' : (over ? 'Hôm nay đã vượt' : 'Hôm nay còn được tiêu'),
+      'amount': g == null ? 'Bấm + để ghi' : money(over ? -g.leftToday : g.leftToday),
+      'line': s.personaLine,
+      'over': over,
+    };
+    final key = jsonEncode(data);
+    if (key == _lastWidget) return;
+    _lastWidget = key;
+    try {
+      await _ch.invokeMethod('updateWidget', data);
+    } catch (_) {}
+  }
+
   /// Đặt lại toàn bộ lịch nhắc (gọi khi mở app / dữ liệu đổi). Bỏ qua nếu không có gì thay đổi.
   static Future<void> sync(AppStore s) async {
     if (!NotifyBridge.supported) return;
+    await updateWidget(s);
     try {
       final items = build(s);
       final key = jsonEncode([items, s.serverUrl, s.token]);

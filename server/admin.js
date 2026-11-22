@@ -470,7 +470,7 @@ export async function handleAdmin(req, env, url, userId, h) {
       });
     case 'POST /ai-config': {
       const tones = {};
-      for (const k of ['gentle', 'funny', 'strict']) tones[k] = str(b?.tones?.[k], 600) || DEFAULT_TONES[k];
+      for (const k of ['gentle', 'funny', 'strict', 'expert']) tones[k] = str(b?.tones?.[k], 600) || DEFAULT_TONES[k];
       const occ = (Array.isArray(b?.occasions) ? b.occasions : []).slice(0, 30).map((o) => ({
         name: str(o.name, 60),
         ...(o.payday ? { payday: true } : { from: str(o.from, 5), to: str(o.to, 5) }),

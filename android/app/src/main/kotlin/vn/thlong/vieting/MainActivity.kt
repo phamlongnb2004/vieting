@@ -47,6 +47,16 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                     result.success(true)
                 }
+                "updateWidget" -> {
+                    VietingWidget.save(
+                        this,
+                        call.argument<String>("label") ?: "",
+                        call.argument<String>("amount") ?: "",
+                        call.argument<String>("line") ?: "",
+                        call.argument<Boolean>("over") ?: false
+                    )
+                    result.success(true)
+                }
                 "testNotify" -> {
                     Reminders.show(this, 700001, call.argument<String>("title") ?: "VieTing", call.argument<String>("body") ?: "", Reminders.CH_REMIND)
                     result.success(true)

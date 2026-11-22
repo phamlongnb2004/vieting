@@ -29,8 +29,46 @@ int _median(List<int> v) {
 
 extension Insights on AppStore {
   /// Chọn câu theo tính cách trợ lý người dùng chọn.
-  String _tone({required String gentle, required String funny, required String strict}) =>
-      switch (aiTone) { 'funny' => funny, 'strict' => strict, _ => gentle };
+  String _tone({required String gentle, required String funny, required String strict, String? expert}) =>
+      switch (aiTone) { 'funny' => funny, 'strict' => strict, 'expert' => expert ?? gentle, _ => gentle };
+
+  /// Một câu trạng thái theo tính cách trợ lý, hiện trên Tổng quan và widget màn hình chính.
+  String get personaLine {
+    final g = guiltFree;
+    final now = DateTime.now();
+    final weekAgo = now.subtract(const Duration(days: 7));
+    final drinks = activeTxns
+        .where((t) =>
+            !t.income &&
+            t.date.isAfter(weekAgo) &&
+            RegExp(r'tra sua|milk ?tea|ca phe|cafe|coffee|highlands|phuc long|starbucks|katinat|cong ca|trung nguyen').hasMatch(fold(t.note)))
+        .length;
+    if (g != null && g.leftToday < 0) {
+      return _tone(
+        gentle: 'Hôm nay hơi quá tay ${compactMoney(-g.leftToday)}, mai mình tiết chế chút là ổn 🌿',
+        funny: 'Lố ${compactMoney(-g.leftToday)} rồi đó bạn ơi, ví đang khóc thầm 🥲',
+        strict: 'Tiêu lố ${compactMoney(-g.leftToday)} rồi! Từ giờ tới tối không chi thêm nữa nghe chưa 😤',
+        expert: 'Vượt hạn mức ngày ${compactMoney(-g.leftToday)}. Hạn mức các ngày còn lại sẽ giảm tương ứng.',
+      );
+    }
+    if (drinks >= 4) {
+      return _tone(
+        gentle: 'Tuần này $drinks lần trà sữa / cà phê rồi, thử pha ở nhà vài hôm nhé ☕',
+        funny: '$drinks ly trà sữa / cà phê trong tuần — máu bạn chắc ngọt hơn ví rồi 🧋',
+        strict: '$drinks ly trong một tuần! Trà sữa không phải bữa chính đâu con 😤',
+        expert: '$drinks lần đồ uống trong 7 ngày ≈ ${compactMoney(drinks * 45000 * 4)}/tháng nếu duy trì.',
+      );
+    }
+    if (g != null) {
+      return _tone(
+        gentle: 'Hôm nay còn ${compactMoney(g.leftToday)} để tiêu thoải mái, không cần áy náy 💛',
+        funny: 'Còn ${compactMoney(g.leftToday)} hôm nay, quẩy nhẹ thôi nha 😎',
+        strict: 'Còn ${compactMoney(g.leftToday)}. Tiêu gì cũng phải ghi lại đấy!',
+        expert: 'Hạn mức an toàn hôm nay: ${compactMoney(g.leftToday)} (đã trừ cố định & tiết kiệm).',
+      );
+    }
+    return 'Nhập thu nhập để biết mỗi ngày được tiêu thoải mái bao nhiêu 🎋';
+  }
 
   // ---------------- Gợi ý theo khung giờ ----------------
 
@@ -142,7 +180,7 @@ extension Insights on AppStore {
   /// Hạn mức chi mỗi ngày (từ ngân sách tổng tháng), null nếu chưa đặt.
   int? get dailyAllowance {
     final b = budgets['all'];
-    if (b == null || b.deleted || b.limit <= 0) return null;
+    if (b == null || b.deleted || b.limit <= 0) return guiltFree?.daily;
     final p = currentPeriod;
     return b.limit ~/ periodDays(p.year, p.month);
   }
@@ -380,6 +418,45 @@ extension Planning on AppStore {
 
   // ---------------- Quy đổi giờ làm việc ----------------
 
+  /// Thu nhập dùng cho "Quỹ tiêu thoải mái": người dùng tự nhập, hoặc lấy kỳ này / trung bình 3 kỳ trước (cái nào lớn hơn).
+  int get plannedIncome {
+    if (incomePlan > 0) return incomePlan;
+    final cur = currentPeriod;
+    final now = monthTxns(cur.year, cur.month).where((t) => t.income && countsInTotals(t.categoryId)).fold<int>(0, (s, t) => s + t.amount);
+    final vals = <int>[];
+    for (var i = 1; i <= 3; i++) {
+      final d = DateTime(cur.year, cur.month - i);
+      final v = monthTxns(d.year, d.month).where((t) => t.income && countsInTotals(t.categoryId)).fold<int>(0, (s, t) => s + t.amount);
+      if (v > 0) vals.add(v);
+    }
+    final avg = vals.isEmpty ? 0 : vals.reduce((a, b) => a + b) ~/ vals.length;
+    return now > avg ? now : avg;
+  }
+
+  /// Quỹ "tiêu xài không áy náy": thu nhập − khoản cố định − tiết kiệm, chia đều cho số ngày còn lại của kỳ.
+  ({int income, int fixed, int save, int pool, int daily, int spentToday, int leftToday})? get guiltFree {
+    final income = plannedIncome;
+    if (income <= 0) return null;
+    final fixed = monthlyBills;
+    final save = (income * savePct / 100).round();
+    final pool = income - fixed - save;
+    final cur = currentPeriod;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    var before = 0, todaySpent = 0;
+    for (final t in monthTxns(cur.year, cur.month)) {
+      if (t.income || !countsInTotals(t.categoryId) || t.source == 'bill') continue;
+      if (t.date.isBefore(today)) {
+        before += t.amount;
+      } else if (sameDay(t.date, now)) {
+        todaySpent += t.amount;
+      }
+    }
+    final daily = ((pool - before) / daysLeftInPeriod).floor();
+    final d = daily < 0 ? 0 : daily;
+    return (income: income, fixed: fixed, save: save, pool: pool, daily: d, spentToday: todaySpent, leftToday: d - todaySpent);
+  }
+
   int get effectiveHourlyWage {
     if (hourlyWage > 0) return hourlyWage;
     final cur = currentPeriod;
@@ -401,8 +478,8 @@ extension Planning on AppStore {
     if (w <= 0) return '';
     final h = price / w;
     if (h < 1) return '${(h * 60).round()} phút làm việc';
-    if (h < 8 * 3) return '${h.toStringAsFixed(h < 10 ? 1 : 0)} giờ làm việc';
-    return '${(h / 8).toStringAsFixed(1)} ngày công';
+    if (h < 8 * 3) return '${h.toStringAsFixed(h < 10 ? 1 : 0).replaceAll('.', ',').replaceAll(',0', '')} giờ làm việc';
+    return '${(h / 8).toStringAsFixed(1).replaceAll('.', ',').replaceAll(',0', '')} ngày công';
   }
 
   /// Tổng tiền đã "giữ lại" nhờ bỏ món trong danh sách chờ.
