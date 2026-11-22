@@ -90,16 +90,36 @@ export function cleanActions(list) {
   return out;
 }
 
+// Google hay đổi / ngừng tên model (VD gemini-2.5-flash trả 404 với khóa mới). Thử lần lượt, nhớ model chạy được.
+const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash'];
+let geminiOk = null;
+
+/** Gọi Gemini; model nào báo 404 / 400 "không hỗ trợ" thì thử model kế tiếp. */
+async function geminiFetch(env, body) {
+  const list = [...new Set([env.GEMINI_MODEL, geminiOk, ...GEMINI_MODELS].filter(Boolean))];
+  let last = null;
+  for (const model of list) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      geminiOk = model;
+      return res;
+    }
+    last = res;
+    if (res.status !== 404 && res.status !== 400 && res.status !== 403) break; // 429 / 5xx: model đúng nhưng bận
+    if (geminiOk === model) geminiOk = null;
+  }
+  return last;
+}
+
 async function askGemini(env, sys, contents) {
-  const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: sys }] },
-      contents,
-      generationConfig: { temperature: 0.3, maxOutputTokens: 1024, responseMimeType: 'application/json' },
-    }),
+  const res = await geminiFetch(env, {
+    systemInstruction: { parts: [{ text: sys }] },
+    contents,
+    generationConfig: { temperature: 0.3, maxOutputTokens: 1024, responseMimeType: 'application/json' },
   });
   if (!res.ok) throw new Error('gemini ' + res.status);
   const j = await res.json();
@@ -210,17 +230,20 @@ export async function handleReceipt(req, env, userId) {
 - date: ngày trên hóa đơn nếu có, không có thì để trống.
 - items: nếu là hóa đơn siêu thị / đơn hàng nhiều món thuộc NHIỀU danh mục khác nhau, gộp các món theo danh mục, mỗi danh mục một phần tử (tổng các phần tử bằng amount; phân bổ giảm giá / phí ship theo tỉ lệ). Nếu chỉ một danh mục thì để mảng rỗng.
 Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do ngắn bằng tiếng Việt"}.${dt ? '\n' + dt : ''}`;
-  const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ inline_data: { mime_type: b.mime || 'image/jpeg', data: img } }, { text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' },
-      }),
+    const res = await geminiFetch(env, {
+      contents: [{ role: 'user', parts: [{ inline_data: { mime_type: b.mime || 'image/jpeg', data: img } }, { text: prompt }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 1024, responseMimeType: 'application/json' },
     });
-    if (!res.ok) return json({ error: 'AI chưa đọc được ảnh (' + res.status + '), thử lại sau.' }, 502);
+    if (!res.ok) {
+      const msg =
+        res.status === 429
+          ? 'AI đọc ảnh đang quá tải (hết lượt miễn phí trong phút / ngày), thử lại sau ít phút.'
+          : res.status === 400 || res.status === 403
+            ? 'Khóa Gemini không hợp lệ hoặc chưa bật, chạy lại dat-khoa-gemini.bat.'
+            : 'AI chưa đọc được ảnh (' + res.status + '), thử lại sau.';
+      return json({ error: msg }, 502);
+    }
     const j = await res.json();
     const p = extractJson((j.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join(''));
     if (!p || !p.found) return json({ found: false, reason: (p && p.reason) || 'Không thấy số tiền trong ảnh' });
