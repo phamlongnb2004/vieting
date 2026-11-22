@@ -20,6 +20,7 @@
   ],
   // Trợ lý AI: Workers AI miễn phí (dự phòng khi chưa có khóa Gemini)
   "ai": { "binding": "AI" },
-  "vars": { "GEMINI_MODEL": "gemini-2.5-flash" },
+  // GEMINI_MODEL: để trống = server tự chọn model Gemini (ưu tiên Flash-Lite vì hạn mức miễn phí rộng)
+  "vars": {},
   "observability": { "enabled": true }
 }
