@@ -309,7 +309,7 @@ async function askGemini(env, sys, contents) {
     contents,
     generationConfig: { temperature: 0.3, maxOutputTokens: 1024, responseMimeType: 'application/json' },
   }, 'lite');
-  if (!res || !res.ok) throw new Error('gemini ' + (res?.status ?? 'none'));
+  if (!res || !res.ok) throw new Error('gemini ' + (res?.status ?? 'none') + (res ? ': ' + (await googleMsg(res)) : ''));
   const j = await res.json();
   const text = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('');
   return { text, provider: 'gemini' };
@@ -422,11 +422,13 @@ export async function handleChat(req, env, userId) {
   const dt = dictText(ex.dict);
   const sys = systemPrompt(today, b.tone, ex) + (dt ? '\n\n' + dt : '') + '\n\nDỮ LIỆU:\n' + context;
   let out = null;
+  let geminiNote = '';
   if (env.GEMINI_API_KEY) {
     try {
       out = await askGemini(env, sys, history.map((m) => ({ role: m.role, parts: [{ text: m.text }] })));
     } catch (e) {
       out = null; // hết lượt / lỗi: chuyển sang Workers AI
+      geminiNote = String(e?.message || e).slice(0, 200);
     }
   }
   if (!out && env.AI) {
@@ -440,7 +442,7 @@ export async function handleChat(req, env, userId) {
 
   const parsed = extractJson(out.text);
   const reply = parsed && typeof parsed.reply === 'string' ? parsed.reply : String(out.text || '').trim();
-  return json({ reply: reply.slice(0, 4000), actions: cleanActions(parsed?.actions), provider: out.provider });
+  return json({ reply: reply.slice(0, 4000), actions: cleanActions(parsed?.actions), provider: out.provider, ...(geminiNote ? { note: geminiNote } : {}) });
 }
 
 // ---------------- Đọc hóa đơn / ảnh chuyển khoản: POST /api/receipt {image: base64, mime, today} ----------------
