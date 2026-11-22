@@ -29,6 +29,19 @@ dist/
 /android/app/src/main/*
 !/android/app/src/main/AndroidManifest.xml
 !/android/app/src/main/kotlin/
+# tài nguyên riêng: icon thông báo, widget màn hình chính
+!/android/app/src/main/res/
+/android/app/src/main/res/*
+!/android/app/src/main/res/drawable/
+/android/app/src/main/res/drawable/*
+!/android/app/src/main/res/drawable/ic_stat_vieting.xml
+!/android/app/src/main/res/drawable/widget_bg.xml
+!/android/app/src/main/res/drawable/widget_btn.xml
+!/android/app/src/main/res/layout/
+!/android/app/src/main/res/xml/
+!/android/app/src/main/res/values/
+/android/app/src/main/res/values/*
+!/android/app/src/main/res/values/vieting_strings.xml
 
 # Khóa ký app: KHÔNG BAO GIỜ đưa lên GitHub
 *.jks
