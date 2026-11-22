@@ -7,6 +7,7 @@ import 'gifts.dart';
 import 'goals.dart';
 import 'groups.dart';
 import 'habits.dart';
+import 'spaces.dart';
 import 'wishlist.dart';
 
 /// Tab "Kế hoạch": ngân sách, hũ mục tiêu, thói quen & thử thách, sổ chung.
@@ -16,7 +17,7 @@ class PlanScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 7,
+      length: 8,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Kế hoạch', style: TextStyle(fontWeight: FontWeight.w800)),
@@ -29,7 +30,8 @@ class PlanScreen extends StatelessWidget {
               Tab(icon: Icon(PhosphorIconsRegular.fire), text: 'Thói quen'),
               Tab(icon: Icon(PhosphorIconsRegular.arrowsClockwise), text: 'Định kỳ'),
               Tab(icon: Icon(PhosphorIconsRegular.snowflake), text: 'Chờ mua'),
-              Tab(icon: Icon(PhosphorIconsRegular.usersThree), text: 'Sổ chung'),
+              Tab(icon: Icon(PhosphorIconsRegular.handshake), text: 'Quỹ chung'),
+              Tab(icon: Icon(PhosphorIconsRegular.usersThree), text: 'Chia tiền'),
               Tab(icon: Icon(PhosphorIconsRegular.gift), text: 'Hiếu hỉ'),
             ],
           ),
@@ -40,6 +42,7 @@ class PlanScreen extends StatelessWidget {
           HabitsScreen(embedded: true),
           BillsScreen(embedded: true),
           WishlistScreen(embedded: true),
+          SpacesScreen(embedded: true),
           GroupsScreen(embedded: true),
           GiftsScreen(embedded: true),
         ]),

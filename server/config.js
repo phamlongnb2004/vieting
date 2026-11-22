@@ -1,3 +1,4 @@
+import { spaceNews } from './space.js';
 // Cấu hình động cho app + AI: từ điển, giọng trợ lý theo dịp, thử thách, gói định kỳ, tỷ giá, lãi suất,
 // gói Pro / mã khuyến mãi, góp ý / báo lỗi. Tác giả: Phạm Thành Long (thlong)
 
@@ -301,5 +302,7 @@ export async function pushFeed(req, env, userId, h) {
     ticketAt =
       (await env.DB.prepare("SELECT MAX(updated) AS t FROM tickets WHERE user_id = ? AND seen = 0 AND reply != ''").bind(userId).first().catch(() => null))?.t || 0;
   }
-  return h.json({ latest, pushes, ticketAt });
+  const sa = Number(url.searchParams.get('sa')) || 0;
+  const space = sa > 0 ? await spaceNews(env, userId, sa) : [];
+  return h.json({ latest, pushes, ticketAt, space, now: Date.now() });
 }

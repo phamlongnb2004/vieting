@@ -181,3 +181,32 @@ CREATE TABLE IF NOT EXISTS pushes (
   body TEXT NOT NULL DEFAULT '',
   created INTEGER NOT NULL
 );
+
+-- Quỹ chung: nhiều tài khoản (vợ chồng, bạn bè, phòng trọ...) cùng ghi vào một sổ
+CREATE TABLE IF NOT EXISTS spaces (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  owner INTEGER NOT NULL,
+  target INTEGER NOT NULL DEFAULT 0,
+  created INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS space_members (
+  space_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  nick TEXT NOT NULL DEFAULT '',
+  joined INTEGER NOT NULL,
+  PRIMARY KEY (space_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS space_members_user ON space_members (user_id);
+CREATE TABLE IF NOT EXISTS space_records (
+  space_id INTEGER NOT NULL,
+  id TEXT NOT NULL,
+  by_user INTEGER NOT NULL,
+  data TEXT NOT NULL,
+  u INTEGER NOT NULL,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  srv INTEGER NOT NULL,
+  PRIMARY KEY (space_id, id)
+);
+CREATE INDEX IF NOT EXISTS space_records_srv ON space_records (space_id, srv);

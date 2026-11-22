@@ -1,5 +1,5 @@
 // Biểu tượng Phosphor (MIT, phosphoricons.com) — bản rút gọn chỉ gồm icon VieTing dùng.
-// Tự sinh từ phosphor_flutter 2.1.0; IconData giờ là final class nên không kế thừa được, dùng IconData thẳng.
+// Sinh bằng tools/gen_icons.py. IconData là final class nên không kế thừa được, dùng IconData thẳng.
 
 import 'package:flutter/widgets.dart';
 
@@ -92,6 +92,7 @@ class PhosphorIconsRegular {
   static const IconData house = IconData(0xe2c2, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData image = IconData(0xe2ca, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData images = IconData(0xe836, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData key = IconData(0xe2d6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData laptop = IconData(0xe586, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData lifebuoy = IconData(0xe63a, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData lightbulb = IconData(0xe2dc, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');

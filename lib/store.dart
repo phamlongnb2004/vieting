@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'categories.dart';
 import 'config.dart';
 import 'models.dart';
+import 'services/spaces.dart';
 import 'parser/bank_parser.dart';
 import 'parser/banks.dart';
 
@@ -45,6 +46,8 @@ class AppStore extends ChangeNotifier {
   final Map<String, GiftEntry> gifts = {};
   int hourlyWage = 0; // 0 = tự tính từ thu nhập
   int noticeSeen = 0; // id thông báo admin đã tắt
+  final Map<int, Space> spaces = {}; // Quỹ chung kết nối tài khoản (dữ liệu trên server, bản sao trên máy)
+  int myUserId = 0;
   int savePct = 10; // Quỹ tiêu thoải mái: % thu nhập trích tiết kiệm đầu kỳ
   int incomePlan = 0; // thu nhập dự kiến mỗi kỳ; 0 = tự tính
   Map<String, dynamic>? notice; // thông báo admin đang hiện
@@ -149,6 +152,13 @@ class AppStore extends ChangeNotifier {
         hourlyWage = (s['wage'] as num?)?.toInt() ?? 0;
         noticeSeen = (s['notice'] as num?)?.toInt() ?? 0;
         savePct = (s['savePct'] as num?)?.toInt() ?? 10;
+        myUserId = (s['me'] as num?)?.toInt() ?? 0;
+        for (final x in (s['spaces'] as List? ?? const [])) {
+          if (x is Map) {
+            final sp = Space.fromCache(Map<String, dynamic>.from(x));
+            spaces[sp.id] = sp;
+          }
+        }
         incomePlan = (s['incomePlan'] as num?)?.toInt() ?? 0;
         remindersOn = s['remind'] != false;
         if (s['remote'] is Map) _applyRemote(Map<String, dynamic>.from(s['remote'] as Map), notify: false);
@@ -197,6 +207,8 @@ class AppStore extends ChangeNotifier {
           'tone': aiTone,
           'notice': noticeSeen,
           'savePct': savePct,
+          'me': myUserId,
+          'spaces': [for (final sp in spaces.values) sp.toCache()],
           'incomePlan': incomePlan,
           'remind': remindersOn,
           'remote': remote,
@@ -619,6 +631,8 @@ class AppStore extends ChangeNotifier {
     _changed(syncSoon: false);
   }
 
+  void spacesChanged() => _changed(syncSoon: false);
+
   void setRemindersOn(bool v) {
     remindersOn = v;
     _changed(syncSoon: false);
@@ -969,6 +983,8 @@ class AppStore extends ChangeNotifier {
   void logout() {
     token = '';
     email = '';
+    spaces.clear();
+    myUserId = 0;
     lastSync = 0;
     lastPush = 0;
     _changed(syncSoon: false);

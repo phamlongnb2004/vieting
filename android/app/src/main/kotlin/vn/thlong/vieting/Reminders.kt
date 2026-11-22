@@ -137,9 +137,10 @@ object Reminders {
         if (server.isEmpty()) return
         val after = p.getLong("after", -1L)
         val ticketAt = p.getLong("ticketAt", 0L)
+        val spaceAt = p.getLong("spaceAt", 0L)
         var conn: HttpURLConnection? = null
         try {
-            conn = (URL("$server/api/push?after=$after").openConnection() as HttpURLConnection).apply {
+            conn = (URL("$server/api/push?after=$after&sa=${if (spaceAt > 0) spaceAt else 1}").openConnection() as HttpURLConnection).apply {
                 connectTimeout = 10000
                 readTimeout = 10000
                 val t = p.getString("token", "") ?: ""
@@ -161,6 +162,16 @@ object Reminders {
             if (tAt > ticketAt && ticketAt > 0) {
                 show(ctx, 600001, "VieTing đã trả lời góp ý của bạn", "Mở app → Cài đặt → Góp ý & báo lỗi để xem.", CH_NEWS)
             }
+            // Quỹ chung: khoản người khác vừa ghi
+            val sp = j.optJSONArray("space") ?: JSONArray()
+            var sAt = spaceAt
+            for (k in 0 until sp.length()) {
+                val o = sp.optJSONObject(k) ?: continue
+                if (spaceAt > 0) show(ctx, 650000 + (o.optLong("at") % 10000).toInt(), o.optString("title"), o.optString("body"), CH_NEWS)
+                if (o.optLong("at") > sAt) sAt = o.optLong("at")
+            }
+            if (spaceAt <= 0) sAt = j.optLong("now", System.currentTimeMillis())
+            p.edit().putLong("spaceAt", sAt).apply()
             p.edit().putLong("after", last).putLong("ticketAt", if (tAt > 0) tAt else maxOf(ticketAt, 1L)).apply()
         } catch (_: Exception) {
         } finally {

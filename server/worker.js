@@ -16,6 +16,7 @@
 import { handleDownload } from './download.js';
 import { handleChat, handleReceipt, handleParse } from './ai.js';
 import { handleAdmin, adminPage, publicNotice } from './admin.js';
+import { handleSpace } from './space.js';
 import { publicConfig, redeem, createTicket, myTickets, ocrReport, pushFeed, grantPro } from './config.js';
 
 const KINDS = new Set(['txn', 'wallet', 'budget', 'rule', 'goal', 'challenge', 'group', 'bill', 'wish', 'gift']);
@@ -185,6 +186,9 @@ export default {
       if (req.method === 'POST' && url.pathname === '/api/ticket') return await createTicket(req, env, await auth(req, env), h);
       if (req.method === 'GET' && url.pathname === '/api/tickets') return await myTickets(req, env, await auth(req, env), h);
       if (req.method === 'POST' && url.pathname === '/api/parse') return await handleParse(req, env, await auth(req, env));
+      if (url.pathname === '/api/spaces' || url.pathname.startsWith('/api/space/')) {
+        return await handleSpace(req, env, url, await auth(req, env), { json, readJson });
+      }
       if (req.method === 'GET' && url.pathname === '/api/push') return await pushFeed(req, env, await auth(req, env), h);
       if (req.method === 'POST' && url.pathname === '/api/ocr-report') return await ocrReport(req, env, await auth(req, env), h);
       if (url.pathname === '/admin' || url.pathname === '/admin/') return adminPage();
