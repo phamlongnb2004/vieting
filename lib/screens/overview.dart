@@ -133,7 +133,7 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
             ),
             const SizedBox(height: 12),
           ],
-          _BalanceCard(total: store.totalBalance, income: totals.income, expense: totals.expense, label: store.cycleDay == 1 ? 'tháng ${now.month}' : 'kỳ này'),
+          _BalanceCard(total: store.totalBalance, locked: store.lockedInGoals, income: totals.income, expense: totals.expense, label: store.cycleDay == 1 ? 'tháng ${now.month}' : 'kỳ này'),
           const SizedBox(height: 12),
           _GuiltFreeCard(store: store),
           _TodayRow(store: store),
@@ -238,10 +238,11 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
 
 class _BalanceCard extends StatelessWidget {
   final int total;
+  final int locked;
   final int income;
   final int expense;
   final String label;
-  const _BalanceCard({required this.total, required this.income, required this.expense, required this.label});
+  const _BalanceCard({required this.total, this.locked = 0, required this.income, required this.expense, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -282,13 +283,25 @@ class _BalanceCard extends StatelessWidget {
           child: Icon(PhosphorIconsFill.star, size: 70, color: Brand.yellow.withAlpha(80)),
         ),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Tổng số dư', style: TextStyle(color: Colors.white.withAlpha(220))),
+          Text(locked > 0 ? 'Có thể tiêu' : 'Tổng số dư', style: TextStyle(color: Colors.white.withAlpha(220))),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(money(total),
+            child: Text(money(total - locked),
                 style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
           ),
+          if (locked > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(children: [
+                Icon(PhosphorIconsFill.lockSimple, size: 14, color: Colors.white.withAlpha(220)),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text('Đã cất ${money(locked)} vào hũ mục tiêu · tổng ví ${compactMoney(total)}',
+                      style: TextStyle(color: Colors.white.withAlpha(220), fontSize: 12.5)),
+                ),
+              ]),
+            ),
           const SizedBox(height: 18),
           Row(children: [
             stat(PhosphorIconsRegular.arrowDownLeft, 'Thu $label', income),

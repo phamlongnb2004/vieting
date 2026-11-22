@@ -104,6 +104,26 @@ extension Insights on AppStore {
     if (t.income || t.deleted) return const [];
     final out = <Nudge>[];
     if (!countsInTotals(t.categoryId)) return const [];
+    // Khoản chi lấn vào tiền đã cất cho mục tiêu
+    final locked = lockedInGoals;
+    if (locked > 0) {
+      final spendable = spendableBalance;
+      final goals = activeGoals.where((g) => g.saved > 0).toList()..sort((a, b) => b.saved.compareTo(a.saved));
+      final gName = goals.isEmpty ? 'mục tiêu' : '"${goals.first.name}"';
+      if (spendable < 0) {
+        final eaten = -spendable > t.amount ? t.amount : -spendable;
+        out.add(Nudge(
+            _tone(
+              gentle: 'Khoản này đã lấn ${compactMoney(eaten)} vào tiền bạn cất cho $gName. Nếu thật sự cần, nhớ rút khỏi hũ cho sổ sách khớp nhé.',
+              funny: 'Ơ kìa, ${compactMoney(eaten)} vừa tiêu là tiền của hũ $gName đó! Cây tre đang héo dần.',
+              strict: 'Dừng lại! Bạn vừa tiêu ${compactMoney(eaten)} của hũ $gName. Tiền mục tiêu không phải để tiêu.',
+              expert: 'Số dư khả dụng âm ${compactMoney(-spendable)}: khoản chi này dùng tiền dành cho $gName. Cân nhắc rút hũ hoặc bù lại trong kỳ.',
+            ),
+            serious: true));
+      } else if (spendable < t.amount) {
+        out.add(Nudge('Chỉ còn ${compactMoney(spendable)} có thể tiêu, phần còn lại trong ví là tiền đã cất cho $gName.', serious: true));
+      }
+    }
     final now = t.date;
     final per = periodOf(now);
     final daysLeft = periodEnd(per.year, per.month).difference(DateTime(now.year, now.month, now.day)).inDays.clamp(1, 31);
@@ -418,6 +438,12 @@ extension Planning on AppStore {
 
   // ---------------- Quy đổi giờ làm việc ----------------
 
+  /// Tiền đã cất vào các hũ mục tiêu (vẫn nằm trong ví nhưng không nên tiêu).
+  int get lockedInGoals => activeGoals.fold<int>(0, (s, g) => s + g.saved);
+
+  /// Số tiền thật sự được tiêu = tổng số dư − tiền đã cất trong hũ.
+  int get spendableBalance => totalBalance - lockedInGoals;
+
   /// Thu nhập dùng cho "Quỹ tiêu thoải mái": người dùng tự nhập, hoặc lấy kỳ này / trung bình 3 kỳ trước (cái nào lớn hơn).
   int get plannedIncome {
     if (incomePlan > 0) return incomePlan;
@@ -452,7 +478,12 @@ extension Planning on AppStore {
         todaySpent += t.amount;
       }
     }
-    final daily = ((pool - before) / daysLeftInPeriod).floor();
+    var daily = ((pool - before) / daysLeftInPeriod).floor();
+    // không bao giờ gợi ý tiêu vào tiền đã cất trong hũ mục tiêu
+    if (lockedInGoals > 0) {
+      final cap = ((spendableBalance + todaySpent) / daysLeftInPeriod).floor();
+      if (cap < daily) daily = cap;
+    }
     final d = daily < 0 ? 0 : daily;
     return (income: income, fixed: fixed, save: save, pool: pool, daily: d, spentToday: todaySpent, leftToday: d - todaySpent);
   }

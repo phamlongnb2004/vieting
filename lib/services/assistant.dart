@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../categories.dart';
 import '../models.dart';
 import '../parser/quick_add.dart';
+import '../insights.dart';
 import '../store.dart';
 import '../util/format.dart';
 
@@ -27,6 +28,9 @@ class Assistant {
     final prev = DateTime(cur.year, cur.month - 1);
     final b = StringBuffer();
     b.writeln('Tổng số dư các ví: ${_m(s.totalBalance)} đ');
+    if (s.lockedInGoals > 0) {
+      b.writeln('Trong đó đã cất vào hũ mục tiêu (KHÔNG được khuyên tiêu): ${_m(s.lockedInGoals)} đ; số tiền có thể tiêu: ${_m(s.spendableBalance)} đ');
+    }
     b.writeln('Ví: ${s.activeWallets.map((w) => '${w.name} ${_m(s.walletBalance(w))} đ').join('; ')}');
     void month(String label, int y, int m) {
       final t = s.monthTotals(y, m);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../insights.dart';
 import '../models.dart';
 import '../pro.dart';
 import '../store.dart';
@@ -108,11 +109,30 @@ class GoalsScreen extends StatelessWidget {
     );
     final v = parseMoneyInput(c.text);
     if (ok != true || v <= 0) return;
+    if (!withdraw && v > store.spendableBalance && context.mounted) {
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Số dư không đủ'),
+          content: Text('Bạn chỉ còn ${money(store.spendableBalance < 0 ? 0 : store.spendableBalance)} chưa cất vào hũ nào. '
+              'Vẫn ghi ${money(v)} vào "${g.name}"? (Hãy chắc là bạn có số tiền này, VD vừa nhận lương chưa ghi.)'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Thôi')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Vẫn ghi')),
+          ],
+        ),
+      );
+      if (go != true) return;
+    }
     final before = g.progress;
     g.saved = withdraw ? (g.saved - v < 0 ? 0 : g.saved - v) : g.saved + v;
     store.saveGoal(g);
-    if (!withdraw && context.mounted && g.progress >= 1 && before < 1) {
+    if (!context.mounted) return;
+    if (!withdraw && g.progress >= 1 && before < 1) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Chúc mừng! Bạn đã đạt mục tiêu "${g.name}"')));
+    } else if (!withdraw) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Đã khóa ${money(v)} cho "${g.name}". Số tiền có thể tiêu giờ còn ${money(store.spendableBalance)}.')));
     }
   }
 
@@ -144,6 +164,16 @@ class GoalsScreen extends StatelessWidget {
                 const SizedBox(height: 14),
                 FilledButton(onPressed: () => edit(context, null), child: const Text('Tạo mục tiêu')),
               ]),
+            ),
+          if (store.lockedInGoals > 0)
+            Card(
+              color: Brand.navy.withAlpha(20),
+              child: ListTile(
+                leading: const VIcon(PhosphorIconsFill.lockSimple),
+                title: Text('Đang khóa ${money(store.lockedInGoals)} trong hũ', style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text('Tiền vẫn nằm trong ví nhưng không tính vào số "có thể tiêu" và hạn mức mỗi ngày. '
+                    'Có thể tiêu: ${money(store.spendableBalance)}. Chi lấn vào tiền hũ, VieTing sẽ nhắc ngay.'),
+              ),
             ),
           if (goals.isNotEmpty)
             Builder(builder: (context) {
