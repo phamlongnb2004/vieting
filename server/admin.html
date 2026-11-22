@@ -177,7 +177,7 @@
             <div><label>Ghi chú</label><input id="vn" placeholder="Bù lỗi đồng bộ cho…"></div>
             <div><button class="btn" id="vadd">Tạo mã</button></div>
           </div>
-          <p class="muted" style="margin-bottom:0">Pro hiện được 300 lượt trợ lý AI / ngày (Free 80). Thanh toán thật qua Apple / Google sẽ nối vào sau khi có tài khoản nhà phát triển.</p>
+          <p class="muted" style="margin-bottom:0">Pro: 300 lượt trợ lý AI / ngày, đọc hóa đơn không giới hạn (Free: 30 lượt / ngày, 5 ảnh / tháng). Thanh toán thật qua Apple / Google sẽ nối vào sau khi có tài khoản nhà phát triển.</p>
         </div>
         <div class="card tw"><table><thead><tr><th>Mã</th><th>Ngày Pro</th><th>Đã dùng</th><th>Hết hạn</th><th>Ghi chú</th><th></th></tr></thead><tbody id="vlist"></tbody></table></div>
       </div>
@@ -310,7 +310,7 @@ async function loadDash(){
   $('#kpis').innerHTML=k.map(([n,l])=>'<div class="card kpi"><div class="n">'+fmt(n)+'</div><div class="l">'+l+'</div></div>').join('');
   bars('#b1','#a1',s.days,s.signups);bars('#b2','#a2',s.days,s.txnDays);
   $('#ai').innerHTML=s.ai.length?'<table><tr><th>Ngày</th><th>Lượt hỏi</th><th>Số người</th></tr>'+s.ai.slice().reverse().map(r=>'<tr><td>'+esc(r.day)+'</td><td>'+fmt(r.n)+'</td><td>'+fmt(r.people)+'</td></tr>').join('')+'</table>':'<p class="muted">Chưa có lượt hỏi nào.</p>';
-  $('#sys').innerHTML='<p>Trợ lý AI đang dùng: <b>'+esc(s.ai_provider)+'</b></p><p class="muted">Giới hạn 80 lượt AI / người / ngày để nằm trong gói miễn phí.</p><p><a href="/tai-app" target="_blank">Mở trang tải app ↗</a></p>';
+  $('#sys').innerHTML='<p>Trợ lý AI đang dùng: <b>'+esc(s.ai_provider)+'</b></p><p class="muted">Gói miễn phí: 30 lượt trợ lý / ngày, 5 ảnh hóa đơn + 10 lần AI đọc tin nhắn / tháng. Pro: 300 lượt / ngày, không giới hạn theo tháng. Tài khoản mới được dùng thử Pro 7 ngày.</p><p><a href="/tai-app" target="_blank">Mở trang tải app ↗</a></p>';
 }
 let off=0,timer;
 $('#q').oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{off=0;loadUsers()},300)};

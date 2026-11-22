@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../categories.dart';
 import '../insights.dart';
 import '../models.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -25,6 +26,8 @@ class BillsScreen extends StatelessWidget {
   ];
 
   static Future<void> edit(BuildContext context, Bill? b, {bool installment = false}) async {
+    if (b == null && !await Pro.check(context, 'bills', count: StoreScope.read(context).activeBills.length)) return;
+    if (!context.mounted) return;
     final store = StoreScope.read(context);
     final name = TextEditingController(text: b?.name ?? '');
     final amount = TextEditingController(text: b == null ? '' : groupDigits(b.amount));
@@ -213,7 +216,7 @@ class BillsScreen extends StatelessWidget {
               title: const Text('Thử trả góp trước khi mua', style: TextStyle(fontWeight: FontWeight.w700)),
               subtitle: const Text('Xem 6 tháng tới tháng nào bị âm tiền'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InstallmentSimScreen())),
+              onTap: () => Pro.open(context, 'installment', const InstallmentSimScreen()),
             ),
           ),
         ],

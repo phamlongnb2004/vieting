@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../insights.dart';
 import '../models.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -12,6 +13,8 @@ class GiftsScreen extends StatelessWidget {
   const GiftsScreen({super.key, this.embedded = false});
 
   static Future<void> edit(BuildContext context, GiftEntry? g, {String? person}) async {
+    if (g == null && !await Pro.check(context, 'gifts')) return;
+    if (!context.mounted) return;
     final store = StoreScope.read(context);
     final who = TextEditingController(text: g?.person ?? person ?? '');
     final amount = TextEditingController(text: g == null ? '' : groupDigits(g.amount));

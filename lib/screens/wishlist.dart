@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../insights.dart';
 import '../models.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../ui_keys.dart';
 import '../theme.dart';
@@ -17,6 +18,9 @@ class WishlistScreen extends StatelessWidget {
   const WishlistScreen({super.key, this.embedded = false});
 
   static Future<void> add(BuildContext context) async {
+    final waiting = StoreScope.read(context).activeWishes.where((w) => w.status == 'waiting').length;
+    if (!await Pro.check(context, 'wishes', count: waiting)) return;
+    if (!context.mounted) return;
     final store = StoreScope.read(context);
     final name = TextEditingController();
     final price = TextEditingController();

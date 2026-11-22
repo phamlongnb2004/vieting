@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -15,6 +16,8 @@ class GoalsScreen extends StatelessWidget {
   const GoalsScreen({super.key, this.embedded = false});
 
   static Future<void> edit(BuildContext context, Goal? g) async {
+    if (g == null && !await Pro.check(context, 'goals', count: StoreScope.read(context).activeGoals.length)) return;
+    if (!context.mounted) return;
     final store = StoreScope.read(context);
     final name = TextEditingController(text: g?.name ?? '');
     final target = TextEditingController(text: g == null ? '' : groupDigits(g.target));
@@ -184,7 +187,7 @@ class GoalsScreen extends StatelessWidget {
                                 if (v == 'edit') edit(context, g);
                                 if (v == 'withdraw') addMoney(context, g, withdraw: true);
                                 if (v == 'sim') {
-                                  Navigator.push(context, MaterialPageRoute(builder: (_) => SimulateScreen(goalId: g.id)));
+                                  Pro.open(context, 'simulate', SimulateScreen(goalId: g.id));
                                 }
                                 if (v == 'del') store.deleteGoal(g.id);
                               },

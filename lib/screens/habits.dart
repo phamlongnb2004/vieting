@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../insights.dart';
 import '../models.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -134,7 +135,7 @@ class HabitsScreen extends StatelessWidget {
               title: const Text('Mô phỏng: nếu bớt một thói quen thì sao?', style: TextStyle(fontWeight: FontWeight.w700)),
               subtitle: const Text('VD bớt 2 ly trà sữa/tuần, sau 1 năm có thêm bao nhiêu'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SimulateScreen())),
+              onTap: () => Pro.open(context, 'simulate', const SimulateScreen()),
             ),
           ),
         ],

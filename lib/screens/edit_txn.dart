@@ -6,6 +6,7 @@ import '../models.dart';
 import '../parser/quick_add.dart';
 import '../services/receipt.dart';
 import '../services/voice.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../ui_keys.dart';
 import '../widgets/nudge.dart';
@@ -124,6 +125,10 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
     setState(() => _reading = false);
     if (r == null) return;
     if (r.error != null) {
+      if (r.error!.contains('Pro')) {
+        Pro.check(context, 'ai');
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r.error!)));
       return;
     }

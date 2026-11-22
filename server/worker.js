@@ -16,7 +16,7 @@
 import { handleDownload } from './download.js';
 import { handleChat, handleReceipt, handleParse } from './ai.js';
 import { handleAdmin, adminPage, publicNotice } from './admin.js';
-import { publicConfig, redeem, createTicket, myTickets, ocrReport, pushFeed } from './config.js';
+import { publicConfig, redeem, createTicket, myTickets, ocrReport, pushFeed, grantPro } from './config.js';
 
 const KINDS = new Set(['txn', 'wallet', 'budget', 'rule', 'goal', 'challenge', 'group', 'bill', 'wish', 'gift']);
 const MAX_CHANGES = 1000;
@@ -88,6 +88,8 @@ async function register(req, env) {
     .bind(email, salt, hash, Date.now())
     .run();
   const token = await newSession(env, res.meta.last_row_id);
+  // tài khoản mới được dùng thử Pro 7 ngày
+  await grantPro(env, res.meta.last_row_id, 7, 'Dùng thử').catch(() => {});
   return json({ token });
 }
 

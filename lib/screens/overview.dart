@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../categories.dart';
 import '../insights.dart';
 import '../services/notify_bridge.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -453,6 +454,17 @@ class _ForecastCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     if (store.activeTxns.length < 3) return const SizedBox.shrink();
+    if (!store.isPro) {
+      return Card(
+        child: ListTile(
+          leading: const Text('🔮', style: TextStyle(fontSize: 24)),
+          title: const Text('Dự báo cuối kỳ & đường băng sinh tồn', style: TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: const Text('Biết trước ngày nào chạm đáy ví · Pro'),
+          trailing: const Icon(Icons.lock_outline),
+          onTap: () => Pro.check(context, 'forecast'),
+        ),
+      );
+    }
     final f = store.forecast;
     final runway = store.runwayDays;
     final bad = f.zeroDay != null || f.endBalance < 0;

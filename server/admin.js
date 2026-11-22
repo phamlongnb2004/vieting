@@ -59,7 +59,7 @@ async function stats(env) {
   for (const r of syncRows) if (vnDay(r.srv) in txnDays) txnDays[vnDay(r.srv)]++;
   const aiRows =
     (
-      await env.DB.prepare('SELECT day, SUM(n) AS n, COUNT(*) AS people FROM ai_usage WHERE day >= ? AND k NOT LIKE "tk%" GROUP BY day ORDER BY day')
+      await env.DB.prepare('SELECT day, SUM(n) AS n, COUNT(*) AS people FROM ai_usage WHERE day >= ? AND day NOT LIKE "M%" AND k NOT LIKE "tk%" GROUP BY day ORDER BY day')
         .bind(new Date(now - 14 * DAY).toISOString().slice(0, 10))
         .all()
     ).results || [];

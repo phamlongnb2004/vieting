@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../models.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -59,6 +60,8 @@ class GroupsScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         heroTag: 'group',
         onPressed: () async {
+          if (!await Pro.check(context, 'groups', count: store.activeGroups.length)) return;
+          if (!context.mounted) return;
           final g = await editGroup(context, null);
           if (g != null && context.mounted) {
             Navigator.push(context, MaterialPageRoute(builder: (_) => GroupDetailScreen(groupId: g.id)));

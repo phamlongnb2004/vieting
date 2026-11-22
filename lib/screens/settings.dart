@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../config.dart';
 import '../insights.dart';
 import '../services/notify_bridge.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../util/format.dart';
 import '../widgets/logo.dart';
@@ -20,6 +21,7 @@ import 'notify_setup.dart';
 import 'paste.dart';
 import 'wallets.dart';
 import 'feedback.dart';
+import 'pro_screen.dart';
 import '../services/reminders.dart';
 import '../ui_keys.dart';
 import 'cleanup.dart';
@@ -149,38 +151,9 @@ class SettingsScreen extends StatelessWidget {
               title: Text(store.isPro ? 'VieTing Pro' : 'Gói Miễn phí'),
               subtitle: Text(store.isPro
                   ? 'Đến ${dmy(store.proUntil!)} · 300 lượt trợ lý AI / ngày'
-                  : '80 lượt trợ lý AI / ngày · có mã khuyến mãi? Nhập để mở Pro'),
-              trailing: const Icon(Icons.redeem),
-              onTap: () async {
-                if (!store.loggedIn) {
-                  showToast(context, 'Đăng nhập trước để dùng mã khuyến mãi');
-                  return;
-                }
-                final c = TextEditingController();
-                final code = await showDialog<String>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Nhập mã khuyến mãi'),
-                    content: TextField(
-                      controller: c,
-                      autofocus: true,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: const InputDecoration(hintText: 'VD: TET2027'),
-                    ),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-                      FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text('Dùng mã')),
-                    ],
-                  ),
-                );
-                if (code == null || code.isEmpty) return;
-                try {
-                  final days = await store.redeem(code);
-                  if (context.mounted) showToast(context, '🎉 Đã mở Pro thêm $days ngày');
-                } catch (e) {
-                  if (context.mounted) showToast(context, '$e'.replaceFirst('Exception: ', ''));
-                }
-              },
+                  : 'Xem quyền lợi Pro · nhập mã khuyến mãi'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _go(context, const ProScreen()),
             ),
             ListTile(
               leading: Badge(isLabelVisible: store.ticketsUnread > 0, label: Text('${store.ticketsUnread}'), child: const Icon(Icons.support_agent)),
@@ -259,12 +232,16 @@ class SettingsScreen extends StatelessWidget {
                       ListTile(
                         title: Text(o.$2),
                         subtitle: Text(o.$3),
-                        trailing: store.aiTone == o.$1 ? const Icon(Icons.check) : null,
+                        trailing: store.aiTone == o.$1
+                            ? const Icon(Icons.check)
+                            : (o.$1 != 'gentle' && !store.isPro ? const Icon(Icons.lock_outline, size: 18) : null),
                         onTap: () => Navigator.pop(c, o.$1),
                       ),
                   ]),
                 );
-                if (t != null) store.setAiTone(t);
+                if (t == null || !context.mounted) return;
+                if (t != 'gentle' && !await Pro.check(context, 'tone')) return;
+                store.setAiTone(t);
               },
             ),
             ListTile(

@@ -12,7 +12,7 @@ const CATS = {
   luong: 'Lương (thu)', thuong: 'Thưởng (thu)', dau_tu: 'Lãi & đầu tư (thu)', nhan_tien: 'Nhận chuyển khoản (thu)', khac_thu: 'Thu khác (thu)',
 };
 const INCOME_CATS = new Set(['luong', 'thuong', 'dau_tu', 'nhan_tien', 'khac_thu']);
-const DAILY_LIMIT = 80; // tin nhắn / người / ngày, giữ trong hạn mức miễn phí
+const DAILY_LIMIT = 30; // tin nhắn / người / ngày (gói miễn phí)
 const PRO_LIMIT = 300; // gói Pro
 const WORKERS_AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const WORKERS_AI_FALLBACK = '@cf/meta/llama-3.1-8b-instruct';
@@ -139,6 +139,29 @@ async function askWorkersAI(env, sys, messages) {
   return { text, provider: 'workers-ai' };
 }
 
+// Gói miễn phí: số lần mỗi tháng cho các tác vụ AI tốn nhiều (Pro không giới hạn, chỉ tính chung hạn mức ngày)
+const FREE_MONTHLY = { receipt: 5, parse: 10 };
+
+/** Đếm lượt dùng theo tháng cho gói miễn phí. Trả về chuỗi lỗi nếu đã hết lượt. */
+async function monthlyQuota(env, kind, key, userId) {
+  if (!env.DB) return null;
+  if ((await planOf(env, userId ?? null)).plan === 'pro') return null;
+  const month = 'M' + new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 7);
+  const limit = FREE_MONTHLY[kind];
+  try {
+    const row = await env.DB.prepare('SELECT n FROM ai_usage WHERE k = ? AND day = ?').bind(kind + key, month).first();
+    if (row && row.n >= limit) {
+      return kind === 'receipt'
+        ? `Bản miễn phí đọc được ${limit} ảnh hóa đơn mỗi tháng. Nâng cấp Pro để đọc không giới hạn.`
+        : `Bản miễn phí nhờ AI đọc tin nhắn được ${limit} lần mỗi tháng. Nâng cấp Pro để dùng thoải mái.`;
+    }
+    await env.DB.prepare(`INSERT INTO ai_usage (k, day, n) VALUES (?, ?, 1) ON CONFLICT (k, day) DO UPDATE SET n = n + 1`)
+      .bind(kind + key, month)
+      .run();
+  } catch {}
+  return null;
+}
+
 async function underLimit(env, key, userId) {
   if (!env.DB) return true;
   const limit = (await planOf(env, userId ?? null)).plan === 'pro' ? PRO_LIMIT : DAILY_LIMIT;
@@ -219,6 +242,8 @@ export async function handleReceipt(req, env, userId) {
   if (!img || img.length > 6_000_000) return json({ error: 'Ảnh trống hoặc quá lớn' }, 400);
   const key = userId != null ? 'u' + userId : 'ip' + (req.headers.get('cf-connecting-ip') || '?');
   if (!(await underLimit(env, key, userId))) return json({ error: 'Hôm nay bạn đã dùng hết lượt AI, mai quay lại nhé.' }, 429);
+  const quota = await monthlyQuota(env, 'receipt', key, userId);
+  if (quota) return json({ error: quota, pro: true }, 402);
   const dt = dictText((await aiExtras(env).catch(() => null))?.dict);
   const today = /^\d{4}-\d{2}-\d{2}$/.test(b.today || '') ? b.today : new Date().toISOString().slice(0, 10);
   const prompt = `Đây là ảnh hóa đơn, biên lai, hoặc ảnh chụp màn hình chuyển khoản / mã QR thanh toán ở Việt Nam. Hôm nay là ${today}.
@@ -269,6 +294,8 @@ export async function handleParse(req, env, userId) {
   if (text.length < 6) return json({ error: 'Nội dung quá ngắn' }, 400);
   const key = userId != null ? 'u' + userId : 'ip' + (req.headers.get('cf-connecting-ip') || '?');
   if (!(await underLimit(env, key, userId))) return json({ error: 'Hôm nay bạn đã dùng hết lượt AI, mai quay lại nhé.' }, 429);
+  const quota = await monthlyQuota(env, 'parse', key, userId);
+  if (quota) return json({ error: quota, pro: true }, 402);
   const dt = dictText((await aiExtras(env).catch(() => null))?.dict);
   const today = /^\d{4}-\d{2}-\d{2}$/.test(b.today || '') ? b.today : new Date().toISOString().slice(0, 10);
   const sys = `Bạn bóc tách tin nhắn / thông báo biến động số dư của ngân hàng và ví điện tử Việt Nam (MoMo, ZaloPay, ShopeePay, VNPay, Viettel Money...). Hôm nay là ${today}.

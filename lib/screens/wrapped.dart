@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../categories.dart';
 import '../insights.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -71,11 +72,15 @@ class _WrappedScreenState extends State<WrappedScreen> {
         title: const Text('Tổng kết kỳ'),
         actions: [
           IconButton(
-            onPressed: () => setState(() {
+            onPressed: () async {
+              if (!await Pro.check(context, 'wrapped')) return;
+              if (!mounted) return;
+              setState(() {
               final d = DateTime(_y, _m - 1);
               _y = d.year;
               _m = d.month;
-            }),
+              });
+            },
             icon: const Icon(Icons.chevron_left),
           ),
           IconButton(

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../categories.dart';
 import '../models.dart';
 import '../parser/bank_parser.dart';
+import '../pro.dart';
 import '../store.dart';
 import '../ui_keys.dart';
 import '../theme.dart';
@@ -63,7 +64,13 @@ class _PasteScreenState extends State<PasteScreen> {
         showToast(null, 'Đã ghi ${added.length} giao dịch từ nội dung dán');
       }
     } catch (e) {
-      if (mounted) showToast(context, '$e'.replaceFirst('Exception: ', ''));
+      if (!mounted) return;
+      final msg = '$e'.replaceFirst('Exception: ', '');
+      if (msg.contains('Pro')) {
+        Pro.check(context, 'ai');
+      } else {
+        showToast(context, msg);
+      }
     } finally {
       if (mounted) setState(() => _ai = false);
     }
