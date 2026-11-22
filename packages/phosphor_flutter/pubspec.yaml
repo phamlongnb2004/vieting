@@ -1,0 +1,21 @@
+name: phosphor_flutter
+description: Bộ icon Phosphor rút gọn cho VieTing (MIT).
+version: 0.0.1
+publish_to: none
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.10.0"
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  fonts:
+    - family: PhosphorBold
+      fonts:
+        - asset: lib/fonts/Phosphor-Bold.ttf
+    - family: PhosphorFill
+      fonts:
+        - asset: lib/fonts/Phosphor-Fill.ttf
+    - family: PhosphorRegular
+      fonts:
+        - asset: lib/fonts/Phosphor-Regular.ttf
