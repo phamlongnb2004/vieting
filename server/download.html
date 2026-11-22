@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VieTing · Quản lý chi tiêu, có tiền là ting</title>
+<meta name="description" content="VieTing tự đọc biến động số dư ngân hàng, ghi chi tiêu, trợ lý AI cà khịa kiểu Gen Z, quỹ chung cho vợ chồng & bạn bè. Android · iPhone · Windows.">
+<meta property="og:title" content="VieTing · Quản lý chi tiêu, có tiền là ting">
+<meta property="og:description" content="Tự ghi thu chi từ thông báo ngân hàng. Trợ lý AI, quỹ chung, hũ mục tiêu.">
+<meta property="og:image" content="/img/icon-256.png">
+<meta name="theme-color" content="#C1272C">
+<link rel="icon" href="/img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C1272C;--red2:#8E1519;--navy:#152758;--navy2:#2A4A9A;--bamboo:#3E8E41;--yellow:#FFCD00;--bg:#F7F3EC;--card:#fff;--ink:#1C1B19;--mut:#6E6A63;--line:#EAE2D5}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.w{max-width:1160px;margin:0 auto;padding:0 22px}
+/* nav */
+nav{position:sticky;top:0;z-index:20;backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);background:rgba(247,243,236,.78);border-bottom:1px solid rgba(0,0,0,.05)}
+nav .w{display:flex;align-items:center;height:64px;gap:22px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px;letter-spacing:-.5px}
+.logo img{width:34px;height:34px;border-radius:10px;box-shadow:0 4px 12px rgba(193,39,44,.3)}
+nav .links{display:flex;gap:22px;margin-left:auto;font-weight:600;font-size:14.5px;color:#3d3a35}
+nav .links a:hover{color:var(--red)}
+.nbtn{background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px}
+@media(max-width:760px){nav .links{display:none}.nbtn{margin-left:auto}}
+/* hero */
+.hero{position:relative;padding:64px 0 40px;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:-30% -10% auto auto;width:720px;height:720px;background:radial-gradient(circle,rgba(193,39,44,.16),transparent 62%);pointer-events:none}
+.hero:after{content:"";position:absolute;left:-200px;bottom:-260px;width:620px;height:620px;background:radial-gradient(circle,rgba(62,142,65,.13),transparent 60%);pointer-events:none}
+.hg{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;position:relative;z-index:1}
+@media(max-width:900px){.hg{grid-template-columns:1fr}}
+.pill{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);padding:7px 13px 7px 8px;border-radius:99px;font-weight:600;font-size:13.5px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.pill b{background:var(--red);color:#fff;border-radius:99px;padding:2px 8px;font-size:11.5px}
+h1{font-size:clamp(38px,6vw,68px);line-height:1.04;letter-spacing:-2.2px;font-weight:900;margin:20px 0 18px}
+h1 em{font-style:normal;background:linear-gradient(100deg,var(--red),#E3474D 55%,#F08A2B);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:18px;line-height:1.6;color:var(--mut);max-width:540px}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.btn{display:inline-flex;align-items:center;gap:12px;padding:15px 22px;border-radius:16px;font-weight:800;font-size:16px;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn small{display:block;font-weight:500;font-size:12px;opacity:.8}
+.btn svg{width:22px;height:22px;flex:none}
+.b1{background:linear-gradient(135deg,#D4343A,var(--red) 50%,var(--red2));color:#fff;box-shadow:0 12px 28px rgba(193,39,44,.35)}
+.b2{background:#fff;border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.05)}
+.meta{display:flex;gap:18px;margin-top:22px;color:var(--mut);font-size:13.5px;flex-wrap:wrap}
+.meta span{display:flex;align-items:center;gap:6px}
+.meta svg{width:16px;height:16px;color:var(--bamboo)}
+/* phones */
+.stage{position:relative;height:600px}
+@media(max-width:900px){.stage{height:560px;margin-top:10px}}
+.phone{position:absolute;width:280px;height:572px;border-radius:44px;background:#0f0f10;padding:11px;box-shadow:0 40px 80px rgba(21,39,88,.28),0 0 0 2px #2b2b2e inset}
+.phone .scr{width:100%;height:100%;border-radius:34px;background:var(--bg);overflow:hidden;position:relative;font-size:12px}
+.phone .notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:92px;height:26px;background:#0f0f10;border-radius:20px;z-index:3}
+.p1{left:50%;top:8px;transform:translateX(-62%) rotate(-5deg);z-index:2}
+.p2{left:50%;top:40px;transform:translateX(2%) rotate(6deg);z-index:1}
+@media(max-width:560px){.p2{display:none}.p1{transform:translateX(-50%)}}
+.sb{height:44px}
+.scr .pad{padding:0 14px}
+.hi{font-weight:800;font-size:17px;letter-spacing:-.3px}
+.sub{color:var(--mut);font-size:11px;margin-top:2px}
+.heroC{margin-top:12px;border-radius:20px;padding:15px;color:#fff;background:linear-gradient(135deg,#D4343A,var(--red) 45%,#7C1216);position:relative;overflow:hidden}
+.heroC:after{content:"";position:absolute;right:-30px;top:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08)}
+.heroC .k{opacity:.85;font-size:11px}
+.heroC .v{font-size:25px;font-weight:900;letter-spacing:-.8px;margin-top:2px}
+.heroC .r{display:flex;gap:8px;margin-top:10px}
+.heroC .r div{flex:1;background:rgba(255,255,255,.14);border-radius:10px;padding:6px 8px;font-size:10px}
+.heroC .r b{display:block;font-size:12px}
+.gf{margin-top:10px;background:#E9F3E9;border:1px solid #D4E8D4;border-radius:16px;padding:11px 12px}
+.gf .k{color:#4b6b4c;font-size:10.5px;font-weight:600}
+.gf .v{color:var(--bamboo);font-weight:900;font-size:20px;letter-spacing:-.5px}
+.gf .bar{height:6px;background:#fff;border-radius:6px;margin:6px 0;overflow:hidden}.gf .bar i{display:block;height:100%;width:38%;background:var(--bamboo);border-radius:6px}
+.gf p{font-size:10.5px;font-weight:600}
+.tx{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px 10px;margin-top:7px}
+.tx i{width:28px;height:28px;border-radius:9px;flex:none;display:grid;place-items:center}
+.tx i svg{width:15px;height:15px}
+.tx span{flex:1;font-weight:600;font-size:11.5px}.tx small{display:block;color:var(--mut);font-weight:500;font-size:9.5px}
+.tx b{font-size:12px}
+.chat{padding:0 12px}
+.ch-h{display:flex;align-items:center;gap:8px;padding:6px 2px 10px;font-weight:800;font-size:14px}
+.ch-h i{width:28px;height:28px;border-radius:9px;background:var(--red);display:grid;place-items:center}
+.ch-h i svg{width:16px;height:16px;color:#fff}
+.bub{max-width:84%;padding:9px 11px;border-radius:16px;margin:6px 0;line-height:1.4;font-size:11.5px}
+.me{margin-left:auto;background:linear-gradient(135deg,#D4343A,var(--red2));color:#fff;border-bottom-right-radius:4px}
+.ai{background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+.img{height:92px;border-radius:12px;margin-bottom:6px;background:repeating-linear-gradient(0deg,#fff,#fff 9px,#eee 9px,#eee 10px);border:1px solid #ddd;position:relative}
+.img:after{content:"WINMART  ·  180.000";position:absolute;bottom:8px;left:8px;font-size:9px;font-weight:800;color:#333}
+.act{border:1px solid #BFDCC0;background:#EEF7EE;border-radius:12px;padding:7px 9px;font-weight:700;font-size:10.5px;display:flex;justify-content:space-between;align-items:center;margin:4px 0}
+.act b{background:var(--bamboo);color:#fff;border-radius:8px;padding:3px 8px;font-size:10px}
+.float{position:absolute;z-index:4;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;box-shadow:0 18px 40px rgba(0,0,0,.12);display:flex;gap:10px;align-items:center;font-size:12.5px;animation:bob 5s ease-in-out infinite}
+.float img{width:30px;height:30px;border-radius:9px}
+.float b{display:block;font-size:13px}.float small{color:var(--mut)}
+.f1{left:0;top:110px}.f2{right:0;bottom:70px;animation-delay:-2.5s}
+.f2 .dot{width:30px;height:30px;border-radius:9px;background:#E9F3E9;display:grid;place-items:center;color:var(--bamboo)}
+@media(max-width:560px){.f1{left:-6px}.f2{right:-6px}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+/* banks */
+.banks{padding:18px 0 8px}
+.banks p{text-align:center;color:var(--mut);font-size:13px;font-weight:600;margin-bottom:14px}
+.mq{overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+.mq div{display:flex;gap:10px;width:max-content;animation:mq 40s linear infinite}
+.mq span{background:#fff;border:1px solid var(--line);padding:9px 16px;border-radius:99px;font-weight:700;font-size:14px;color:#3d3a35;white-space:nowrap}
+@keyframes mq{to{transform:translateX(-50%)}}
+/* sections */
+section{padding:84px 0}
+.kick{color:var(--red);font-weight:800;font-size:13px;letter-spacing:1.4px;text-transform:uppercase}
+h2{font-size:clamp(30px,4.2vw,46px);letter-spacing:-1.4px;line-height:1.1;font-weight:900;margin:10px 0 14px}
+.sh{max-width:640px;margin-bottom:36px}
+.sh p{color:var(--mut);font-size:17px;line-height:1.6}
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.cell{background:#fff;border:1px solid var(--line);border-radius:26px;padding:26px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.cell:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(0,0,0,.07)}
+.cell h3{font-size:20px;letter-spacing:-.4px;font-weight:800;margin:14px 0 8px}
+.cell p{color:var(--mut);line-height:1.55;font-size:15px}
+.ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center}
+.ic svg{width:24px;height:24px}
+.c4{grid-column:span 4}.c2{grid-column:span 2}.c3{grid-column:span 3}
+@media(max-width:900px){.bento{grid-template-columns:1fr}.c4,.c2,.c3{grid-column:auto}}
+.dark{background:linear-gradient(150deg,var(--navy),var(--navy2));color:#fff;border:0}
+.dark p{color:rgba(255,255,255,.75)}
+.red{background:linear-gradient(140deg,#D4343A,var(--red) 50%,var(--red2));color:#fff;border:0}
+.red p{color:rgba(255,255,255,.82)}
+.quote{margin-top:18px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px 14px;font-weight:600;font-size:14.5px;line-height:1.5}
+.hrs{font-size:46px;font-weight:900;letter-spacing:-1.5px;color:var(--yellow);margin-top:12px}
+.mini{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.mini span{background:#F4EEE4;border-radius:99px;padding:6px 12px;font-weight:700;font-size:13px}
+/* download */
+.dl{display:grid;grid-template-columns:.9fr 1.1fr;gap:34px;align-items:start}
+@media(max-width:900px){.dl{grid-template-columns:1fr}}
+.list{list-style:none;display:grid;gap:12px}
+.row{background:#fff;border:1px solid var(--line);border-radius:22px;padding:16px 18px;transition:box-shadow .2s,border-color .2s}
+.row.me{border-color:var(--red);box-shadow:0 0 0 4px rgba(193,39,44,.1)}
+.row-h{display:flex;align-items:center;gap:14px}
+.os-ic{width:48px;height:48px;border-radius:15px;background:#F4EEE4;display:grid;place-items:center;flex:none}
+.os-ic svg{width:24px;height:24px}
+.os-nm{flex:1}.os-nm b{display:block;font-size:17px}.os-nm small{color:var(--mut);font-size:13px}
+.get{background:var(--ink);color:#fff;padding:11px 18px;border-radius:13px;font-weight:800;font-size:14px;white-space:nowrap}
+.row.me .get{background:var(--red)}
+.row p{color:var(--mut);font-size:13.5px;line-height:1.5;margin-top:10px;padding-left:62px}
+.row.off{opacity:.55}.soon{font-weight:700;color:var(--mut);font-size:13px}
+.ver{margin-top:16px;color:var(--mut);font-size:13.5px}
+.links-box{margin-top:18px;background:#fff;border:1px dashed var(--line);border-radius:18px;padding:14px 16px;font-size:14px;color:var(--mut);line-height:1.7}
+.links-box code{background:#F4EEE4;color:var(--ink);padding:2px 7px;border-radius:7px;font-weight:700;font-size:13px}
+/* pricing */
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:880px}
+@media(max-width:760px){.plans{grid-template-columns:1fr}}
+.plan{background:#fff;border:1px solid var(--line);border-radius:28px;padding:28px}
+.plan h3{font-size:22px;font-weight:900}
+.price{font-size:40px;font-weight:900;letter-spacing:-1.2px;margin:10px 0 2px}
+.price small{font-size:15px;font-weight:600;color:var(--mut);letter-spacing:0}
+.plan ul{list-style:none;margin-top:18px;display:grid;gap:11px}
+.plan li{display:flex;gap:10px;font-size:15px;line-height:1.45}
+.plan li svg{width:20px;height:20px;flex:none;color:var(--bamboo);margin-top:1px}
+.plan.pro{background:linear-gradient(150deg,#1d1b19,#2c2925);color:#fff;border:0;position:relative}
+.plan.pro li svg{color:var(--yellow)}
+.plan.pro .price small{color:rgba(255,255,255,.6)}
+.tag{position:absolute;top:22px;right:22px;background:var(--yellow);color:#1d1b19;font-weight:800;font-size:12px;padding:5px 10px;border-radius:99px}
+/* faq */
+.faq{max-width:820px;display:grid;gap:12px}
+details{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 22px}
+summary{cursor:pointer;font-weight:800;font-size:16.5px;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary:after{content:"+";font-size:22px;line-height:1;color:var(--red);transition:transform .2s}
+details[open] summary:after{transform:rotate(45deg)}
+details p{color:var(--mut);line-height:1.6;margin-top:10px;font-size:15px}
+/* cta band */
+.band{margin:0 22px;border-radius:34px;background:linear-gradient(135deg,#D4343A,var(--red) 50%,var(--red2));color:#fff;padding:64px 30px;text-align:center;position:relative;overflow:hidden}
+.band:before,.band:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.08)}
+.band:before{width:420px;height:420px;left:-120px;top:-200px}.band:after{width:300px;height:300px;right:-80px;bottom:-160px}
+.band h2{color:#fff;position:relative}.band p{opacity:.85;font-size:17px;position:relative}
+.band .btn{margin-top:26px;background:#fff;color:var(--red);position:relative}
+footer{padding:46px 0 60px;color:var(--mut);font-size:14px}
+footer .w{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.reveal.on{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<nav><div class="w">
+  <a class="logo" href="/tai-app"><img src="/img/icon-256.png" alt="">VieTing</a>
+  <div class="links"><a href="#tinh-nang">Tính năng</a><a href="#tai">Tải về</a><a href="#gia">Bảng giá</a><a href="#hoi">Hỏi đáp</a></div>
+  <a class="nbtn" href="#tai">Tải miễn phí</a>
+</div></nav>
+
+<header class="hero"><div class="w hg">
+  <div>
+    <span class="pill"><b>MỚI</b>Trợ lý AI đọc được cả ảnh hóa đơn</span>
+    <h1>Có tiền là <em>ting</em>.<br>Có chi là ghi.</h1>
+    <p class="lead">VieTing tự đọc thông báo biến động số dư ngân hàng, ghi từng khoản thu chi, rồi cà khịa nhẹ khi bạn chốt đơn quá tay. Ghi chép chưa bao giờ nhàn đến vậy.</p>
+    <div class="cta">
+      <a class="btn b1" id="mb" href="#tai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg><span>Tải VieTing miễn phí<small>Android · iPhone · Windows</small></span></a>
+      <a class="btn b2" href="#tinh-nang">Xem tính năng</a>
+    </div>
+    <div class="meta">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Không quảng cáo</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Dữ liệu lưu trên máy trước</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>{{VERSION}}</span>
+    </div>
+  </div>
+
+  <div class="stage" aria-hidden="true">
+    <div class="float f1"><img src="/img/icon-256.png" alt=""><div><b>Đã ghi tự động</b><small>−55.000 ₫ · Highlands · Ăn uống</small></div></div>
+    <div class="float f2"><span class="dot"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z"/></svg></span><div><b>Đã khóa 2.000.000 ₫</b><small>vào hũ "Đi Đà Lạt"</small></div></div>
+    <div class="phone p2"><div class="notch"></div><div class="scr"><div class="sb"></div>
+      <div class="chat">
+        <div class="ch-h"><i><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5 14.3 9.7 21.5 12l-7.2 2.3L12 21.5l-2.3-7.2L2.5 12l7.2-2.3z"/></svg></i>Trợ lý VieTing</div>
+        <div class="bub me"><div class="img"></div>Đọc bill này giúp tui</div>
+        <div class="bub ai">Đã soi xong bestie! 180k ở WinMart: 100k đồ ăn, 80k nước rửa chén + giấy. Tách 2 khoản nha?</div>
+        <div class="act">Ăn uống · 100.000 ₫<b>Ghi</b></div>
+        <div class="act">Mua sắm · 80.000 ₫<b>Ghi</b></div>
+        <div class="bub me">Tuần này tui tiêu nhiều không?</div>
+        <div class="bub ai">Ét o ét, 6 ly trà sữa trong 7 ngày! Máu bạn giờ toàn đường với trân châu, ví thì khô như tình cũ.</div>
+      </div>
+    </div></div>
+    <div class="phone p1"><div class="notch"></div><div class="scr"><div class="sb"></div>
+      <div class="pad">
+        <div class="hi">Tối vui vẻ nha</div>
+        <div class="sub">Flex nhẹ bằng số dư, khum flex bằng thẻ tín dụng.</div>
+        <div class="heroC"><div class="k">Có thể tiêu</div><div class="v">12.450.000 ₫</div>
+          <div class="r"><div>Thu kỳ này<b>15,2 tr</b></div><div>Chi kỳ này<b>6,8 tr</b></div></div></div>
+        <div class="gf"><div class="k">Hôm nay còn được tiêu thoải mái</div><div class="v">185.000 ₫</div><div class="bar"><i></i></div><p>Còn 185k để quẩy hôm nay, slay nhẹ thôi nha</p></div>
+        <div class="tx"><i style="background:#FDEBD8;color:#E8710A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5zM16 9h1.5a2.5 2.5 0 0 1 0 5H16M8 3v2M11 3v2"/></svg></i><span>Highlands<small>Tự ghi · Vietcombank</small></span><b style="color:#C1272C">−55k</b></div>
+        <div class="tx"><i style="background:#E3F0E3;color:#2E7D32"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v10H4zM8 12h8M12 9v6"/></svg></i><span>Lương tháng 11<small>Tự ghi · MB Bank</small></span><b style="color:#2E7D32">+15 tr</b></div>
+        <div class="tx"><i style="background:#E1ECFA;color:#1E88E5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 16V11l2-5h10l2 5v5M5 16h14M7 16v2M17 16v2M5 11h14"/></svg></i><span>Grab<small>Tự ghi · MoMo</small></span><b style="color:#C1272C">−42k</b></div>
+      </div>
+    </div></div>
+  </div>
+</div></header>
+
+<div class="banks"><p>Đọc được thông báo của các ngân hàng và ví phổ biến</p><div class="mq"><div>{{CHIPS}}{{CHIPS}}</div></div></div>
+
+<section id="tinh-nang"><div class="w">
+  <div class="sh reveal"><div class="kick">Tính năng</div><h2>Mọi thứ để tiền không "bốc hơi" trong im lặng</h2><p>Ghi chép tự động, trợ lý biết đùa, và vài mẹo tâm lý giúp bạn bớt chốt đơn lúc nửa đêm.</p></div>
+  <div class="bento">
+    <div class="cell c4 red reveal">
+      <div class="ic" style="background:rgba(255,255,255,.16)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></div>
+      <h3>Nghe "ting" là đã ghi sổ</h3>
+      <p>Trên Android, VieTing đọc thông báo biến động số dư của app ngân hàng và ví điện tử, tự ghi khoản thu chi, xếp danh mục và khớp số dư. OTP, tin nhắn riêng và quảng cáo đều bị bỏ qua.</p>
+      <div class="quote">"TK 0123 -55,000VND lúc 08:12. ND: thanh toan Highlands" → Ăn uống · −55.000 ₫</div>
+    </div>
+    <div class="cell c2 reveal">
+      <div class="ic" style="background:#FDECEC;color:var(--red)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5 14.3 9.7 21.5 12l-7.2 2.3L12 21.5l-2.3-7.2L2.5 12l7.2-2.3z"/></svg></div>
+      <h3>Trợ lý AI cà khịa</h3>
+      <p>Hỏi "tháng này tiêu gì nhiều nhất", gõ "phở 45k", hoặc gửi ảnh bill. Chọn tính cách: Bạn thân Gen Z, Mẹ khó tính, Chuyên gia tài chính.</p>
+    </div>
+    <div class="cell c2 reveal">
+      <div class="ic" style="background:#E9F3E9;color:var(--bamboo)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg></div>
+      <h3>Quỹ tiêu thoải mái</h3>
+      <p>Trừ sẵn tiền cố định và tiết kiệm, phần còn lại chia đều mỗi ngày. "Hôm nay còn 185k để tiêu thoải mái", hiện ngay trên widget.</p>
+    </div>
+    <div class="cell c4 dark reveal">
+      <div class="ic" style="background:rgba(255,255,255,.14);color:var(--yellow)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c.6-3 3-5 6-5s5.4 2 6 5M14.5 15.2c.5-.1 1-.2 1.5-.2 3 0 5.4 2 6 5"/></svg></div>
+      <h3>Quỹ chung cho vợ chồng, bạn bè</h3>
+      <p>Tạo quỹ, gửi mã mời 6 ký tự. Ai nộp quỹ, ai đi chợ, tiền điện bao nhiêu đều hiện ngay trên máy của cả nhà, kèm thông báo. Biết luôn ai đã nộp đủ phần.</p>
+      <div class="quote">Vợ vừa chi 350.000 ₫ từ "Quỹ nhà mình" · đi chợ</div>
+    </div>
+    <div class="cell c3 reveal">
+      <div class="ic" style="background:#FFF6D6;color:#B8860B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9"/></svg></div>
+      <h3>Đổi giá ra giờ làm việc</h3>
+      <p>Đôi giày 1,2 triệu tốn của bạn bao nhiêu giờ làm? Danh sách chờ 48 giờ giúp nguội cơn chốt đơn.</p>
+      <div class="hrs">≈ 15,5 giờ làm</div>
+    </div>
+    <div class="cell c3 reveal">
+      <div class="ic" style="background:#E6ECF8;color:var(--navy)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5zM12 15v2"/></svg></div>
+      <h3>Hũ mục tiêu biết khóa tiền</h3>
+      <p>Tiền cất vào hũ không bị tính là "có thể tiêu". Chi lấn vào tiền hũ là VieTing nhắc liền.</p>
+      <div class="mini"><span>Đi Đà Lạt</span><span>Mua xe</span><span>Quỹ khẩn cấp</span><span>Lì xì Tết</span></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="tai" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="w dl">
+  <div class="reveal">
+    <div class="kick">Tải về</div>
+    <h2>Một tài khoản, mọi thiết bị</h2>
+    <p style="color:var(--mut);font-size:17px;line-height:1.6">Điện thoại Android tự ghi giao dịch, iPhone và máy tính xem lại ngay khi đăng nhập. Không đăng nhập vẫn dùng được, dữ liệu nằm trên máy bạn.</p>
+    <div class="ver">{{VERSION}}</div>
+    <div class="links-box">Link tải cố định để gửi bạn bè:<br><code>/tai/android</code> · <code>/tai/ios</code> · <code>/tai/windows</code></div>
+  </div>
+  <ul class="list reveal">{{ROWS}}</ul>
+</div></section>
+
+<section id="gia"><div class="w">
+  <div class="sh reveal"><div class="kick">Bảng giá</div><h2>Ghi chép luôn miễn phí</h2><p>Pro dành cho ai muốn AI làm nhiều hơn và lên kế hoạch xa hơn. Tài khoản mới được dùng thử Pro 7 ngày.</p></div>
+  <div class="plans">
+    <div class="plan reveal"><h3>Miễn phí</h3><div class="price">0 ₫</div><div style="color:var(--mut)">Dùng mãi mãi</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Tự đọc thông báo ngân hàng, dán tin nhắn, giọng nói</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Ví, ngân sách, Quỹ tiêu thoải mái, widget, nhắc nhở</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Trợ lý AI 30 tin / ngày, 5 ảnh / tháng</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Quỹ chung, mã PIN, vân tay, xuất CSV</li>
+      </ul>
+    </div>
+    <div class="plan pro reveal"><span class="tag">Phổ biến</span><h3>Pro</h3><div class="price">29.000 ₫<small> / tháng</small></div><div style="color:rgba(255,255,255,.6)">hoặc 249.000 ₫ / năm</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Trợ lý AI 300 tin / ngày, đọc ảnh không giới hạn</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Dự báo cuối kỳ, đường băng sinh tồn</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Hũ mục tiêu, khoản định kỳ, danh sách chờ không giới hạn</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Sổ hiếu hỉ, mô phỏng trả góp, đủ tính cách trợ lý</li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<section id="hoi" style="padding-top:20px"><div class="w">
+  <div class="sh reveal"><div class="kick">Hỏi đáp</div><h2>Hỏi nhanh, đáp gọn</h2></div>
+  <div class="faq">
+    <details class="reveal"><summary>VieTing có đọc được tài khoản ngân hàng của tôi không?</summary><p>Không. VieTing chỉ đọc nội dung thông báo hiện trên điện thoại (giống bạn nhìn thấy), không đăng nhập ngân hàng, không biết mật khẩu hay mã OTP. Thông báo OTP, tin nhắn và quảng cáo bị bỏ qua.</p></details>
+    <details class="reveal"><summary>iPhone có tự ghi được không?</summary><p>Apple không cho app đọc thông báo của app khác. Trên iPhone bạn ghi nhanh bằng Phím tắt (chạm 2 lần mặt lưng hoặc nút Tác vụ), dán tin nhắn ngân hàng, hoặc gửi ảnh bill cho trợ lý.</p></details>
+    <details class="reveal"><summary>Không đăng nhập có dùng được không?</summary><p>Được. Dữ liệu nằm trên máy bạn. Đăng nhập chỉ cần khi muốn đồng bộ nhiều máy hoặc dùng Quỹ chung với người khác.</p></details>
+    <details class="reveal"><summary>Quỹ chung hoạt động thế nào?</summary><p>Một người tạo quỹ và gửi mã mời 6 ký tự. Người kia nhập mã là vào cùng quỹ. Mỗi khoản nộp hoặc chi đều ghi tên người ghi và báo lên máy những người còn lại.</p></details>
+    <details class="reveal"><summary>Android báo "ứng dụng bị hạn chế" khi bật đọc thông báo?</summary><p>Vào Cài đặt → Ứng dụng → VieTing → nút ⋮ góc trên → "Cho phép cài đặt bị hạn chế", rồi bật lại quyền đọc thông báo.</p></details>
+  </div>
+</div></section>
+
+<div class="band reveal"><h2>Bắt đầu ghi chép trong 1 phút</h2><p>Miễn phí, không quảng cáo, không cần thẻ.</p><a class="btn" id="mb2" href="#tai">Tải VieTing</a></div>
+
+<footer><div class="w"><a class="logo" href="/tai-app"><img src="/img/icon-256.png" alt="">VieTing</a><span>© 2026 VieTing · Phạm Thành Long (thlong)</span></div></footer>
+
+<script>
+(function(){
+  var u=navigator.userAgent,k=/Android/i.test(u)?'android':/iPhone|iPad|iPod/i.test(u)?'ios':/Windows/i.test(u)?'windows':'';
+  var r=k&&document.querySelector('.row[data-os="'+k+'"]');
+  if(r){r.classList.add('me');var href=r.querySelector('a.get').getAttribute('href'),nm=r.querySelector('b').textContent;
+    var b=document.getElementById('mb');b.href=href;b.querySelector('span').innerHTML='Tải cho '+nm+'<small>'+r.querySelector('small').textContent+'</small>';
+    var b2=document.getElementById('mb2');b2.href=href;b2.textContent='Tải cho '+nm;}
+  var io='IntersectionObserver' in window?new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target)}})},{threshold:.12}):null;
+  document.querySelectorAll('.reveal').forEach(function(el){io?io.observe(el):el.classList.add('on')});
+})();
+</script>
+</body>
+</html>
