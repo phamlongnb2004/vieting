@@ -90,18 +90,126 @@ export function cleanActions(list) {
   return out;
 }
 
-// Google hay đổi / ngừng tên model (VD gemini-2.5-flash trả 404 với khóa mới). Thử lần lượt, nhớ model chạy được.
-const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash'];
+// Google hay đổi tên model và cách gọi (khóa "auth key" mới, Interactions API). Lớp gọi Gemini ở đây tự thích nghi:
+// 1) hỏi Google danh sách model khóa này dùng được, chọn model Flash mới nhất hỗ trợ generateContent;
+// 2) model nào lỗi 404/400 thì thử model kế; 3) nếu generateContent không dùng được thì chuyển sang Interactions API.
+// Lỗi thật của Google được lưu lại (bảng config, khóa "ai_error") để xem ở trang /admin.
+const GEMINI_FALLBACK = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash'];
+const G_BASE = 'https://generativelanguage.googleapis.com';
 let geminiOk = null;
+let modelCache = { at: 0, list: null };
 
-/** Gọi Gemini; model nào báo 404 / 400 "không hỗ trợ" thì thử model kế tiếp. */
+async function googleMsg(res) {
+  try {
+    const t = await res.text();
+    try {
+      return String(JSON.parse(t)?.error?.message || t).slice(0, 160);
+    } catch {
+      return t.slice(0, 160);
+    }
+  } catch {
+    return '';
+  }
+}
+
+function gHeaders(env) {
+  return { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY };
+}
+
+function rankModel(n) {
+  // ưu tiên: flash (không lite) mới nhất > flash-lite > còn lại; bỏ model ảnh / giọng / live / embedding
+  if (/image|tts|audio|live|embed|veo|imagen|lyria|robotics|computer|aqa|learnlm/i.test(n)) return -1;
+  const v = parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || '0');
+  let score = v * 10;
+  if (/flash/.test(n)) score += 1000;
+  if (/lite/.test(n)) score -= 300;
+  if (/preview|exp/.test(n)) score -= 50;
+  if (/latest/.test(n)) score += 5;
+  return score;
+}
+
+async function listModels(env) {
+  if (modelCache.list && Date.now() - modelCache.at < 6 * 3600000) return modelCache.list;
+  try {
+    const res = await fetch(`${G_BASE}/v1beta/models?pageSize=200`, { headers: gHeaders(env) });
+    if (!res.ok) {
+      await saveAiError(env, 'models', res.status, await res.text());
+      return null;
+    }
+    const j = await res.json();
+    const list = (j.models || [])
+      .filter((m) => {
+        const methods = m.supportedGenerationMethods || m.supportedActions || m.supported_actions || ['generateContent'];
+        return methods.includes('generateContent');
+      })
+      .map((m) => String(m.name || '').replace(/^models\//, ''))
+      .filter((n) => rankModel(n) >= 0)
+      .sort((a, b) => rankModel(b) - rankModel(a));
+    modelCache = { at: Date.now(), list };
+    return list;
+  } catch {
+    return null;
+  }
+}
+
+async function saveAiError(env, where, status, text) {
+  try {
+    let msg = text;
+    try {
+      msg = JSON.parse(text)?.error?.message || text;
+    } catch {}
+    await env.DB.prepare('INSERT INTO config (k, v) VALUES (?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v')
+      .bind('ai_error', JSON.stringify({ at: Date.now(), where, status, message: String(msg).slice(0, 500) }))
+      .run();
+  } catch {}
+}
+
+/** Đổi body kiểu generateContent sang Interactions API. */
+function toInteraction(model, body) {
+  const input = [];
+  const sys = (body.systemInstruction?.parts || []).map((p) => p.text).join('\n');
+  const turns = body.contents || [];
+  const flat = [];
+  for (const c of turns) {
+    for (const p of c.parts || []) {
+      if (p.inline_data) input.push({ type: 'image', mime_type: p.inline_data.mime_type, data: p.inline_data.data });
+      else if (p.text != null) flat.push((turns.length > 1 ? (c.role === 'model' ? 'Trợ lý: ' : 'Người dùng: ') : '') + p.text);
+    }
+  }
+  const text = (sys ? sys + '\n\n' : '') + flat.join('\n');
+  input.push({ type: 'text', text });
+  const out = { model, input, store: false };
+  if (body.generationConfig?.responseMimeType === 'application/json') {
+    out.response_format = [{ type: 'text', mime_type: 'application/json' }];
+  }
+  return out;
+}
+
+function interactionText(j) {
+  const steps = j.steps || j.outputs || [];
+  const parts = [];
+  for (const st of steps) {
+    if (st.type && st.type !== 'model_output') continue;
+    for (const c of st.content || st.parts || []) if (c.text) parts.push(c.text);
+    if (typeof st.text === 'string') parts.push(st.text);
+  }
+  if (!parts.length && typeof j.output_text === 'string') parts.push(j.output_text);
+  return parts.join('');
+}
+
+/**
+ * Gọi Gemini, trả về một Response "giả" kiểu generateContent ({candidates:[{content:{parts:[{text}]}}]})
+ * để phần còn lại của code không phải đổi. Lỗi: trả về Response gốc của Google.
+ */
 async function geminiFetch(env, body) {
-  const list = [...new Set([env.GEMINI_MODEL, geminiOk, ...GEMINI_MODELS].filter(Boolean))];
+  const found = await listModels(env);
+  const list = [...new Set([env.GEMINI_MODEL, geminiOk, ...(found || []).slice(0, 4), ...GEMINI_FALLBACK].filter(Boolean))];
   let last = null;
-  for (const model of list) {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+  // 1) generateContent
+  for (const model of list.slice(0, 6)) {
+    const res = await fetch(`${G_BASE}/v1beta/models/${model}:generateContent`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+      headers: gHeaders(env),
       body: JSON.stringify(body),
     });
     if (res.ok) {
@@ -109,8 +217,32 @@ async function geminiFetch(env, body) {
       return res;
     }
     last = res;
-    if (res.status !== 404 && res.status !== 400 && res.status !== 403) break; // 429 / 5xx: model đúng nhưng bận
-    if (geminiOk === model) geminiOk = null;
+    if (res.status === 429 || res.status >= 500) return res; // đúng model nhưng đang bận / hết lượt
+    await saveAiError(env, 'generateContent ' + model, res.status, await res.clone().text());
+    if (res.status === 401) break;
+  }
+  // 2) Interactions API (cách gọi mới của Google)
+  for (const ver of ['v1beta2', 'v1beta']) {
+    for (const model of list.slice(0, 3)) {
+      try {
+        const res = await fetch(`${G_BASE}/${ver}/interactions`, {
+          method: 'POST',
+          headers: gHeaders(env),
+          body: JSON.stringify(toInteraction(model, body)),
+        });
+        if (res.ok) {
+          const text = interactionText(await res.json());
+          geminiOk = model;
+          return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }), {
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+        last = res;
+        if (res.status === 429) return res;
+        await saveAiError(env, ver + ' interactions ' + model, res.status, await res.clone().text());
+        if (res.status === 404 && !/model/i.test(await res.clone().text())) break; // endpoint không có ở bản này
+      } catch {}
+    }
   }
   return last;
 }
@@ -264,9 +396,7 @@ Nếu không đọc được số tiền, trả {"found":false,"reason":"lý do 
       const msg =
         res.status === 429
           ? 'AI đọc ảnh đang quá tải (hết lượt miễn phí trong phút / ngày), thử lại sau ít phút.'
-          : res.status === 400 || res.status === 403
-            ? 'Khóa Gemini không hợp lệ hoặc chưa bật, chạy lại dat-khoa-gemini.bat.'
-            : 'AI chưa đọc được ảnh (' + res.status + '), thử lại sau.';
+          : 'AI chưa đọc được ảnh (' + res.status + '): ' + (await googleMsg(res)) + '. Thử lại sau.';
       return json({ error: msg }, 502);
     }
     const j = await res.json();

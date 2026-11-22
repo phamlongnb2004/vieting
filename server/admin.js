@@ -80,6 +80,7 @@ async function stats(env) {
     openTickets: (await env.DB.prepare("SELECT COUNT(*) AS n FROM tickets WHERE status IN ('open','doing')").first().catch(() => ({ n: 0 })))?.n || 0,
     newOcr: (await env.DB.prepare("SELECT COUNT(*) AS n FROM ocr_reports WHERE status = 'new'").first().catch(() => ({ n: 0 })))?.n || 0,
     pro: (await env.DB.prepare('SELECT COUNT(*) AS n FROM plans WHERE until > ?').bind(now).first().catch(() => ({ n: 0 })))?.n || 0,
+    ai_error: await getConfig(env, 'ai_error', null),
     ai_provider: env.GEMINI_API_KEY ? 'Gemini' : env.AI ? 'Workers AI (dự phòng)' : 'chưa bật',
   };
 }
