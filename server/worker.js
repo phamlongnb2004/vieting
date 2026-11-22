@@ -16,7 +16,7 @@
 import { handleDownload } from './download.js';
 import { handleChat, handleReceipt, handleParse } from './ai.js';
 import { handleAdmin, adminPage, publicNotice } from './admin.js';
-import { handleSpace } from './space.js';
+import { handleSpace, spaceCron } from './space.js';
 import { publicConfig, redeem, createTicket, myTickets, ocrReport, pushFeed, grantPro } from './config.js';
 
 const KINDS = new Set(['txn', 'wallet', 'budget', 'rule', 'goal', 'challenge', 'group', 'bill', 'wish', 'gift']);
@@ -167,6 +167,10 @@ async function sync(req, env) {
 }
 
 export default {
+  // Mỗi 10 phút: đọc giao dịch ngân hàng các quỹ chung đã nối, hết hạn thử thách số dư
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(spaceCron(env));
+  },
   async fetch(req, env) {
     const url = new URL(req.url);
     if (req.method === 'OPTIONS') return json({});
@@ -192,7 +196,7 @@ export default {
       if (req.method === 'GET' && url.pathname === '/api/push') return await pushFeed(req, env, await auth(req, env), h);
       if (req.method === 'POST' && url.pathname === '/api/ocr-report') return await ocrReport(req, env, await auth(req, env), h);
       if (url.pathname === '/admin' || url.pathname === '/admin/') return adminPage();
-      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai8' });
+      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai9' });
       const p = url.pathname.replace(/\/+$/, '') || '/';
       if (env.ASSETS) {
         const r = await handleDownload(req, env, p);

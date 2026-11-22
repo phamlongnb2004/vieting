@@ -461,6 +461,14 @@ class _Alerts extends StatelessWidget {
     }
     // Quỹ chung: việc đang chờ mình
     for (final sp in store.spaces.values) {
+      if (sp.challengeOpen && sp.holder == store.myUserId) {
+        items.add(card(PhosphorIconsFill.timer, Brand.red, '${sp.name}: có người yêu cầu bạn chứng minh số dư', 'Còn vài phút, chạm để chuyển 1.000 ₫ đúng mã',
+            onTap: () => open(SpaceDetailScreen(spaceId: sp.id))));
+      }
+      if (sp.linked && sp.bankBalance != null && sp.bankBalance! < sp.balance) {
+        items.add(card(PhosphorIconsFill.warningCircle, Brand.red, '${sp.name}: tài khoản quỹ thiếu ${compactMoney(sp.balance - sp.bankBalance!)}',
+            'Ngân hàng báo số dư thấp hơn số quỹ phải có', onTap: () => open(SpaceDetailScreen(spaceId: sp.id))));
+      }
       final todo = sp.todoFor(store.myUserId);
       if (todo.isEmpty) continue;
       items.add(card(

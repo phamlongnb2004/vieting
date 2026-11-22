@@ -253,3 +253,23 @@ CREATE TABLE IF NOT EXISTS space_proof_keys (
   at INTEGER NOT NULL,
   PRIMARY KEY (space_id, k)
 );
+-- Quỹ chung nối ngân hàng: khóa API của thủ quỹ (không bao giờ gửi về app) và giao dịch ngân hàng đã đọc
+CREATE TABLE IF NOT EXISTS space_bank (
+  space_id INTEGER PRIMARY KEY,
+  provider TEXT NOT NULL,
+  token TEXT NOT NULL,
+  linked_by INTEGER NOT NULL,
+  at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS space_bank_txns (
+  space_id INTEGER NOT NULL,
+  bid TEXT NOT NULL,
+  dir TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  balance INTEGER,
+  at INTEGER NOT NULL,
+  rec_id TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (space_id, bid)
+);
+CREATE INDEX IF NOT EXISTS space_bank_txns_at ON space_bank_txns (space_id, at);

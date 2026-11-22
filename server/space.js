@@ -5,6 +5,7 @@
 // Tác giả: Phạm Thành Long (thlong)
 
 import { visionJson, aiAllowed } from './ai.js';
+import { sepayList, syncBank, syncAllBanks } from './bank.js';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // bỏ chữ dễ nhầm (0/O, 1/I)
 
@@ -51,6 +52,7 @@ async function spaceInfo(env, spaceId) {
   return {
     ...s,
     settings: await getSettings(env, spaceId),
+    linked: await isLinked(env, spaceId),
     members: members.map((m) => ({ id: m.id, name: m.nick || String(m.email).split('@')[0] })),
   };
 }
@@ -72,6 +74,30 @@ function logStmt(env, spaceId, userId, recId, action, text, at = Date.now()) {
     action,
     String(text).slice(0, 300)
   );
+}
+
+const bankH = () => ({ getSettings, putSettings, logStmt });
+
+async function isLinked(env, spaceId) {
+  return !!(await env.DB.prepare('SELECT 1 AS x FROM space_bank WHERE space_id = ?').bind(spaceId).first().catch(() => null));
+}
+
+/** Thử thách số dư quá 10 phút chưa xong: ghi nhật ký một lần. */
+async function expireChallenge(env, spaceId) {
+  const st = await getSettings(env, spaceId);
+  const c = st.challenge;
+  if (!c || c.passed || c.failed || Date.now() < c.exp) return;
+  st.challenge = { ...c, failed: true };
+  await putSettings(env, spaceId, st);
+  const who = st.holder ? await nameOf(env, spaceId, st.holder) : 'Thủ quỹ';
+  await logStmt(env, spaceId, 0, '', 'challengefail', `${who} KHÔNG chứng minh được số dư trong 10 phút (mã ${c.code})`).run();
+}
+
+/** Cron mỗi 10 phút: đọc ngân hàng các quỹ đã nối + hết hạn thử thách. */
+export async function spaceCron(env) {
+  await syncAllBanks(env, bankH());
+  const rows = (await env.DB.prepare("SELECT space_id FROM space_settings WHERE data LIKE '%\"challenge\"%'").all().catch(() => ({ results: [] }))).results || [];
+  for (const r of rows) await expireChallenge(env, r.space_id).catch(() => {});
 }
 
 /** Người được xác nhận tiền vào quỹ: thủ quỹ, chưa chọn thủ quỹ thì là người tạo quỹ. */
@@ -193,6 +219,15 @@ export async function handleSpace(req, env, url, userId, h) {
       if (nh && !info.members.some((m) => m.id === nh)) return h.json({ error: 'Thủ quỹ phải là thành viên' }, 400);
       if (nh !== holder) {
         st.holder = nh;
+        st.holderSince = Date.now();
+        // bàn giao: người mới phải xác nhận đã nhận đủ số tiền quỹ
+        if (holder && nh) st.handover = { from: holder, to: nh, amount: Math.round(Number(b?.book) || 0), at: Date.now() };
+        else delete st.handover;
+        if (await isLinked(env, id)) {
+          await env.DB.prepare('DELETE FROM space_bank WHERE space_id = ?').bind(id).run();
+          delete st.bankLink;
+          notes.push('ngắt kết nối ngân hàng của thủ quỹ cũ');
+        }
         notes.push(nh ? `chọn ${info.members.find((m) => m.id === nh)?.name} làm thủ quỹ` : 'bỏ thủ quỹ (ai khai nấy chịu)');
       }
     }
@@ -203,6 +238,11 @@ export async function handleSpace(req, env, url, userId, h) {
         : null;
       if (JSON.stringify(nb) !== JSON.stringify(st.bank || null)) {
         st.bank = nb;
+        if (await isLinked(env, id)) {
+          await env.DB.prepare('DELETE FROM space_bank WHERE space_id = ?').bind(id).run();
+          delete st.bankLink;
+          notes.push('ngắt kết nối ngân hàng (vì đổi tài khoản)');
+        }
         notes.push(nb ? `đổi tài khoản nhận quỹ sang ${nb.name} ${nb.acct} (${nb.owner})` : 'xóa tài khoản nhận quỹ');
       }
     }
@@ -211,6 +251,20 @@ export async function handleSpace(req, env, url, userId, h) {
       if (v !== (st.approveOver || 0)) {
         st.approveOver = v;
         notes.push(v ? `đặt khoản chi trên ${vnd(v)} phải có người duyệt` : 'tắt duyệt khoản chi');
+      }
+    }
+    if (b?.maxHold != null) {
+      const v = int(b.maxHold);
+      if (v !== (st.maxHold || 0)) {
+        st.maxHold = v;
+        notes.push(v ? `đặt trần ${vnd(v)} cho một người giữ` : 'bỏ trần tiền giữ');
+      }
+    }
+    if (b?.rotateDays != null) {
+      const v = Math.min(365, int(b.rotateDays));
+      if (v !== (st.rotateDays || 0)) {
+        st.rotateDays = v;
+        notes.push(v ? `nhắc đổi thủ quỹ mỗi ${v} ngày` : 'tắt nhắc đổi thủ quỹ');
       }
     }
     if (notes.length) {
@@ -224,7 +278,7 @@ export async function handleSpace(req, env, url, userId, h) {
   if (req.method === 'POST' && path === '/mark') {
     const rec = str(b?.rec, 64);
     const kind = str(b?.kind, 10);
-    if (!['confirm', 'reject', 'approve', 'deny', 'clear'].includes(kind)) return h.json({ error: 'Sai thao tác' }, 400);
+    if (!['confirm', 'reject', 'approve', 'deny', 'clear', 'sent'].includes(kind)) return h.json({ error: 'Sai thao tác' }, 400);
     const r = await env.DB.prepare('SELECT by_user, data, deleted FROM space_records WHERE space_id = ? AND id = ?').bind(id, rec).first();
     if (!r || r.deleted) return h.json({ error: 'Không thấy khoản này' }, 404);
     const d = JSON.parse(r.data || '{}');
@@ -233,6 +287,10 @@ export async function handleSpace(req, env, url, userId, h) {
     if ((kind === 'confirm' || kind === 'reject') && (d.type !== 'contrib' || userId !== holder)) {
       return h.json({ error: 'Chỉ thủ quỹ xác nhận được tiền nộp vào' }, 403);
     }
+    if (kind === 'confirm' && (await isLinked(env, id))) {
+      return h.json({ error: 'Quỹ đã nối ngân hàng: tiền về tài khoản quỹ sẽ được ngân hàng tự xác nhận' }, 403);
+    }
+    if (kind === 'sent' && userId !== r.by_user) return h.json({ error: 'Chỉ người nộp mới gửi được' }, 403);
     if ((kind === 'approve' || kind === 'deny') && userId === r.by_user) {
       return h.json({ error: 'Người khác (không phải người chi) mới duyệt được' }, 403);
     }
@@ -246,6 +304,7 @@ export async function handleSpace(req, env, url, userId, h) {
       approve: `${who} duyệt ${what}`,
       deny: `${who} từ chối ${what}`,
       clear: `${who} bỏ đánh dấu ${what}`,
+      sent: `Máy của ${who} báo ngân hàng đã trừ ${vnd(d.amount)} cho khoản nộp này (thông báo ngân hàng trên máy người nộp)`,
     }[kind];
     await env.DB.batch([
       kind === 'clear'
@@ -274,6 +333,135 @@ export async function handleSpace(req, env, url, userId, h) {
         ? `${who} đối chiếu: số dư thật ${vnd(actual)}, khớp với sổ`
         : `${who} đối chiếu: số dư thật ${vnd(actual)}, sổ ghi ${vnd(book)}, ${diff > 0 ? 'dư' : 'THIẾU'} ${vnd(Math.abs(diff))}`;
     await logStmt(env, id, userId, '', 'recon', text).run();
+    return h.json({ space: await spaceInfo(env, id) });
+  }
+
+  // ---------- Nối ngân hàng (SePay API v2) ----------
+  if (req.method === 'POST' && path === '/bank-link') {
+    const info = await spaceInfo(env, id);
+    if (userId !== holderOf(info)) return h.json({ error: 'Chỉ thủ quỹ nối được tài khoản của mình' }, 403);
+    const acct = info.settings?.bank?.acct;
+    if (!acct) return h.json({ error: 'Nhập tài khoản nhận quỹ trước' }, 400);
+    const token = str(b?.token, 200).replace(/\s+/g, '');
+    if (token.length < 20) return h.json({ error: 'Khóa API không hợp lệ' }, 400);
+    let list;
+    try {
+      list = await sepayList(token, { fromMs: Date.now() - 60 * 86400000, maxPages: 2 });
+    } catch (e) {
+      return h.json({ error: e.message }, 400);
+    }
+    const accts = [...new Set(list.map((t) => t.acct).filter(Boolean))];
+    if (accts.length && !accts.includes(acct)) {
+      return h.json({ error: `Khóa này không đọc được tài khoản ${acct} (chỉ thấy ${accts.slice(0, 3).join(', ')}). Hãy liên kết đúng tài khoản quỹ trên SePay.` }, 400);
+    }
+    const now = Date.now();
+    await env.DB.prepare(
+      'INSERT INTO space_bank (space_id, provider, token, linked_by, at) VALUES (?, ?, ?, ?, ?) ON CONFLICT (space_id) DO UPDATE SET provider = excluded.provider, token = excluded.token, linked_by = excluded.linked_by, at = excluded.at'
+    )
+      .bind(id, 'sepay', token, userId, now)
+      .run();
+    const st = await getSettings(env, id);
+    // lấy cả giao dịch 2 ngày trước khi nối, để khớp các khoản vừa nộp
+    st.bankLink = { provider: 'sepay', since: now - 2 * 86400000, linkedAt: now, lastId: '', lastSync: 0 };
+    await putSettings(env, id, st);
+    await logStmt(env, id, userId, '', 'banklink', `${await nameOf(env, id, userId)} nối tài khoản quỹ ${info.settings.bank.name} ${acct} với ngân hàng (SePay). Từ giờ tiền vào / ra được ngân hàng xác thực`).run();
+    await syncBank(env, id, bankH(), { force: true });
+    return h.json({ space: await spaceInfo(env, id), note: accts.length ? '' : 'Chưa thấy giao dịch nào của tài khoản trong 60 ngày qua, hãy kiểm tra lại sau khi có giao dịch đầu tiên.' });
+  }
+
+  if (req.method === 'POST' && path === '/bank-unlink') {
+    const info = await spaceInfo(env, id);
+    if (userId !== holderOf(info) && userId !== info.owner) return h.json({ error: 'Chỉ thủ quỹ hoặc người tạo quỹ' }, 403);
+    await env.DB.prepare('DELETE FROM space_bank WHERE space_id = ?').bind(id).run();
+    const st = await getSettings(env, id);
+    delete st.bankLink;
+    await putSettings(env, id, st);
+    await logStmt(env, id, userId, '', 'bankoff', `${await nameOf(env, id, userId)} NGẮT kết nối ngân hàng của quỹ`).run();
+    return h.json({ space: await spaceInfo(env, id) });
+  }
+
+  if (req.method === 'GET' && path === '/bank-txns') {
+    await syncBank(env, id, bankH());
+    const rows =
+      (await env.DB.prepare('SELECT bid, dir, amount, content, balance, at, rec_id FROM space_bank_txns WHERE space_id = ? ORDER BY at DESC LIMIT 100').bind(id).all()).results || [];
+    return h.json({ txns: rows.map((r) => ({ dir: r.dir, amount: r.amount, content: r.content, balance: r.balance, at: r.at, rec: r.rec_id })), space: await spaceInfo(env, id) });
+  }
+
+  // ---------- Thử thách số dư: thành viên yêu cầu, thủ quỹ có 10 phút để chứng minh ----------
+  if (req.method === 'POST' && path === '/challenge') {
+    const info = await spaceInfo(env, id);
+    const holder = holderOf(info);
+    if (!holder) return h.json({ error: 'Quỹ chưa có thủ quỹ' }, 400);
+    if (userId === holder) return h.json({ error: 'Thủ quỹ không tự thử thách mình được' }, 400);
+    const old = info.settings?.challenge;
+    if (old && !old.passed && !old.failed && Date.now() < old.exp) return h.json({ error: 'Đang có một thử thách chưa xong' }, 400);
+    const bk = b?.bank && typeof b.bank === 'object' ? b.bank : {};
+    if (!str(bk.acct, 30)) return h.json({ error: 'Nhập tài khoản của bạn để thủ quỹ chuyển 1.000 ₫' }, 400);
+    const code = newCode();
+    const st = { ...info.settings };
+    st.challenge = {
+      by: userId,
+      code,
+      at: Date.now(),
+      exp: Date.now() + 10 * 60000,
+      bank: { bin: str(bk.bin, 10), name: str(bk.name, 40), acct: str(bk.acct, 30).replace(/\s+/g, ''), owner: str(bk.owner, 60).toUpperCase() },
+    };
+    await putSettings(env, id, st);
+    await logStmt(env, id, userId, '', 'challenge', `${await nameOf(env, id, userId)} yêu cầu thủ quỹ ${await nameOf(env, id, holder)} chứng minh số dư trong 10 phút (mã ${code})`).run();
+    return h.json({ space: await spaceInfo(env, id) });
+  }
+
+  if (req.method === 'POST' && path === '/challenge-done') {
+    const info = await spaceInfo(env, id);
+    const c = info.settings?.challenge;
+    if (!c || c.by !== userId) return h.json({ error: 'Chỉ người yêu cầu mới xác nhận được' }, 403);
+    const st = { ...info.settings, challenge: { ...c } };
+    const who = await nameOf(env, id, userId);
+    let text;
+    if (b?.kind === 'transfer') {
+      if (Date.now() > c.exp + 5 * 60000) return h.json({ error: 'Thử thách đã hết hạn' }, 400);
+      st.challenge.passed = true;
+      st.challenge.passedAt = Date.now();
+      st.challenge.how = b?.auto ? 'auto' : 'manual';
+      text = `${who} xác nhận đã nhận 1.000 ₫ từ tài khoản quỹ với mã ${c.code}${b?.auto ? ' (tự khớp thông báo ngân hàng trên máy người yêu cầu)' : ''}: thủ quỹ đang giữ đúng tài khoản`;
+    } else if (b?.kind === 'witness') {
+      const actual = Math.round(Number(b?.actual) || 0);
+      const book = Math.round(Number(b?.book) || 0);
+      st.challenge.witness = { actual, book, at: Date.now() };
+      st.recon = { actual, book, at: Date.now(), by: userId, witness: true };
+      const diff = actual - book;
+      text =
+        diff >= 0
+          ? `${who} tận mắt xem app ngân hàng của thủ quỹ: số dư ${vnd(actual)}, đủ so với sổ ${vnd(book)}`
+          : `${who} tận mắt xem app ngân hàng của thủ quỹ: số dư ${vnd(actual)}, THIẾU ${vnd(-diff)} so với sổ ${vnd(book)}`;
+    } else return h.json({ error: 'Sai thao tác' }, 400);
+    await putSettings(env, id, st);
+    await logStmt(env, id, userId, '', b?.kind === 'witness' && Number(b?.actual) < Number(b?.book) ? 'flag' : 'challengeok', text).run();
+    return h.json({ space: await spaceInfo(env, id) });
+  }
+
+  // ---------- Bàn giao thủ quỹ ----------
+  if (req.method === 'POST' && path === '/handover') {
+    const info = await spaceInfo(env, id);
+    const ho = info.settings?.handover;
+    if (!ho || ho.to !== userId) return h.json({ error: 'Không có bàn giao nào chờ bạn' }, 400);
+    const actual = Math.round(Number(b?.actual) || 0);
+    const st = { ...info.settings };
+    delete st.handover;
+    await putSettings(env, id, st);
+    const who = await nameOf(env, id, userId);
+    const from = await nameOf(env, id, ho.from);
+    const diff = actual - ho.amount;
+    await logStmt(
+      env,
+      id,
+      userId,
+      '',
+      diff < 0 ? 'flag' : 'handover',
+      diff < 0
+        ? `${who} nhận bàn giao từ ${from}: chỉ nhận được ${vnd(actual)}, THIẾU ${vnd(-diff)} so với ${vnd(ho.amount)} phải bàn giao`
+        : `${who} xác nhận đã nhận đủ ${vnd(actual)} tiền quỹ từ ${from}`
+    ).run();
     return h.json({ space: await spaceInfo(env, id) });
   }
 
@@ -415,6 +603,8 @@ export async function handleSpace(req, env, url, userId, h) {
   }
 
   if (req.method === 'POST' && path === '/sync') {
+    await syncBank(env, id, bankH()).catch(() => {});
+    await expireChallenge(env, id).catch(() => {});
     const since = Number(b?.since) || 0;
     const now = Date.now();
     const changes = Array.isArray(b?.changes) ? b.changes.slice(0, 500) : [];
@@ -531,7 +721,7 @@ export async function spaceNews(env, userId, after) {
           .bind(userId, userId, after, Date.now() - 2 * 86400000)
           .all()
       ).results || [];
-    const warn = new Set(['delete', 'edit', 'flag', 'reject', 'deny', 'settings']);
+    const warn = new Set(['delete', 'edit', 'flag', 'reject', 'deny', 'settings', 'bankout', 'bankerr', 'bankoff', 'challengefail', 'challenge']);
     return rows.map((r) => ({ at: r.at, title: (warn.has(r.action) ? 'Chú ý · ' : '') + r.space, body: r.text }));
   } catch {
     return [];

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -467,7 +468,9 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                      qrMode
+                      qrMode && sp.linked
+                          ? 'Bước sau có mã QR chuyển thẳng vào tài khoản quỹ. Quỹ đã nối ngân hàng: tiền về là ngân hàng tự xác nhận, không cần ảnh.'
+                          : qrMode
                           ? 'Bước sau có mã QR chuyển thẳng cho thủ quỹ ${sp.nameOf(sp.holder)}, chuyển xong gửi ảnh chuyển khoản. Tiền về thật mới được cộng vào quỹ.'
                           : type == 'contrib' && sp.holder != 0 && !iAmHolder
                               ? 'Cần ảnh chứng từ, và thủ quỹ ${sp.nameOf(sp.holder)} xác nhận đã nhận thì khoản này mới được cộng vào quỹ.'
@@ -644,6 +647,12 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
         showToast(context, 'Chưa ghi khoản nào. Chuyển xong bấm Nộp quỹ lại nhé.');
         return;
       }
+      if (sp.linked) {
+        // quỹ đã nối ngân hàng: chính ngân hàng là chứng từ, không cần ảnh
+        await _run(() => Spaces.add(store, sp, e, personalWallet: wallet),
+            ok: 'Đã ghi ${money(v)}. Tiền về tài khoản quỹ là ngân hàng tự xác nhận, cả nhóm được báo.');
+        return;
+      }
       while (mounted) {
         final b = await _pickProof(title: 'Gửi ảnh chụp màn hình chuyển khoản');
         if (!mounted) return;
@@ -735,6 +744,8 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
     final acct = TextEditingController(text: sp.bankAcct);
     final owner = TextEditingController(text: sp.bankOwner);
     final approve = TextEditingController(text: sp.approveOver > 0 ? groupDigits(sp.approveOver) : '');
+    final maxHold = TextEditingController(text: sp.maxHold > 0 ? groupDigits(sp.maxHold) : '');
+    var rotate = sp.rotateDays;
     final ok = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -791,8 +802,29 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
                 decoration: const InputDecoration(
                     labelText: 'Khoản chi trên mức này cần người khác duyệt', hintText: 'VD: 500.000 · để trống = không cần', suffixText: '₫'),
               ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: maxHold,
+                enabled: canEdit,
+                keyboardType: TextInputType.number,
+                inputFormatters: [ThousandsFormatter()],
+                decoration: const InputDecoration(
+                    labelText: 'Trần tiền một người được giữ', hintText: 'VD: 10.000.000 · vượt thì nhắc chia bớt', suffixText: '₫'),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<int>(
+                initialValue: const [0, 30, 60, 90].contains(rotate) ? rotate : 0,
+                decoration: const InputDecoration(labelText: 'Nhắc đổi thủ quỹ'),
+                items: const [
+                  DropdownMenuItem(value: 0, child: Text('Không nhắc')),
+                  DropdownMenuItem(value: 30, child: Text('Mỗi 30 ngày')),
+                  DropdownMenuItem(value: 60, child: Text('Mỗi 60 ngày')),
+                  DropdownMenuItem(value: 90, child: Text('Mỗi 90 ngày')),
+                ],
+                onChanged: canEdit ? (v) => setS(() => rotate = v ?? 0) : null,
+              ),
               const SizedBox(height: 8),
-              Text('Đổi thủ quỹ, số tài khoản hay mức duyệt đều được ghi vào nhật ký và báo lên máy cả nhóm.',
+              Text('Đổi thủ quỹ thì người mới phải xác nhận đã nhận đủ tiền bàn giao. Đổi thủ quỹ, số tài khoản hay mức duyệt đều được ghi vào nhật ký và báo lên máy cả nhóm.',
                   style: TextStyle(fontSize: 12, color: Theme.of(c).colorScheme.onSurfaceVariant)),
               const SizedBox(height: 14),
               if (canEdit)
@@ -807,7 +839,13 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
         ? {'bin': bin, 'name': bankByBin(bin)?.short ?? bin, 'acct': acct.text.trim(), 'owner': plainMemo(owner.text).toUpperCase()}
         : null;
     await _run(
-      () => Spaces.settings(store, sp, holder: holder, bank: bank, clearBank: bank == null, approveOver: parseMoneyInput(approve.text)),
+      () => Spaces.settings(store, sp,
+          holder: holder,
+          bank: bank,
+          clearBank: bank == null,
+          approveOver: parseMoneyInput(approve.text),
+          maxHold: parseMoneyInput(maxHold.text),
+          rotateDays: rotate),
       ok: 'Đã lưu, cả nhóm sẽ được báo',
     );
   }
@@ -898,7 +936,7 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
             ],
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 8, children: [
-              if (st == 'pending' && me == sp.holder) ...[
+              if (st == 'pending' && me == sp.holder && !sp.linked) ...[
                 FilledButton.icon(
                     style: FilledButton.styleFrom(backgroundColor: Brand.bamboo),
                     onPressed: () => Navigator.pop(c, 'confirm'),
@@ -906,7 +944,7 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
                     label: const Text('Đã nhận tiền')),
                 OutlinedButton(onPressed: () => Navigator.pop(c, 'reject'), child: const Text('Chưa thấy tiền')),
               ],
-              if ((st == 'rejected') && me == sp.holder)
+              if ((st == 'rejected') && me == sp.holder && !sp.linked)
                 OutlinedButton(onPressed: () => Navigator.pop(c, 'confirm'), child: const Text('Giờ đã nhận được')),
               if ((st == 'await' || st == 'denied' || (st == 'ok' && sp.needsApproval(e))) && !mine) ...[
                 if (e.marks[me] != 'approve')
@@ -986,9 +1024,327 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
     }
   }
 
+  // ---------------- Chứng minh tiền quỹ có thật ----------------
+
+  String _ago(int ms) {
+    final m = ((nowMs() - ms) / 60000).floor();
+    if (m < 1) return 'vừa xong';
+    if (m < 60) return '$m phút trước';
+    if (m < 1440) return '${m ~/ 60} giờ trước';
+    return '${m ~/ 1440} ngày trước';
+  }
+
+  List<Widget> _trustCards(Space sp, AppStore store, ColorScheme cs) {
+    final me = store.myUserId;
+    final out = <Widget>[];
+    Widget card(Color color, IconData icon, String title, String sub, {List<Widget> actions = const []}) => Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Card(
+            color: color.withAlpha(24),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  VIcon(icon, color: color, size: 36),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text(sub, style: TextStyle(fontSize: 12.5, color: cs.onSurfaceVariant)),
+                    ]),
+                  ),
+                ]),
+                if (actions.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Wrap(spacing: 8, runSpacing: 6, children: actions)),
+              ]),
+            ),
+          ),
+        );
+
+    // 1) Ngân hàng
+    if (sp.holder != 0) {
+      if (sp.linked && sp.bankError.isNotEmpty) {
+        out.add(card(Brand.red, PhosphorIconsFill.warningCircle, 'Mất kết nối ngân hàng', '${sp.bankError}. Số dư quỹ tạm thời không được ngân hàng xác thực.',
+            actions: [if (me == sp.holder) OutlinedButton(onPressed: () => _linkBank(sp), child: const Text('Nối lại'))]));
+      } else if (sp.linked) {
+        final bal = sp.bankBalance;
+        final short = bal != null && bal < sp.balance;
+        out.add(card(
+          short ? Brand.red : Brand.income,
+          short ? PhosphorIconsFill.warningCircle : PhosphorIconsFill.shieldCheck,
+          bal == null
+              ? 'Đã nối ngân hàng, chờ giao dịch đầu tiên'
+              : short
+                  ? 'Tài khoản quỹ chỉ còn ${money(bal)}, THIẾU ${money(sp.balance - bal)}'
+                  : 'Số dư xác thực bởi ngân hàng: ${money(bal)}',
+          bal == null
+              ? 'Tiền vào / ra tài khoản ${sp.bankName} ${sp.bankAcct} sẽ được ngân hàng báo thẳng về VieTing.'
+              : short
+                  ? 'Sổ quỹ phải có ${money(sp.balance)} mà tài khoản không đủ: tiền quỹ đã bị chuyển đi. Xem giao dịch ngân hàng để biết chuyển cho ai.'
+                  : 'Đủ so với sổ ${money(sp.balance)} · cập nhật ${_ago(sp.bankBalanceAt)}. Tiền ra khỏi tài khoản quỹ báo ngay cho cả nhóm.',
+          actions: [
+            OutlinedButton.icon(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _BankTxnsScreen(store: store, sp: sp))),
+                icon: const Icon(PhosphorIconsRegular.bank, size: 16),
+                label: const Text('Giao dịch ngân hàng')),
+            if (me == sp.holder || me == sp.owner)
+              TextButton(
+                  onPressed: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (d) => AlertDialog(
+                        title: const Text('Ngắt kết nối ngân hàng?'),
+                        content: const Text('Cả nhóm sẽ được báo, và số dư quỹ không còn được ngân hàng xác thực.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Thôi')),
+                          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Ngắt')),
+                        ],
+                      ),
+                    );
+                    if (ok == true) await _run(() => Spaces.bankUnlink(store, sp));
+                  },
+                  child: const Text('Ngắt')),
+          ],
+        ));
+      } else if (me == sp.holder) {
+        out.add(card(
+          Brand.navy,
+          PhosphorIconsRegular.plugsConnected,
+          'Nối tài khoản quỹ với ngân hàng',
+          'Cách mạnh nhất để cả nhóm tin: tiền vào được ngân hàng tự xác nhận, tiền ra báo ngay cho mọi người, số dư là số thật. Miễn phí qua SePay.',
+          actions: [FilledButton(onPressed: sp.hasBank ? () => _linkBank(sp) : () => _settings(sp), child: Text(sp.hasBank ? 'Nối ngân hàng' : 'Nhập tài khoản quỹ trước'))],
+        ));
+      } else {
+        out.add(card(
+          const Color(0xFFEF8F00),
+          PhosphorIconsRegular.shieldWarning,
+          'Số dư chưa được ngân hàng xác thực',
+          'Thủ quỹ chưa nối tài khoản với ngân hàng. Bạn có thể yêu cầu thủ quỹ chứng minh số dư ngay bây giờ.',
+          actions: [if (!sp.challengeOpen) OutlinedButton(onPressed: () => _startChallenge(sp), child: const Text('Yêu cầu chứng minh số dư'))],
+        ));
+      }
+    }
+
+    // 2) Thử thách số dư
+    final c = sp.challenge;
+    if (c != null) {
+      final by = ((c['by'] as num?) ?? 0).toInt();
+      final exp = ((c['exp'] as num?) ?? 0).toInt();
+      final at = ((c['at'] as num?) ?? 0).toInt();
+      final passed = c['passed'] == true;
+      final failed = c['failed'] == true || (!passed && nowMs() > exp);
+      final witness = c['witness'] is Map ? Map<String, dynamic>.from(c['witness'] as Map) : null;
+      final recent = nowMs() - at < 2 * 86400000;
+      if (sp.challengeOpen && me == sp.holder) {
+        final left = ((exp - nowMs()) / 60000).ceil();
+        out.add(card(Brand.red, PhosphorIconsFill.timer, '${sp.nameOf(by)} yêu cầu bạn chứng minh số dư (còn $left phút)',
+            'Chuyển 1.000 ₫ từ tài khoản quỹ với mã ${c['code']}, rồi gọi video mở app ngân hàng cho ${sp.nameOf(by)} xem số dư.',
+            actions: [FilledButton(onPressed: () => _answerChallenge(sp), child: const Text('Chuyển 1.000 ₫ (mã QR)'))]));
+      } else if (sp.challengeOpen && me == by) {
+        out.add(card(const Color(0xFFEF8F00), PhosphorIconsFill.timer, 'Đang chờ thủ quỹ chứng minh (mã ${c['code']})',
+            '${Platform.isAndroid ? 'Khi tài khoản của bạn nhận 1.000 ₫ có mã này, VieTing tự xác nhận. ' : ''}Sau đó gọi video, nhờ thủ quỹ mở app ngân hàng và nhập số dư bạn thấy.',
+            actions: [
+              OutlinedButton(onPressed: () => _run(() => Spaces.challengeDone(store, sp, 'transfer'), ok: 'Đã ghi: thủ quỹ đang giữ đúng tài khoản'), child: const Text('Tôi đã nhận 1.000 ₫ đúng mã')),
+              OutlinedButton(onPressed: () => _witness(sp), child: const Text('Nhập số dư đã xem')),
+            ]));
+      } else if (passed && recent) {
+        final how = switch (c['how']) {
+          'bank' => 'Ngân hàng xác nhận',
+          'auto' => 'Thông báo ngân hàng trên máy ${sp.nameOf(by)} xác nhận',
+          _ => '${sp.nameOf(by)} xác nhận',
+        };
+        final seen = witness == null ? '' : ' · số dư tận mắt xem: ${money(((witness['actual'] as num?) ?? 0).toInt())}';
+        out.add(card(Brand.income, PhosphorIconsFill.sealCheck, 'Thủ quỹ đã chứng minh giữ đúng tài khoản quỹ',
+            '$how khoản 1.000 ₫ mã ${c['code']}$seen',
+            actions: [
+              if (me == by && witness == null) OutlinedButton(onPressed: () => _witness(sp), child: const Text('Nhập số dư đã xem')),
+            ]));
+      } else if (failed && recent) {
+        out.add(card(Brand.red, PhosphorIconsFill.xCircle, 'Thủ quỹ KHÔNG chứng minh được số dư', 'Yêu cầu của ${sp.nameOf(by)} (mã ${c['code']}) đã quá 10 phút mà chưa có tiền chuyển đúng mã.',
+            actions: [if (me != sp.holder) OutlinedButton(onPressed: () => _startChallenge(sp), child: const Text('Yêu cầu lại'))]));
+      }
+    }
+
+    // 3) Bàn giao, trần tiền giữ, nhắc đổi thủ quỹ
+    final ho = sp.handover;
+    if (ho != null) {
+      final to = ((ho['to'] as num?) ?? 0).toInt();
+      final from = ((ho['from'] as num?) ?? 0).toInt();
+      final amt = ((ho['amount'] as num?) ?? 0).toInt();
+      out.add(card(const Color(0xFFEF8F00), PhosphorIconsRegular.handshake,
+          to == me ? 'Xác nhận nhận bàn giao từ ${sp.nameOf(from)}' : 'Đang bàn giao quỹ: ${sp.nameOf(from)} → ${sp.nameOf(to)}',
+          'Số phải bàn giao: ${money(amt)}. Người nhận nhập số tiền thật đã nhận, lệch là cả nhóm thấy ngay.',
+          actions: [if (to == me) FilledButton(onPressed: () => _handover(sp, amt), child: const Text('Nhập số đã nhận'))]));
+    }
+    if (sp.maxHold > 0 && sp.balance > sp.maxHold && sp.holder != 0) {
+      out.add(card(const Color(0xFFEF8F00), PhosphorIconsRegular.scales, 'Thủ quỹ đang giữ ${money(sp.balance)}, vượt trần ${money(sp.maxHold)}',
+          'Nên chia bớt ${money(sp.balance - sp.maxHold)} cho người thứ hai giữ hoặc gửi tiết kiệm, để không ai giữ quá nhiều một mình.'));
+    }
+    if (sp.rotateDays > 0 && sp.holder != 0 && sp.holderSince > 0 && nowMs() - sp.holderSince > sp.rotateDays * 86400000) {
+      out.add(card(Brand.navy, PhosphorIconsRegular.arrowsClockwise, 'Đến lúc đổi thủ quỹ',
+          '${sp.nameOf(sp.holder)} đã giữ quỹ hơn ${sp.rotateDays} ngày. Đổi người trong "Thủ quỹ & tài khoản nhận", người mới xác nhận đã nhận đủ tiền.',
+          actions: [if (me == sp.holder || me == sp.owner) OutlinedButton(onPressed: () => _settings(sp), child: const Text('Đổi thủ quỹ'))]));
+    }
+    return out;
+  }
+
+  Future<void> _linkBank(Space sp) async {
+    final store = StoreScope.read(context);
+    final token = TextEditingController();
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(c).bottom + 20),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Nối tài khoản quỹ với ngân hàng', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text('Tài khoản: ${sp.bankName} ${sp.bankAcct} (${sp.bankOwner})', style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            for (final (i, t) in const [
+              'Đăng ký miễn phí tại my.sepay.vn và liên kết đúng tài khoản ngân hàng ở trên (làm theo hướng dẫn của SePay, có xác thực OTP).',
+              'Trong SePay, vào phần cài đặt công ty → API Keys, tạo một khóa API.',
+              'Dán khóa vào ô bên dưới. Khóa chỉ được lưu trên server VieTing để đọc giao dịch, không ai trong nhóm xem được.',
+            ].indexed)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  CircleAvatar(radius: 11, backgroundColor: Brand.navy, child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 12))),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(t)),
+                ]),
+              ),
+            const SizedBox(height: 8),
+            TextField(controller: token, decoration: const InputDecoration(labelText: 'Khóa API SePay'), obscureText: true),
+            const SizedBox(height: 8),
+            Text(
+                'Nên dùng một tài khoản (hoặc tài khoản phụ) chỉ để giữ tiền quỹ. Nếu tài khoản có cả tiền riêng, VieTing chỉ cảnh báo khi số dư thấp hơn số quỹ phải có.',
+                style: TextStyle(fontSize: 12, color: Theme.of(c).colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 14),
+            SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Nối ngân hàng'))),
+          ]),
+        ),
+      ),
+    );
+    if (ok != true || token.text.trim().isEmpty || !mounted) return;
+    await _run(() async {
+      final note = await Spaces.bankLink(store, sp, token.text.trim());
+      if (mounted) showToast(context, note.isEmpty ? 'Đã nối ngân hàng. Cả nhóm được báo.' : 'Đã nối ngân hàng. $note');
+    });
+  }
+
+  Future<void> _startChallenge(Space sp) async {
+    final store = StoreScope.read(context);
+    var bin = '';
+    final acct = TextEditingController();
+    final owner = TextEditingController();
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => StatefulBuilder(
+        builder: (c, setS) => Padding(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(c).bottom + 20),
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Yêu cầu chứng minh số dư', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Text(
+                  'Thủ quỹ ${sp.nameOf(sp.holder)} có 10 phút để chuyển 1.000 ₫ từ tài khoản quỹ sang tài khoản của bạn với một mã ngẫu nhiên. '
+                  'Thông báo ngân hàng trên máy BẠN là bằng chứng, thủ quỹ không sửa được. Sau đó gọi video để xem số dư thật.',
+                  style: TextStyle(fontSize: 12.5, color: Theme.of(c).colorScheme.onSurfaceVariant)),
+              const SizedBox(height: 12),
+              const Text('Tài khoản của bạn (để nhận 1.000 ₫)', style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              BankPicker(bin: bin, onChanged: (v) => setS(() => bin = v)),
+              const SizedBox(height: 8),
+              TextField(controller: acct, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số tài khoản')),
+              const SizedBox(height: 8),
+              TextField(controller: owner, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Tên chủ tài khoản')),
+              const SizedBox(height: 14),
+              SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Gửi yêu cầu (10 phút)'))),
+            ]),
+          ),
+        ),
+      ),
+    );
+    if (ok != true || bin.isEmpty || acct.text.trim().isEmpty || !mounted) return;
+    await _run(
+        () => Spaces.challenge(store, sp, {'bin': bin, 'name': bankByBin(bin)?.short ?? bin, 'acct': acct.text.trim(), 'owner': plainMemo(owner.text).toUpperCase()}),
+        ok: 'Đã gửi. Máy thủ quỹ được báo, còn 10 phút.');
+  }
+
+  Future<void> _answerChallenge(Space sp) async {
+    final c = sp.challenge;
+    if (c == null) return;
+    final bk = Map<String, dynamic>.from((c['bank'] as Map?) ?? const {});
+    final by = ((c['by'] as num?) ?? 0).toInt();
+    await showVietQrSheet(
+      context,
+      title: 'Chuyển 1.000 ₫ cho ${sp.nameOf(by)} từ TÀI KHOẢN QUỸ',
+      bin: '${bk['bin'] ?? ''}',
+      acct: '${bk['acct'] ?? ''}',
+      owner: '${bk['owner'] ?? ''}',
+      amount: 1000,
+      memo: 'VT KT ${c['code']}',
+      hint: 'Phải chuyển từ tài khoản quỹ ${sp.bankName} ${sp.bankAcct}, giữ nguyên nội dung. Chuyển xong gọi video cho ${sp.nameOf(by)}, mở app ngân hàng cho xem số dư.',
+      primary: 'Đã chuyển',
+      secondary: 'Đóng',
+    );
+  }
+
+  Future<void> _witness(Space sp) async {
+    final store = StoreScope.read(context);
+    final c = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Số dư bạn tận mắt thấy'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Trong cuộc gọi video, thủ quỹ mở app ngân hàng tài khoản ${sp.bankAcct.isEmpty ? 'quỹ' : sp.bankAcct}. Nhập đúng số dư bạn thấy. Sổ đang ghi ${money(sp.balance)}.'),
+          const SizedBox(height: 10),
+          TextField(
+              controller: c, autofocus: true, keyboardType: TextInputType.number, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(suffixText: '₫')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Hủy')),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Gửi cả nhóm')),
+        ],
+      ),
+    );
+    if (ok != true || c.text.trim().isEmpty || !mounted) return;
+    final v = parseMoneyInput(c.text);
+    await _run(() => Spaces.challengeDone(store, sp, 'witness', actual: v),
+        ok: v >= sp.balance ? 'Đủ tiền, cả nhóm đã được báo.' : 'Thiếu ${money(sp.balance - v)}. Cả nhóm đã được báo.');
+  }
+
+  Future<void> _handover(Space sp, int amount) async {
+    final store = StoreScope.read(context);
+    final c = TextEditingController(text: groupDigits(amount));
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Bạn đã nhận bao nhiêu?'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Phải bàn giao ${money(amount)}. Kiểm tra tài khoản / tiền mặt rồi nhập số thật đã nhận.'),
+          const SizedBox(height: 10),
+          TextField(controller: c, keyboardType: TextInputType.number, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(suffixText: '₫')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Hủy')),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Xác nhận')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await _run(() => Spaces.handover(store, sp, parseMoneyInput(c.text)), ok: 'Đã xác nhận bàn giao, cả nhóm được báo');
+  }
+
   static String _markText(String k) => switch (k) {
         'confirm' => 'đã nhận tiền',
         'reject' => 'chưa nhận được tiền',
+        'bank' => 'ngân hàng xác nhận tiền đã về tài khoản quỹ',
+        'sent' => 'máy người nộp báo ngân hàng đã trừ tiền',
         'approve' => 'đồng ý',
         'deny' => 'không đồng ý',
         _ => k,
@@ -1012,7 +1368,9 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
           if (e.del || st != 'ok') _StatusChip(status: st, del: e.del, small: true),
           if (e.hasProof && !e.proofOff) const Icon(PhosphorIconsFill.receipt, size: 14, color: Brand.bamboo),
           if (e.proofOff) const _Pill(text: 'Ảnh không khớp', color: Brand.red),
-          if (!e.hasProof && !e.del) const _Pill(text: 'Không có ảnh', color: Color(0xFFEF8F00)),
+          if (sp.bankConfirmed(e)) const _Pill(text: 'Ngân hàng xác nhận', color: Brand.income),
+          if (e.marks[e.by] == 'sent' && !sp.bankConfirmed(e)) const _Pill(text: 'Máy người nộp đã báo trừ tiền', color: Brand.navy),
+          if (!e.hasProof && !e.del && !sp.bankConfirmed(e)) const _Pill(text: 'Không có ảnh', color: Color(0xFFEF8F00)),
         ]),
         trailing: Text('${e.type == 'contrib' ? '+' : '−'}${money(e.amount)}',
             style: TextStyle(
@@ -1162,6 +1520,7 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
                 ),
               ),
             ]),
+            ..._trustCards(sp, store, cs),
             if (todo.isNotEmpty) ...[
               const SizedBox(height: 14),
               Card(
@@ -1416,6 +1775,74 @@ class _SpaceLogScreenState extends State<_SpaceLogScreen> {
                         }()),
                       ),
                   ],
+                ),
+    );
+  }
+}
+
+class _BankTxnsScreen extends StatefulWidget {
+  final AppStore store;
+  final Space sp;
+  const _BankTxnsScreen({required this.store, required this.sp});
+
+  @override
+  State<_BankTxnsScreen> createState() => _BankTxnsScreenState();
+}
+
+class _BankTxnsScreenState extends State<_BankTxnsScreen> {
+  List<({String dir, int amount, String content, int? balance, int at, String rec})>? _list;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final l = await Spaces.bankTxns(widget.store, widget.sp);
+      if (mounted) setState(() => _list = l);
+    } catch (e) {
+      if (mounted) setState(() => _error = '$e'.replaceFirst('Exception: ', ''));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final sp = widget.sp;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Giao dịch ngân hàng')),
+      body: _error != null
+          ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_error!, textAlign: TextAlign.center)))
+          : _list == null
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 40), children: [
+                    Text('Đọc thẳng từ ngân hàng (qua SePay) cho tài khoản ${sp.bankName} ${sp.bankAcct}. Không ai trong nhóm sửa được.',
+                        style: TextStyle(color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 10),
+                    if (_list!.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text('Chưa có giao dịch nào', textAlign: TextAlign.center)),
+                    for (final t in _list!)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: VIcon(t.dir == 'in' ? PhosphorIconsRegular.arrowDownLeft : PhosphorIconsRegular.arrowUpRight,
+                            color: t.dir == 'in' ? Brand.income : Brand.red, size: 36),
+                        title: Text(t.content.isEmpty ? (t.dir == 'in' ? 'Tiền vào' : 'Tiền ra') : t.content, maxLines: 2, overflow: TextOverflow.ellipsis),
+                        subtitle: Text([
+                          () {
+                            final d = DateTime.fromMillisecondsSinceEpoch(t.at);
+                            return '${dmy(d)} ${hm(d)}';
+                          }(),
+                          if (t.balance != null) 'số dư ${compactMoney(t.balance!)}',
+                          if (t.rec.isNotEmpty) 'khớp khoản nộp ${sp.nameOf(sp.entries[t.rec]?.by ?? -1)}',
+                        ].join(' · ')),
+                        trailing: Text('${t.dir == 'in' ? '+' : '−'}${money(t.amount)}',
+                            style: TextStyle(fontWeight: FontWeight.w800, color: t.dir == 'in' ? Brand.income : Brand.red)),
+                      ),
+                  ]),
                 ),
     );
   }

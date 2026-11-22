@@ -117,6 +117,16 @@ class Space {
   String bankBin = '', bankName = '', bankAcct = '', bankOwner = '';
   int approveOver = 0; // khoản chi lớn hơn mức này cần người khác duyệt (0 = tắt)
   ({int actual, int book, int at, int by})? recon;
+  // Nối ngân hàng (SePay): số dư thật của tài khoản quỹ do ngân hàng báo
+  bool linked = false;
+  int? bankBalance;
+  int bankBalanceAt = 0, bankSyncAt = 0;
+  String bankError = '';
+  // Thử thách số dư
+  Map<String, dynamic>? challenge;
+  // Bàn giao thủ quỹ, trần tiền một người giữ, nhắc đổi thủ quỹ
+  Map<String, dynamic>? handover;
+  int maxHold = 0, rotateDays = 0, holderSince = 0;
 
   Space({required this.id, required this.name, required this.code, required this.owner, this.target = 0, this.members = const []});
 
@@ -133,6 +143,17 @@ class Space {
     bankAcct = '${bk['acct'] ?? ''}';
     bankOwner = '${bk['owner'] ?? ''}';
     approveOver = ((st['approveOver'] as num?) ?? 0).toInt();
+    linked = j['linked'] == true;
+    final bl = st['bankLink'] is Map ? Map<String, dynamic>.from(st['bankLink'] as Map) : const <String, dynamic>{};
+    bankBalance = (bl['balance'] as num?)?.toInt();
+    bankBalanceAt = ((bl['balanceAt'] as num?) ?? 0).toInt();
+    bankSyncAt = ((bl['lastSync'] as num?) ?? 0).toInt();
+    bankError = '${bl['error'] ?? ''}';
+    challenge = st['challenge'] is Map ? Map<String, dynamic>.from(st['challenge'] as Map) : null;
+    handover = st['handover'] is Map ? Map<String, dynamic>.from(st['handover'] as Map) : null;
+    maxHold = ((st['maxHold'] as num?) ?? 0).toInt();
+    rotateDays = ((st['rotateDays'] as num?) ?? 0).toInt();
+    holderSince = ((st['holderSince'] as num?) ?? 0).toInt();
     final rc = st['recon'] is Map ? Map<String, dynamic>.from(st['recon'] as Map) : null;
     recon = rc == null
         ? null
@@ -169,7 +190,13 @@ class Space {
 
   /// ok | pending (chờ thủ quỹ) | rejected | await (chờ duyệt) | denied
   String statusOf(SpaceEntry e) {
+    if (needsConfirm(e) && linked) {
+      if (e.marks[0] == 'bank') return 'ok';
+      if (e.marks[holder] == 'reject') return 'rejected';
+      return 'pending';
+    }
     if (needsConfirm(e)) {
+      if (e.marks[0] == 'bank') return 'ok';
       final m = e.marks[holder];
       if (m == 'confirm') return 'ok';
       if (m == 'reject') return 'rejected';
@@ -198,7 +225,17 @@ class Space {
           if ((statusOf(e) == 'pending' && me == holder) || (statusOf(e) == 'await' && e.by != me && !e.marks.containsKey(me))) e
       ];
 
+  bool bankConfirmed(SpaceEntry e) => e.marks[0] == 'bank';
+
+  /// Thử thách số dư đang chạy (chưa xong, chưa hết hạn).
+  bool get challengeOpen {
+    final c = challenge;
+    if (c == null || c['passed'] == true || c['failed'] == true) return false;
+    return nowMs() < ((c['exp'] as num?) ?? 0).toInt();
+  }
+
   String nameOf(int userId) {
+    if (userId == 0) return 'Ngân hàng';
     for (final m in members) {
       if (m.id == userId) return m.name;
     }
@@ -221,8 +258,15 @@ class Space {
         'code': code,
         'owner': owner,
         'target': target,
+        'linked': linked,
         'settings': {
           'holder': holder,
+          'bankLink': {'balance': bankBalance, 'balanceAt': bankBalanceAt, 'lastSync': bankSyncAt, if (bankError.isNotEmpty) 'error': bankError},
+          if (challenge != null) 'challenge': challenge,
+          if (handover != null) 'handover': handover,
+          'maxHold': maxHold,
+          'rotateDays': rotateDays,
+          'holderSince': holderSince,
           if (hasBank) 'bank': {'bin': bankBin, 'name': bankName, 'acct': bankAcct, 'owner': bankOwner},
           'approveOver': approveOver,
           if (recon != null) 'recon': {'actual': recon!.actual, 'book': recon!.book, 'at': recon!.at, 'by': recon!.by},
@@ -377,9 +421,13 @@ class Spaces {
     await sync(s, sp, changes: [e]);
   }
 
-  static Future<void> settings(AppStore s, Space sp, {int? holder, Map<String, String>? bank, bool clearBank = false, int? approveOver}) async {
+  static Future<void> settings(AppStore s, Space sp,
+      {int? holder, Map<String, String>? bank, bool clearBank = false, int? approveOver, int? maxHold, int? rotateDays}) async {
     final j = await _call(s, '/api/space/settings', {
       'space': sp.id,
+      'book': sp.balance,
+      if (maxHold != null) 'maxHold': maxHold,
+      if (rotateDays != null) 'rotateDays': rotateDays,
       if (holder != null) 'holder': holder,
       if (bank != null || clearBank) 'bank': bank,
       if (approveOver != null) 'approveOver': approveOver,
@@ -398,6 +446,90 @@ class Spaces {
     }
     s.spacesChanged();
     await sync(s, sp);
+  }
+
+  static Future<String> bankLink(AppStore s, Space sp, String token) async {
+    final j = await _call(s, '/api/space/bank-link', {'space': sp.id, 'token': token});
+    sp.applyInfo(Map<String, dynamic>.from(j['space'] as Map));
+    s.spacesChanged();
+    await sync(s, sp);
+    return '${j['note'] ?? ''}';
+  }
+
+  static Future<void> bankUnlink(AppStore s, Space sp) async {
+    final j = await _call(s, '/api/space/bank-unlink', {'space': sp.id});
+    sp.applyInfo(Map<String, dynamic>.from(j['space'] as Map));
+    s.spacesChanged();
+  }
+
+  static Future<List<({String dir, int amount, String content, int? balance, int at, String rec})>> bankTxns(AppStore s, Space sp) async {
+    final j = await _call(s, '/api/space/bank-txns?space=${sp.id}');
+    if (j['space'] is Map) sp.applyInfo(Map<String, dynamic>.from(j['space'] as Map));
+    s.spacesChanged();
+    return [
+      for (final t in (j['txns'] as List? ?? const []))
+        if (t is Map)
+          (
+            dir: '${t['dir']}',
+            amount: ((t['amount'] as num?) ?? 0).toInt(),
+            content: '${t['content'] ?? ''}',
+            balance: (t['balance'] as num?)?.toInt(),
+            at: ((t['at'] as num?) ?? 0).toInt(),
+            rec: '${t['rec'] ?? ''}',
+          )
+    ];
+  }
+
+  static Future<void> challenge(AppStore s, Space sp, Map<String, String> bank) async {
+    final j = await _call(s, '/api/space/challenge', {'space': sp.id, 'bank': bank});
+    sp.applyInfo(Map<String, dynamic>.from(j['space'] as Map));
+    s.spacesChanged();
+  }
+
+  static Future<void> challengeDone(AppStore s, Space sp, String kind, {int? actual, bool auto = false}) async {
+    final j = await _call(s, '/api/space/challenge-done', {
+      'space': sp.id,
+      'kind': kind,
+      if (actual != null) 'actual': actual,
+      'book': sp.balance,
+      if (auto) 'auto': true,
+    });
+    sp.applyInfo(Map<String, dynamic>.from(j['space'] as Map));
+    s.spacesChanged();
+  }
+
+  static Future<void> handover(AppStore s, Space sp, int actual) async {
+    final j = await _call(s, '/api/space/handover', {'space': sp.id, 'actual': actual});
+    sp.applyInfo(Map<String, dynamic>.from(j['space'] as Map));
+    s.spacesChanged();
+  }
+
+  /// Android: máy người nộp vừa có thông báo ngân hàng TRỪ tiền đúng nội dung "VT <mã quỹ> <tag>" của khoản mình đang chờ,
+  /// hoặc máy người yêu cầu thử thách vừa NHẬN 1.000 ₫ có mã "VT KT <mã>". Gửi lên làm bằng chứng.
+  static Future<String?> autoEvidence(AppStore s, {required bool income, required int amount, required String text}) async {
+    final f = plainMemo(text).toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    for (final sp in s.spaces.values) {
+      if (income) {
+        final c = sp.challenge;
+        if (sp.challengeOpen && c != null && ((c['by'] as num?) ?? 0).toInt() == s.myUserId && f.contains('VTKT${c['code']}')) {
+          try {
+            await challengeDone(s, sp, 'transfer', auto: true);
+            return 'Thủ quỹ "${sp.name}" đã chuyển đúng mã thử thách: đang giữ đúng tài khoản quỹ';
+          } catch (_) {}
+        }
+        continue;
+      }
+      if (!f.contains('VT${sp.code}')) continue;
+      for (final e in sp.active) {
+        if (e.by != s.myUserId || e.type != 'contrib' || e.amount != amount || e.marks[s.myUserId] == 'sent') continue;
+        if (e.tag.isNotEmpty && !f.contains('VT${sp.code}${e.tag}')) continue;
+        try {
+          await mark(s, sp, e, 'sent');
+          return 'Đã gửi thông báo trừ tiền ${groupDigits(amount)} ₫ làm bằng chứng nộp quỹ "${sp.name}"';
+        } catch (_) {}
+      }
+    }
+    return null;
   }
 
   static Future<void> reconcile(AppStore s, Space sp, int actual) async {

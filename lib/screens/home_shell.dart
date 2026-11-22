@@ -111,6 +111,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           matched.add('${hit.sp.nameOf(hit.e.by)} đã nộp ${money(t.amount)} vào "${hit.sp.name}". Đã tự xác nhận');
         }
       }
+      for (final t in added) {
+        final ev = await Spaces.autoEvidence(store, income: t.income, amount: t.amount, text: '${t.raw} ${t.note}');
+        if (ev != null) matched.add(ev);
+      }
       if (!mounted) return;
       if (matched.isNotEmpty) {
         showToast(context, matched.join('\n'));

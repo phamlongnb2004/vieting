@@ -25,5 +25,7 @@
   // Chạy Worker ở Singapore: người dùng Việt Nam hay bị Cloudflare định tuyến qua Hồng Kông,
   // nơi Google chặn Gemini ("User location is not supported"). Singapore gần VN và được Gemini hỗ trợ.
   "placement": { "region": "gcp:asia-southeast1" },
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // Đọc ngân hàng của Quỹ chung đã nối (SePay) mỗi 10 phút, để tiền ra được báo cả khi không ai mở app
+  "triggers": { "crons": ["*/10 * * * *"] }
 }
