@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../models.dart';
@@ -63,9 +64,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       appBar: AppBar(
         title: const Text('Giao dịch', style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
-          IconButton(onPressed: () => _shift(-1), icon: const Icon(Icons.chevron_left)),
+          IconButton(onPressed: () => _shift(-1), icon: const Icon(PhosphorIconsRegular.caretLeft)),
           Text(store.periodLabel(_year, _month), style: const TextStyle(fontWeight: FontWeight.w600)),
-          IconButton(onPressed: () => _shift(1), icon: const Icon(Icons.chevron_right)),
+          IconButton(onPressed: () => _shift(1), icon: const Icon(PhosphorIconsRegular.caretRight)),
           const SizedBox(width: 4),
         ],
       ),
@@ -75,7 +76,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           child: TextField(
             decoration: const InputDecoration(
               hintText: 'Tìm nội dung, danh mục, số tiền…',
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: Icon(PhosphorIconsRegular.magnifyingGlass),
               isDense: true,
             ),
             onChanged: (v) => setState(() => _query = v),
@@ -126,7 +127,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 color: Brand.red,
                                 alignment: Alignment.centerRight,
                                 padding: const EdgeInsets.only(right: 20),
-                                child: const Icon(Icons.delete, color: Colors.white),
+                                child: const Icon(PhosphorIconsRegular.trash, color: Colors.white),
                               ),
                               onDismissed: (_) {
                                 store.deleteTxn(t.id);

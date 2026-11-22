@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../store.dart';
 import '../theme.dart';
@@ -181,10 +182,10 @@ class _LockScreenState extends State<LockScreen> {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: store.bioLock ? key('bio', icon: Icons.fingerprint) : const SizedBox(width: 76),
+                  child: store.bioLock ? key('bio', icon: PhosphorIconsRegular.fingerprint) : const SizedBox(width: 76),
                 ),
                 Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: key('0')),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: key('<', icon: Icons.backspace_outlined)),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: key('<', icon: PhosphorIconsRegular.backspace)),
               ]),
             ),
           ]),

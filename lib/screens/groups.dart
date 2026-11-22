@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../models.dart';
 import '../pro.dart';
@@ -67,14 +68,14 @@ class GroupsScreen extends StatelessWidget {
             Navigator.push(context, MaterialPageRoute(builder: (_) => GroupDetailScreen(groupId: g.id)));
           }
         },
-        child: const Icon(Icons.group_add),
+        child: const Icon(PhosphorIconsRegular.userPlus),
       ),
       body: groups.isEmpty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.groups_2_outlined, size: 64, color: Brand.bamboo),
+                  const Icon(PhosphorIconsRegular.usersThree, size: 64, color: Brand.bamboo),
                   const SizedBox(height: 10),
                   const Text('Sổ chung minh bạch', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
                   const SizedBox(height: 6),
@@ -91,10 +92,10 @@ class GroupsScreen extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Card(
                       child: ListTile(
-                        leading: const CircleAvatar(backgroundColor: Brand.bamboo, child: Icon(Icons.groups, color: Colors.white)),
+                        leading: const CircleAvatar(backgroundColor: Brand.bamboo, child: Icon(PhosphorIconsRegular.usersThree, color: Colors.white)),
                         title: Text(g.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                         subtitle: Text('${g.members.length} người · ${g.expenses.length} khoản · tổng ${compactMoney(g.total)}'),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(PhosphorIconsRegular.caretRight),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GroupDetailScreen(groupId: g.id))),
                       ),
                     ),
@@ -179,7 +180,7 @@ class GroupDetailScreen extends StatelessWidget {
   }
 
   String _summary(Group g) {
-    final b = StringBuffer('📒 ${g.name} – tổng ${money(g.total)}\n');
+    final b = StringBuffer('${g.name} – tổng ${money(g.total)}\n');
     g.balances().forEach((m, v) => b.writeln('• $m: ${v >= 0 ? 'được nhận lại ${money(v)}' : 'cần trả ${money(-v)}'}'));
     final s = g.settle();
     if (s.isNotEmpty) {
@@ -208,7 +209,7 @@ class GroupDetailScreen extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Chia sẻ tóm tắt',
-            icon: const Icon(Icons.ios_share),
+            icon: const Icon(PhosphorIconsRegular.shareNetwork),
             onPressed: () => Share.share(_summary(g)),
           ),
           PopupMenuButton<String>(
@@ -228,7 +229,7 @@ class GroupDetailScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _addExpense(context, g),
-        icon: const Icon(Icons.add),
+        icon: const Icon(PhosphorIconsRegular.plus),
         label: const Text('Khoản chi'),
       ),
       body: ListView(
@@ -288,7 +289,7 @@ class GroupDetailScreen extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 padding: const EdgeInsets.only(right: 20),
                 color: Brand.red,
-                child: const Icon(Icons.delete, color: Colors.white),
+                child: const Icon(PhosphorIconsRegular.trash, color: Colors.white),
               ),
               onDismissed: (_) {
                 g.expenses.removeWhere((x) => x.id == e.id);

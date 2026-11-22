@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../store.dart';
 import '../theme.dart';
@@ -14,10 +15,10 @@ class NotifyLogScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final logs = store.logs;
     (String, Color, IconData) look(String s) => switch (s) {
-          'added' => ('Đã ghi', Brand.bamboo, Icons.check_circle),
-          'duplicate' => ('Trùng, bỏ qua', Colors.blueGrey, Icons.copy_all),
-          'skipped' => ('App lạ, chưa ghi', const Color(0xFFEF8F00), Icons.help_outline),
-          _ => ('Không có số tiền', Colors.grey, Icons.block),
+          'added' => ('Đã ghi', Brand.bamboo, PhosphorIconsFill.checkCircle),
+          'duplicate' => ('Trùng, bỏ qua', Colors.blueGrey, PhosphorIconsRegular.copy),
+          'skipped' => ('App lạ, chưa ghi', const Color(0xFFEF8F00), PhosphorIconsRegular.question),
+          _ => ('Không có số tiền', Colors.grey, PhosphorIconsRegular.prohibit),
         };
 
     return Scaffold(

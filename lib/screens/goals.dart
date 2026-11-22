@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../models.dart';
 import '../pro.dart';
@@ -7,8 +8,9 @@ import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/bamboo.dart';
 import 'simulate.dart';
+import '../widgets/vicon.dart';
 
-const _emojis = ['🎯', '✈️', '💻', '🏍️', '🏠', '💍', '🎓', '🛟', '📱', '🎁'];
+const _emojis = ['target', 'plane', 'laptop', 'moto', 'home', 'ring', 'study', 'safety', 'phone', 'gift'];
 
 /// Hũ mục tiêu: mỗi mục tiêu là một cây tre lớn dần theo % tiền đã dành.
 class GoalsScreen extends StatelessWidget {
@@ -34,7 +36,7 @@ class GoalsScreen extends StatelessWidget {
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Wrap(spacing: 6, runSpacing: 6, children: [
                   for (final e in _emojis)
-                    ChoiceChip(label: Text(e, style: const TextStyle(fontSize: 18)), selected: emoji == e, onSelected: (_) => setS(() => emoji = e)),
+                    ChoiceChip(label: Icon(goalIcon(e), size: 20), selected: emoji == e, onSelected: (_) => setS(() => emoji = e)),
                 ]),
                 const SizedBox(height: 12),
                 TextField(controller: name, decoration: const InputDecoration(labelText: 'Tên mục tiêu (VD: Du lịch Đà Lạt)')),
@@ -48,7 +50,7 @@ class GoalsScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.event),
+                  leading: const Icon(PhosphorIconsRegular.calendarBlank),
                   title: Text(deadline == null ? 'Hạn (không bắt buộc)' : 'Hạn: ${dmy(deadline!)}'),
                   onTap: () async {
                     final d = await showDatePicker(
@@ -110,7 +112,7 @@ class GoalsScreen extends StatelessWidget {
     g.saved = withdraw ? (g.saved - v < 0 ? 0 : g.saved - v) : g.saved + v;
     store.saveGoal(g);
     if (!withdraw && context.mounted && g.progress >= 1 && before < 1) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🎉 Chúc mừng! Bạn đã đạt mục tiêu "${g.name}"')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Chúc mừng! Bạn đã đạt mục tiêu "${g.name}"')));
     }
   }
 
@@ -124,7 +126,7 @@ class GoalsScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         heroTag: 'goal',
         onPressed: () => edit(context, null),
-        child: const Icon(Icons.add),
+        child: const Icon(PhosphorIconsRegular.plus),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -152,7 +154,7 @@ class GoalsScreen extends StatelessWidget {
               return Card(
                 color: Brand.bamboo.withAlpha(28),
                 child: ListTile(
-                  leading: const Text('🏦', style: TextStyle(fontSize: 24)),
+                  leading: const VIcon(PhosphorIconsRegular.bank, color: Brand.bamboo),
                   title: Text('Gửi tiết kiệm ${money(saved)} đã tích lũy: thêm ~${money(year)}/năm',
                       style: const TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: Text('Lãi tham khảo ${r.saving6}%/năm (6 tháng) · ${r.saving12}%/năm (12 tháng)'
@@ -176,7 +178,7 @@ class GoalsScreen extends StatelessWidget {
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Row(children: [
-                            Text(g.emoji, style: const TextStyle(fontSize: 20)),
+                            Icon(goalIcon(g.emoji), size: 22, color: Brand.bamboo),
                             const SizedBox(width: 6),
                             Expanded(
                                 child: Text(g.name,
@@ -229,7 +231,7 @@ class GoalsScreen extends StatelessWidget {
   }
 
   static String _hint(Goal g) {
-    if (g.progress >= 1) return '🎉 Đã đạt mục tiêu!';
+    if (g.progress >= 1) return 'Đã đạt mục tiêu!';
     final left = g.target - g.saved;
     final pct = (g.progress * 100).floor();
     if (g.deadline == null) return '$pct% · còn ${money(left)}';

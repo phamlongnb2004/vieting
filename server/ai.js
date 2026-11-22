@@ -1,4 +1,4 @@
-import { aiExtras, currentOccasions, dictText, planOf } from './config.js';
+import { CHAT_FREE as DAILY_LIMIT, CHAT_PRO as PRO_LIMIT, chatKey, aiExtras, currentOccasions, dictText, planOf, vnToday } from './config.js';
 // Trợ lý AI của VieTing: POST /api/chat
 // Dùng Google Gemini (miễn phí, cần khóa GEMINI_API_KEY) và tự chuyển sang Cloudflare Workers AI
 // (miễn phí 10.000 neurons/ngày, không cần khóa) khi chưa có khóa hoặc Gemini báo lỗi / hết lượt.
@@ -12,8 +12,7 @@ const CATS = {
   luong: 'Lương (thu)', thuong: 'Thưởng (thu)', dau_tu: 'Lãi & đầu tư (thu)', nhan_tien: 'Nhận chuyển khoản (thu)', khac_thu: 'Thu khác (thu)',
 };
 const INCOME_CATS = new Set(['luong', 'thuong', 'dau_tu', 'nhan_tien', 'khac_thu']);
-const DAILY_LIMIT = 30; // tin nhắn / người / ngày (gói miễn phí)
-const PRO_LIMIT = 300; // gói Pro
+
 const WORKERS_AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const WORKERS_AI_FALLBACK = '@cf/meta/llama-3.1-8b-instruct';
 
@@ -388,16 +387,20 @@ async function monthlyQuota(env, kind, key, userId) {
   return null;
 }
 
+let lastQuota = null; // { limit, used, pro } của lần đếm gần nhất
+
 async function underLimit(env, key, userId) {
   if (!env.DB) return true;
-  const limit = (await planOf(env, userId ?? null)).plan === 'pro' ? PRO_LIMIT : DAILY_LIMIT;
-  const day = new Date().toISOString().slice(0, 10);
+  const pro = (await planOf(env, userId ?? null)).plan === 'pro';
+  const limit = pro ? PRO_LIMIT : DAILY_LIMIT;
+  const day = vnToday();
   try {
     await env.DB.prepare(
       `INSERT INTO ai_usage (k, day, n) VALUES (?, ?, 1)
        ON CONFLICT (k, day) DO UPDATE SET n = n + 1`
     ).bind(key, day).run();
     const row = await env.DB.prepare('SELECT n FROM ai_usage WHERE k = ? AND day = ?').bind(key, day).first();
+    lastQuota = { limit, used: Math.min(row?.n || 0, limit), pro };
     return !row || row.n <= limit;
   } catch {
     return true; // bảng chưa tạo: không chặn
@@ -415,8 +418,19 @@ export async function handleChat(req, env, userId) {
     return json({ error: 'Dữ liệu không hợp lệ' }, 400);
   }
   const key = userId != null ? 'u' + userId : 'ip' + (req.headers.get('cf-connecting-ip') || '?');
-  if (!(await underLimit(env, key, userId))) {
-    return json({ error: 'Hôm nay bạn đã dùng hết lượt hỏi trợ lý, mai quay lại nhé.' }, 429);
+  lastQuota = null;
+  const ok = await underLimit(env, chatKey(userId, req), userId);
+  const quota = lastQuota ? { limit: lastQuota.limit, left: Math.max(0, lastQuota.limit - lastQuota.used), pro: lastQuota.pro } : null;
+  if (!ok) {
+    return json(
+      {
+        error: quota?.pro
+          ? 'Hôm nay bạn đã dùng hết lượt hỏi trợ lý, mai quay lại nhé.'
+          : `Bản miễn phí được ${DAILY_LIMIT} tin nhắn trợ lý mỗi ngày và hôm nay đã hết. Nâng cấp Pro để hỏi tới ${PRO_LIMIT} tin mỗi ngày.`,
+        quota,
+      },
+      429
+    );
   }
 
   const today = /^\d{4}-\d{2}-\d{2}$/.test(b.today || '') ? b.today : new Date().toISOString().slice(0, 10);
@@ -451,7 +465,7 @@ export async function handleChat(req, env, userId) {
 
   const parsed = extractJson(out.text);
   const reply = parsed && typeof parsed.reply === 'string' ? parsed.reply : String(out.text || '').trim();
-  return json({ reply: reply.slice(0, 4000), actions: cleanActions(parsed?.actions), provider: out.provider, ...(geminiNote ? { note: geminiNote } : {}) });
+  return json({ reply: reply.slice(0, 4000), actions: cleanActions(parsed?.actions), provider: out.provider, quota, ...(geminiNote ? { note: geminiNote } : {}) });
 }
 
 // ---------------- Đọc hóa đơn / ảnh chuyển khoản: POST /api/receipt {image: base64, mime, today} ----------------

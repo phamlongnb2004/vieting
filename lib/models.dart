@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 int nowMs() => DateTime.now().millisecondsSinceEpoch;
 
@@ -99,9 +100,9 @@ class Wallet {
   }) : updatedAt = updatedAt ?? nowMs();
 
   IconData get icon => switch (kind) {
-        'bank' => Icons.account_balance,
-        'ewallet' => Icons.account_balance_wallet,
-        _ => Icons.payments_outlined,
+        'bank' => PhosphorIconsRegular.bank,
+        'ewallet' => PhosphorIconsFill.wallet,
+        _ => PhosphorIconsRegular.money,
       };
 
   Map<String, dynamic> toJson() => {
@@ -254,10 +255,10 @@ class TagInfo {
 }
 
 const List<TagInfo> kTags = [
-  TagInfo('can_thiet', 'Cần thiết', Icons.check_circle_outline, Color(0xFF3E8E41)),
-  TagInfo('xa_stress', 'Xả stress', Icons.spa_outlined, Color(0xFF8E24AA)),
-  TagInfo('dau_tu', 'Đầu tư bản thân', Icons.auto_graph, Color(0xFF1E88E5)),
-  TagInfo('boc_dong', 'Bốc đồng', Icons.bolt, Color(0xFFE8710A)),
+  TagInfo('can_thiet', 'Cần thiết', PhosphorIconsRegular.checkCircle, Color(0xFF3E8E41)),
+  TagInfo('xa_stress', 'Xả stress', PhosphorIconsRegular.flowerLotus, Color(0xFF8E24AA)),
+  TagInfo('dau_tu', 'Đầu tư bản thân', PhosphorIconsRegular.chartLineUp, Color(0xFF1E88E5)),
+  TagInfo('boc_dong', 'Bốc đồng', PhosphorIconsFill.lightning, Color(0xFFE8710A)),
 ];
 
 TagInfo? tagById(String id) {
@@ -280,7 +281,7 @@ class Goal {
   Goal({
     required this.id,
     required this.name,
-    this.emoji = '🎯',
+    this.emoji = 'target',
     required this.target,
     this.saved = 0,
     this.deadline,
@@ -303,7 +304,7 @@ class Goal {
   factory Goal.fromJson(Map<String, dynamic> j) => Goal(
         id: j['id'] as String,
         name: (j['name'] ?? 'Mục tiêu') as String,
-        emoji: (j['emoji'] ?? '🎯') as String,
+        emoji: (j['emoji'] ?? 'target') as String,
         target: (j['target'] as num?)?.toInt() ?? 0,
         saved: (j['saved'] as num?)?.toInt() ?? 0,
         deadline: j['deadline'] == null ? null : DateTime.fromMillisecondsSinceEpoch((j['deadline'] as num).toInt()),
@@ -628,11 +629,11 @@ class GiftEntry {
 }
 
 const Map<String, String> kGiftEvents = {
-  'cuoi': '💒 Đám cưới',
-  'day_thang': '👶 Đầy tháng / thôi nôi',
-  'tan_gia': '🏠 Tân gia',
-  'sinh_nhat': '🎂 Sinh nhật',
-  'om_dau': '🏥 Thăm ốm',
-  'ma_chay': '🕯️ Đám hiếu',
-  'khac': '🎁 Dịp khác',
+  'cuoi': 'Đám cưới',
+  'day_thang': 'Đầy tháng / thôi nôi',
+  'tan_gia': 'Tân gia',
+  'sinh_nhat': 'Sinh nhật',
+  'om_dau': 'Thăm ốm',
+  'ma_chay': 'Đám hiếu',
+  'khac': 'Dịp khác',
 };

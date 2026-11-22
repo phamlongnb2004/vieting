@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../insights.dart';
 import '../models.dart';
@@ -6,6 +7,7 @@ import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/bamboo.dart';
+import '../widgets/vicon.dart';
 
 /// Mô phỏng tác động tương lai: "Nếu bớt 2 ly trà sữa/tuần, sau 1 năm có thêm X".
 class SimulateScreen extends StatefulWidget {
@@ -85,7 +87,7 @@ class _SimulateScreenState extends State<SimulateScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _habit,
-            decoration: const InputDecoration(labelText: 'Thói quen', prefixIcon: Icon(Icons.local_cafe_outlined)),
+            decoration: const InputDecoration(labelText: 'Thói quen', prefixIcon: Icon(PhosphorIconsRegular.coffee)),
             onSubmitted: (v) => _usePrice(v),
           ),
           const SizedBox(height: 12),
@@ -137,7 +139,8 @@ class _SimulateScreenState extends State<SimulateScreen> {
             Wrap(spacing: 8, runSpacing: 6, children: [
               for (final g in goals)
                 ChoiceChip(
-                  label: Text('${g.emoji} ${g.name}'),
+                  avatar: Icon(goalIcon(g.emoji), size: 18),
+                  label: Text(g.name),
                   selected: _goal == g.id,
                   onSelected: (v) => setState(() => _goal = v ? g.id : null),
                 ),
@@ -146,7 +149,7 @@ class _SimulateScreenState extends State<SimulateScreen> {
               const SizedBox(height: 10),
               Card(
                 child: ListTile(
-                  leading: Text(goal.emoji, style: const TextStyle(fontSize: 26)),
+                  leading: VIcon(goalIcon(goal.emoji), color: Brand.bamboo),
                   title: Text(left <= 0
                       ? 'Mục tiêu đã đạt rồi!'
                       : 'Chỉ nhờ bớt ${_habit.text}, bạn đạt "${goal.name}" sau khoảng $monthsToGoal tháng'),

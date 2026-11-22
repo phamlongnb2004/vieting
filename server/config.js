@@ -19,13 +19,32 @@ export const DEFAULT_OCCASIONS = [
 
 // Nhắc tự động trên máy người dùng (app tự hẹn giờ, admin chỉnh lời & mốc)
 export const DEFAULT_SMART = {
-  daily: { on: true, hour: 21, title: 'Hôm nay tiêu gì rồi? 📝', body: 'Dành 10 giây ghi lại chi tiêu hôm nay để cuối tháng không bất ngờ nhé.' },
-  comeback: { on: true, days: 3, title: 'Lâu rồi không gặp 🎋', body: 'Ví của bạn vẫn đang chờ. Mở VieTing xem tuần này đã tiêu bao nhiêu nhé — chỉ mất 1 phút.' },
+  daily: { on: true, hour: 21, title: 'Hôm nay tiêu gì rồi?', body: 'Dành 10 giây ghi lại chi tiêu hôm nay để cuối tháng không bất ngờ nhé.' },
+  comeback: { on: true, days: 3, title: 'Lâu rồi không gặp', body: 'Ví của bạn vẫn đang chờ. Mở VieTing xem tuần này đã tiêu bao nhiêu nhé — chỉ mất 1 phút.' },
   bill: { on: true, before: 1, title: 'Sắp trừ tiền: {name}', body: '{amount} sẽ bị trừ ngày mai. Không dùng nữa thì hủy kịp nhé.' },
   wish: { on: true, title: 'Đủ 48 giờ rồi: {name}', body: 'Bạn còn muốn mua không? Mở VieTing để quyết định.' },
   gift: { on: true, title: 'Sắp tới dịp của {name}', body: 'Xem lần trước đã mừng bao nhiêu để chuẩn bị phong bì.' },
-  payday: { on: true, title: 'Hôm nay nhận lương 💰', body: 'Trích tiền tiết kiệm trước khi tiêu nhé — cây tre của bạn đang chờ lớn.' },
+  payday: { on: true, title: 'Hôm nay nhận lương', body: 'Trích tiền tiết kiệm trước khi tiêu nhé — cây tre của bạn đang chờ lớn.' },
 };
+
+// Lượt hỏi trợ lý mỗi ngày (tính theo ngày Việt Nam)
+export const CHAT_FREE = 30;
+export const CHAT_PRO = 300;
+
+export function chatKey(userId, req) {
+  return 'chat:' + (userId != null ? 'u' + userId : 'ip' + (req.headers.get('cf-connecting-ip') || '?'));
+}
+
+/** Còn bao nhiêu tin nhắn trợ lý hôm nay (không trừ lượt). */
+export async function chatQuota(env, userId, req, plan) {
+  const pro = plan?.plan === 'pro';
+  const limit = pro ? CHAT_PRO : CHAT_FREE;
+  let used = 0;
+  try {
+    used = (await env.DB.prepare('SELECT n FROM ai_usage WHERE k = ? AND day = ?').bind(chatKey(userId, req), vnToday()).first())?.n || 0;
+  } catch {}
+  return { limit, left: Math.max(0, limit - used), pro };
+}
 
 export const DEFAULT_RATES = { saving6: 4.5, saving12: 5.0, note: 'Lãi suất tiết kiệm tham khảo (%/năm), admin cập nhật' };
 
@@ -157,7 +176,8 @@ export async function publicConfig(req, env, userId, h) {
           .catch(() => 0),
     getConfig(env, 'smart', DEFAULT_SMART),
   ]);
-  return h.json({ dict, campaigns, catalog, notice: notice || null, rates, fx, plan, ticketsUnread: unread, smart: { ...DEFAULT_SMART, ...smart } });
+  const chat = await chatQuota(env, userId, req, plan);
+  return h.json({ dict, campaigns, catalog, notice: notice || null, rates, fx, plan, ticketsUnread: unread, smart: { ...DEFAULT_SMART, ...smart }, chat });
 }
 
 /** POST /api/redeem {code} */

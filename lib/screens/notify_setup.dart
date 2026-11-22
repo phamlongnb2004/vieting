@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../parser/banks.dart';
 import '../services/notify_bridge.dart';
@@ -65,7 +66,7 @@ class _NotifySetupScreenState extends State<NotifySetupScreen> with WidgetsBindi
           Card(
             color: (_on ? Brand.bamboo : Brand.red).withAlpha(28),
             child: ListTile(
-              leading: Icon(_on ? Icons.check_circle : Icons.notifications_off,
+              leading: Icon(_on ? PhosphorIconsFill.checkCircle : PhosphorIconsRegular.bellSlash,
                   color: _on ? Brand.bamboo : Brand.red, size: 32),
               title: Text(_on ? 'Đang bật' : 'Chưa bật', style: const TextStyle(fontWeight: FontWeight.w800)),
               subtitle: Text(_on
@@ -76,7 +77,7 @@ class _NotifySetupScreenState extends State<NotifySetupScreen> with WidgetsBindi
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: NotifyBridge.openSettings,
-            icon: const Icon(Icons.settings),
+            icon: const Icon(PhosphorIconsRegular.gear),
             label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Mở cài đặt quyền truy cập thông báo')),
           ),
           const SizedBox(height: 20),
@@ -104,7 +105,7 @@ class _NotifySetupScreenState extends State<NotifySetupScreen> with WidgetsBindi
               padding: const EdgeInsets.all(14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
-                  Icon(Icons.lock_outline, size: 18),
+                  Icon(PhosphorIconsRegular.lockSimple, size: 18),
                   SizedBox(width: 6),
                   Text('Quyền riêng tư', style: TextStyle(fontWeight: FontWeight.w700)),
                 ]),
@@ -129,7 +130,7 @@ class _NotifySetupScreenState extends State<NotifySetupScreen> with WidgetsBindi
           const SizedBox(height: 8),
           TextButton.icon(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotifyLogScreen())),
-            icon: const Icon(Icons.history),
+            icon: const Icon(PhosphorIconsRegular.clockCounterClockwise),
             label: const Text('Xem nhật ký thông báo'),
           ),
         ],

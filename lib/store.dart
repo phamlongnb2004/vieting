@@ -601,6 +601,14 @@ class AppStore extends ChangeNotifier {
     return u == null || u <= 0 ? null : DateTime.fromMillisecondsSinceEpoch(u.toInt());
   }
 
+  /// Lượt hỏi trợ lý hôm nay: {limit, left, pro}. null = chưa biết (chưa tải cấu hình).
+  Map<String, dynamic>? get chatQuota => remote['chat'] is Map ? Map<String, dynamic>.from(remote['chat'] as Map) : null;
+
+  void updateChatQuota(Map<String, dynamic> q) {
+    remote = {...remote, 'chat': q};
+    notifyListeners();
+  }
+
   int get ticketsUnread => ((remote['ticketsUnread'] as num?) ?? 0).toInt();
 
   Map<String, dynamic> smartRule(String k) => Map<String, dynamic>.from(((remote['smart'] as Map?)?[k] as Map?) ?? const {});

@@ -110,6 +110,7 @@ class Assistant {
       } catch (_) {
         body = {'error': 'Server trả về dữ liệu lạ (${res.statusCode})'};
       }
+      if (body['quota'] is Map) s.updateChatQuota(Map<String, dynamic>.from(body['quota'] as Map));
       if (res.statusCode != 200) {
         final err = (body['error'] ?? 'Lỗi server (${res.statusCode})').toString();
         return _offline(question, s, why: err) ?? AssistantReply(err, const []);

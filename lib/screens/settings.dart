@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../config.dart';
 import '../insights.dart';
@@ -80,7 +81,7 @@ class SettingsScreen extends StatelessWidget {
           group('Tài khoản & đồng bộ', [
             if (store.loggedIn) ...[
               ListTile(
-                leading: const Icon(Icons.person),
+                leading: const Icon(PhosphorIconsRegular.user),
                 title: Text(store.email),
                 subtitle: Text(store.syncError ??
                     (store.lastSync > 0
@@ -88,29 +89,29 @@ class SettingsScreen extends StatelessWidget {
                         : 'Chưa đồng bộ')),
                 trailing: store.syncing
                     ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                    : IconButton(icon: const Icon(Icons.sync), onPressed: () => store.sync()),
+                    : IconButton(icon: const Icon(PhosphorIconsRegular.arrowsClockwise), onPressed: () => store.sync()),
               ),
               ListTile(
-                leading: const Icon(Icons.logout),
+                leading: const Icon(PhosphorIconsRegular.signOut),
                 title: const Text('Đăng xuất'),
                 subtitle: const Text('Dữ liệu vẫn giữ trên máy này'),
                 onTap: store.logout,
               ),
             ] else
               ListTile(
-                leading: const Icon(Icons.cloud_sync_outlined),
+                leading: const Icon(PhosphorIconsRegular.cloudArrowUp),
                 title: const Text('Đăng nhập để đồng bộ'),
                 subtitle: const Text('Xem giao dịch trên điện thoại, iPhone và máy tính'),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
                 onTap: () => _go(context, const LoginScreen()),
               ),
           ]),
           if (kServerUrl.isEmpty) group('Nâng cao', [
             ListTile(
-              leading: const Icon(Icons.dns_outlined),
+              leading: const Icon(PhosphorIconsRegular.hardDrives),
               title: const Text('Địa chỉ server'),
               subtitle: Text(store.serverUrl.isEmpty ? 'Chưa nhập (cần cho trợ lý AI và đồng bộ)' : store.serverUrl),
-              trailing: const Icon(Icons.edit_outlined),
+              trailing: const Icon(PhosphorIconsRegular.pencilSimple),
               onTap: () async {
                 final c = TextEditingController(text: store.serverUrl);
                 final ok = await showDialog<bool>(
@@ -137,36 +138,36 @@ class SettingsScreen extends StatelessWidget {
           ]),
           group('Ví & tài khoản', [
             ListTile(
-              leading: const Icon(Icons.account_balance_wallet_outlined),
+              leading: const Icon(PhosphorIconsRegular.wallet),
               title: const Text('Quản lý ví'),
               subtitle: Text('${store.activeWallets.length} ví · tổng ${money(store.totalBalance)}'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => _go(context, const WalletsScreen()),
             ),
           ]),
           group('Gói & hỗ trợ', [
             ListTile(
-              leading: Icon(store.isPro ? Icons.workspace_premium : Icons.workspace_premium_outlined,
+              leading: Icon(store.isPro ? PhosphorIconsFill.crown : PhosphorIconsRegular.crown,
                   color: store.isPro ? const Color(0xFFE0A800) : null),
               title: Text(store.isPro ? 'VieTing Pro' : 'Gói Miễn phí'),
               subtitle: Text(store.isPro
                   ? 'Đến ${dmy(store.proUntil!)} · 300 lượt trợ lý AI / ngày'
                   : 'Xem quyền lợi Pro · nhập mã khuyến mãi'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => _go(context, const ProScreen()),
             ),
             ListTile(
-              leading: Badge(isLabelVisible: store.ticketsUnread > 0, label: Text('${store.ticketsUnread}'), child: const Icon(Icons.support_agent)),
+              leading: Badge(isLabelVisible: store.ticketsUnread > 0, label: Text('${store.ticketsUnread}'), child: const Icon(PhosphorIconsRegular.headset)),
               title: const Text('Góp ý & báo lỗi'),
               subtitle: const Text('Báo lỗi theo tính năng, xem phản hồi của VieTing'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => _go(context, const FeedbackScreen()),
             ),
           ]),
           group('Chi tiêu & trợ lý', [
             if (NotifyBridge.supported)
               SwitchListTile(
-                secondary: const Icon(Icons.notifications_active_outlined),
+                secondary: const Icon(PhosphorIconsRegular.bellRinging),
                 title: const Text('Nhắc nhở trên máy'),
                 subtitle: const Text('Nhắc ghi chi tiêu buổi tối, khoản định kỳ sắp trừ tiền, món chờ mua… kể cả khi không mở app'),
                 value: store.remindersOn,
@@ -177,12 +178,12 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.event_repeat),
+              leading: const Icon(PhosphorIconsRegular.calendarCheck),
               title: const Text('Ngày bắt đầu kỳ chi tiêu'),
               subtitle: Text(store.cycleDay == 1
                   ? 'Ngày 1 hằng tháng (theo tháng dương lịch)'
                   : 'Ngày ${store.cycleDay} hằng tháng (ngày nhận lương)'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () async {
                 final d = await showDialog<int>(
                   context: context,
@@ -210,7 +211,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.record_voice_over_outlined),
+              leading: const Icon(PhosphorIconsRegular.userSound),
               title: const Text('Tính cách trợ lý'),
               subtitle: Text(switch (store.aiTone) {
                 'funny' => 'Bạn thân cà khịa',
@@ -218,23 +219,23 @@ class SettingsScreen extends StatelessWidget {
                 'expert' => 'Chuyên gia tài chính',
                 _ => 'Nhẹ nhàng, động viên',
               }),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () async {
                 final t = await showDialog<String>(
                   context: context,
                   builder: (c) => SimpleDialog(title: const Text('Chọn tính cách cho trợ lý'), children: [
                     for (final o in const [
-                      ('gentle', '🌿 Nhẹ nhàng', 'Động viên, không phán xét'),
-                      ('funny', '😜 Bạn thân cà khịa', 'Thực tế, trêu nhẹ khi bạn tiêu hoang'),
-                      ('strict', '😤 Mẹ khó tính', 'Mắng thẳng khi lố tay'),
-                      ('expert', '📊 Chuyên gia tài chính', 'Điềm tĩnh, nói bằng số liệu'),
+                      ('gentle', 'Nhẹ nhàng', 'Động viên, không phán xét'),
+                      ('funny', 'Bạn thân cà khịa', 'Thực tế, trêu nhẹ khi bạn tiêu hoang'),
+                      ('strict', 'Mẹ khó tính', 'Mắng thẳng khi lố tay'),
+                      ('expert', 'Chuyên gia tài chính', 'Điềm tĩnh, nói bằng số liệu'),
                     ])
                       ListTile(
                         title: Text(o.$2),
                         subtitle: Text(o.$3),
                         trailing: store.aiTone == o.$1
-                            ? const Icon(Icons.check)
-                            : (o.$1 != 'gentle' && !store.isPro ? const Icon(Icons.lock_outline, size: 18) : null),
+                            ? const Icon(PhosphorIconsRegular.check)
+                            : (o.$1 != 'gentle' && !store.isPro ? const Icon(PhosphorIconsRegular.lockSimple, size: 18) : null),
                         onTap: () => Navigator.pop(c, o.$1),
                       ),
                   ]),
@@ -245,14 +246,14 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.timer_outlined),
+              leading: const Icon(PhosphorIconsRegular.timer),
               title: const Text('Thu nhập mỗi giờ làm'),
               subtitle: Text(store.hourlyWage > 0
                   ? '${money(store.hourlyWage)}/giờ'
                   : store.effectiveHourlyWage > 0
                       ? 'Tự tính từ lương: ~${money(store.effectiveHourlyWage)}/giờ'
                       : 'Để quy đổi giá món đồ ra số giờ làm việc'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () async {
                 final c = TextEditingController(text: store.hourlyWage > 0 ? groupDigits(store.hourlyWage) : '');
                 final ok = await showDialog<bool>(
@@ -275,56 +276,56 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.auto_awesome_outlined),
+              leading: const Icon(PhosphorIconsRegular.sparkle),
               title: const Text('Tổng kết kỳ (Wrapped)'),
               subtitle: const Text('Thẻ tổng kết vui để chia sẻ'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => _go(context, const WrappedScreen()),
             ),
             ListTile(
-              leading: const Icon(Icons.cleaning_services_outlined),
+              leading: const Icon(PhosphorIconsRegular.broom),
               title: const Text('Dọn dẹp 60 giây'),
               subtitle: const Text('Xếp lại khoản chưa phân loại, đối chiếu số dư'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => _go(context, const CleanupScreen()),
             ),
           ]),
           group('Tự động ghi giao dịch', [
             if (NotifyBridge.supported)
               ListTile(
-                leading: const Icon(Icons.notifications_active_outlined),
+                leading: const Icon(PhosphorIconsRegular.bellRinging),
                 title: const Text('Đọc thông báo ngân hàng'),
                 subtitle: const Text('Tự ghi khi có biến động số dư'),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
                 onTap: () => _go(context, const NotifySetupScreen()),
               ),
             if (isIos)
               ListTile(
-                leading: const Icon(Icons.bolt_outlined),
+                leading: const Icon(PhosphorIconsRegular.lightning),
                 title: const Text('Phím tắt iPhone (SMS ngân hàng)'),
                 subtitle: const Text('iOS không cho đọc thông báo app khác'),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
                 onTap: () => _go(context, const IosShortcutScreen()),
               ),
             ListTile(
-              leading: const Icon(Icons.content_paste_go),
+              leading: const Icon(PhosphorIconsRegular.clipboardText),
               title: const Text('Dán thông báo / tin nhắn'),
               subtitle: const Text('Copy thông báo ngân hàng rồi dán vào đây'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => _go(context, const PasteScreen()),
             ),
             if (NotifyBridge.supported)
               ListTile(
-                leading: const Icon(Icons.history),
+                leading: const Icon(PhosphorIconsRegular.clockCounterClockwise),
                 title: const Text('Nhật ký thông báo'),
                 subtitle: Text('${store.logs.length} thông báo gần đây'),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
                 onTap: () => _go(context, const NotifyLogScreen()),
               ),
           ]),
           group('Bảo mật & dữ liệu', [
             SwitchListTile(
-              secondary: const Icon(Icons.pin_outlined),
+              secondary: const Icon(PhosphorIconsRegular.password),
               title: const Text('Khóa app bằng mã PIN'),
               subtitle: const Text('Tự khóa khi rời app quá 30 giây'),
               value: store.locked,
@@ -342,7 +343,7 @@ class SettingsScreen extends StatelessWidget {
                 future: Biometric.available(),
                 builder: (context, snap) => snap.data == true
                     ? SwitchListTile(
-                        secondary: const Icon(Icons.fingerprint),
+                        secondary: const Icon(PhosphorIconsRegular.fingerprint),
                         title: const Text('Mở bằng vân tay / khuôn mặt'),
                         value: store.bioLock,
                         onChanged: (v) async {
@@ -356,16 +357,16 @@ class SettingsScreen extends StatelessWidget {
                     : const SizedBox.shrink(),
               ),
             ListTile(
-              leading: const Icon(Icons.table_view_outlined),
+              leading: const Icon(PhosphorIconsRegular.table),
               title: const Text('Xuất dữ liệu (Excel / CSV)'),
               subtitle: const Text('Toàn bộ giao dịch, mở được bằng Excel / Google Sheets'),
-              trailing: const Icon(Icons.ios_share),
+              trailing: const Icon(PhosphorIconsRegular.shareNetwork),
               onTap: () => _export(context, store),
             ),
           ]),
           group('Giao diện', [
             SwitchListTile(
-              secondary: const Icon(Icons.dark_mode_outlined),
+              secondary: const Icon(PhosphorIconsRegular.moon),
               title: const Text('Chế độ tối'),
               value: store.dark,
               onChanged: store.setDark,

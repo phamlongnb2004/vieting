@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../store.dart';
@@ -62,13 +63,13 @@ class BudgetsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: embedded ? null : AppBar(title: const Text('Ngân sách', style: TextStyle(fontWeight: FontWeight.w800))),
-      floatingActionButton: FloatingActionButton(heroTag: 'budget', onPressed: () => _edit(context, null), child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(heroTag: 'budget', onPressed: () => _edit(context, null), child: const Icon(PhosphorIconsRegular.plus)),
       body: budgets.isEmpty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.savings_outlined, size: 64, color: Brand.bamboo),
+                  const Icon(PhosphorIconsRegular.piggyBank, size: 64, color: Brand.bamboo),
                   const SizedBox(height: 12),
                   const Text('Đặt hạn mức chi tiêu mỗi tháng', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                   const SizedBox(height: 6),
@@ -102,7 +103,7 @@ class BudgetsScreen extends StatelessWidget {
                               if (cat != null)
                                 CatAvatar(cat: cat, size: 36)
                               else
-                                const Icon(Icons.account_balance_wallet, color: Brand.red, size: 32),
+                                const Icon(PhosphorIconsFill.wallet, color: Brand.red, size: 32),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(cat?.name ?? 'Tổng chi tiêu',

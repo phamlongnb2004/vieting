@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../insights.dart';
@@ -20,6 +21,7 @@ import 'cleanup.dart';
 import 'gifts.dart';
 import 'wrapped.dart';
 import '../widgets/nudge.dart';
+import '../widgets/vicon.dart';
 
 class OverviewScreen extends StatefulWidget {
   final VoidCallback onSeeAll;
@@ -75,7 +77,7 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
         actions: [
           IconButton(
             tooltip: 'Dán thông báo ngân hàng',
-            icon: const Icon(Icons.content_paste_go),
+            icon: const Icon(PhosphorIconsRegular.clipboardText),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PasteScreen())),
           ),
           if (store.loggedIn)
@@ -83,7 +85,7 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
               tooltip: 'Đồng bộ',
               icon: store.syncing
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.sync),
+                  : const Icon(PhosphorIconsRegular.arrowsClockwise),
               onPressed: store.syncing ? null : () => store.sync(),
             ),
           const SizedBox(width: 6),
@@ -96,10 +98,10 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
             Card(
               color: Brand.yellow.withAlpha(60),
               child: ListTile(
-                leading: const Icon(Icons.notifications_active, color: Brand.red),
+                leading: const Icon(PhosphorIconsFill.bellRinging, color: Brand.red),
                 title: const Text('Bật tự ghi từ thông báo ngân hàng', style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: const Text('Có tiền vào/ra là VieTing tự ghi và tính số dư'),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
                 onTap: () async {
                   await Navigator.push(context, MaterialPageRoute(builder: (_) => const NotifySetupScreen()));
                   _check();
@@ -118,15 +120,15 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
               child: ListTile(
                 leading: Icon(
                   switch (store.notice!['level']) {
-                    'warning' => Icons.warning_amber_rounded,
-                    'success' => Icons.celebration_outlined,
-                    _ => Icons.campaign_outlined,
+                    'warning' => PhosphorIconsRegular.warning,
+                    'success' => PhosphorIconsRegular.confetti,
+                    _ => PhosphorIconsRegular.megaphone,
                   },
                   color: Brand.navy,
                 ),
                 title: Text('${store.notice!['title'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: '${store.notice!['body'] ?? ''}'.isEmpty ? null : Text('${store.notice!['body']}'),
-                trailing: IconButton(icon: const Icon(Icons.close), tooltip: 'Ẩn', onPressed: store.dismissNotice),
+                trailing: IconButton(icon: const Icon(PhosphorIconsRegular.x), tooltip: 'Ẩn', onPressed: store.dismissNotice),
               ),
             ),
             const SizedBox(height: 12),
@@ -277,7 +279,7 @@ class _BalanceCard extends StatelessWidget {
         Positioned(
           right: -6,
           top: -6,
-          child: Icon(Icons.star_rounded, size: 70, color: Brand.yellow.withAlpha(80)),
+          child: Icon(PhosphorIconsFill.star, size: 70, color: Brand.yellow.withAlpha(80)),
         ),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Tổng số dư', style: TextStyle(color: Colors.white.withAlpha(220))),
@@ -289,9 +291,9 @@ class _BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Row(children: [
-            stat(Icons.south_west, 'Thu $label', income),
+            stat(PhosphorIconsRegular.arrowDownLeft, 'Thu $label', income),
             const SizedBox(width: 12),
-            stat(Icons.north_east, 'Chi $label', expense),
+            stat(PhosphorIconsRegular.arrowUpRight, 'Chi $label', expense),
           ]),
         ]),
       ]),
@@ -315,7 +317,7 @@ class _TodayRow extends StatelessWidget {
         .fold<int>(0, (s, t) => s + t.amount);
     final goals = store.activeGoals.where((g) => g.progress < 1).toList()
       ..sort((a, b) => b.progress.compareTo(a.progress));
-    Widget tile(String emoji, String top, String bottom, VoidCallback onTap) => Expanded(
+    Widget tile(IconData icon, Color color, String top, String bottom, VoidCallback onTap) => Expanded(
           child: Card(
             child: InkWell(
               borderRadius: BorderRadius.circular(18),
@@ -323,7 +325,7 @@ class _TodayRow extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(emoji, style: const TextStyle(fontSize: 20)),
+                  VIcon(icon, color: color, size: 32),
                   const SizedBox(height: 4),
                   Text(top, style: const TextStyle(fontWeight: FontWeight.w800), maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(bottom, style: TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -335,16 +337,18 @@ class _TodayRow extends StatelessWidget {
     void open(Widget w) => Navigator.push(context, MaterialPageRoute(builder: (_) => w));
     return Row(children: [
       tile(
-        '🗓️',
+        PhosphorIconsRegular.calendarDots,
+        Brand.navy,
         allowance == null ? compactMoney(spentToday) : compactMoney(allowance - spentToday),
         allowance == null ? 'đã chi hôm nay' : (allowance - spentToday >= 0 ? 'còn chi được hôm nay' : 'đã lố hôm nay'),
         () => open(const HabitsScreen()),
       ),
       const SizedBox(width: 8),
-      tile('🔥', '${store.streak} ngày', 'giữ ngân sách liên tiếp', () => open(const HabitsScreen())),
+      tile(PhosphorIconsFill.flame, const Color(0xFFEF6C00), '${store.streak} ngày', 'giữ ngân sách liên tiếp', () => open(const HabitsScreen())),
       const SizedBox(width: 8),
       tile(
-        goals.isEmpty ? '🎋' : goals.first.emoji,
+        goals.isEmpty ? PhosphorIconsRegular.plant : goalIcon(goals.first.emoji),
+        Brand.bamboo,
         goals.isEmpty ? 'Mục tiêu' : '${(goals.first.progress * 100).floor()}%',
         goals.isEmpty ? 'trồng cây tre đầu tiên' : goals.first.name,
         () => open(const GoalsScreen()),
@@ -370,7 +374,7 @@ class _Alerts extends StatelessWidget {
             title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text(sub),
             onTap: onTap,
-            trailing: trailing ?? (onTap == null ? null : const Icon(Icons.chevron_right)),
+            trailing: trailing ?? (onTap == null ? null : const Icon(PhosphorIconsRegular.caretRight)),
           ),
         );
     void open(Widget w) => Navigator.push(context, MaterialPageRoute(builder: (_) => w));
@@ -378,7 +382,7 @@ class _Alerts extends StatelessWidget {
     for (final b in store.billsDueSoon.take(2)) {
       final days = DateTime(b.next.year, b.next.month, b.next.day).difference(DateTime(now.year, now.month, now.day)).inDays;
       items.add(card(
-        Icons.autorenew,
+        PhosphorIconsRegular.arrowsClockwise,
         const Color(0xFFEF8F00),
         '${b.name} ${days <= 0 ? 'đến hạn hôm nay' : 'còn $days ngày nữa trừ tiền'}',
         '${money(b.amount)} · còn dùng không? Không thì hủy kịp nhé',
@@ -393,16 +397,16 @@ class _Alerts extends StatelessWidget {
       ));
     }
     for (final g in store.upcomingGiftEvents.take(1)) {
-      items.add(card(Icons.redeem, Brand.red, 'Sắp tới dịp của ${g.person}', 'Ngày ${dmy(g.remind!)} · xem lần trước đi bao nhiêu',
+      items.add(card(PhosphorIconsRegular.gift, Brand.red, 'Sắp tới dịp của ${g.person}', 'Ngày ${dmy(g.remind!)} · xem lần trước đi bao nhiêu',
           onTap: () => open(const GiftsScreen())));
     }
     final left = store.yesterdayLeftover;
     if (left > 0) {
       final goals = store.activeGoals.where((g) => g.progress < 1).toList();
       items.add(card(
-        Icons.savings_outlined,
+        PhosphorIconsRegular.piggyBank,
         Brand.bamboo,
-        'Hôm qua còn dư ${money(left)} 🎉',
+        'Hôm qua còn dư ${money(left)}',
         goals.isEmpty ? 'Tạo một hũ mục tiêu để cất tiền dư mỗi ngày' : 'Cất vào hũ "${goals.first.name}" cho cây tre lớn thêm?',
         onTap: goals.isEmpty ? () => open(const GoalsScreen()) : null,
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -413,20 +417,20 @@ class _Alerts extends StatelessWidget {
                 g.saved += left;
                 store.saveGoal(g);
                 store.markSwept(now.subtract(const Duration(days: 1)));
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã cất ${money(left)} vào "${g.name}" 🎋')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã cất ${money(left)} vào "${g.name}"')));
               },
               child: const Text('Cất'),
             ),
           IconButton(
             tooltip: 'Bỏ qua',
-            icon: const Icon(Icons.close, size: 18),
+            icon: const Icon(PhosphorIconsRegular.x, size: 18),
             onPressed: () => store.markSwept(now.subtract(const Duration(days: 1))),
           ),
         ]),
       ));
     }
     if (now.weekday == DateTime.sunday && !store.sweptDays.contains('clean-${store.dayKey(now)}')) {
-      items.add(card(Icons.cleaning_services_outlined, Brand.navy, 'Dọn dẹp tài chính 60 giây', 'Chủ nhật rồi: xếp lại vài khoản, đối chiếu số dư',
+      items.add(card(PhosphorIconsRegular.broom, Brand.navy, 'Dọn dẹp tài chính 60 giây', 'Chủ nhật rồi: xếp lại vài khoản, đối chiếu số dư',
           onTap: () {
         store.markSwept(DateTime(0), key: 'clean-${store.dayKey(now)}');
         open(const CleanupScreen());
@@ -435,11 +439,11 @@ class _Alerts extends StatelessWidget {
     final per = store.currentPeriod;
     final prev = DateTime(per.year, per.month - 1);
     if (store.periodStart(per.year, per.month).add(const Duration(days: 5)).isAfter(now) && store.monthTxns(prev.year, prev.month).length >= 5) {
-      items.add(card(Icons.auto_awesome, const Color(0xFF8E24AA), 'Tổng kết kỳ trước đã có!', 'Xem danh hiệu của bạn và chia sẻ lên story',
+      items.add(card(PhosphorIconsRegular.sparkle, const Color(0xFF8E24AA), 'Tổng kết kỳ trước đã có!', 'Xem danh hiệu của bạn và chia sẻ lên story',
           onTap: () => open(const WrappedScreen())));
     }
     if (store.isSkipDay(now)) {
-      items.add(card(Icons.celebration_outlined, Brand.yellow, 'Hôm nay là ngày ngoại lệ', 'Cứ vui vẻ, chuỗi ngày của bạn không bị mất 💛'));
+      items.add(card(PhosphorIconsRegular.confetti, Brand.yellow, 'Hôm nay là ngày ngoại lệ', 'Cứ vui vẻ, chuỗi ngày của bạn không bị mất'));
     }
     return Column(children: items);
   }
@@ -457,10 +461,10 @@ class _ForecastCard extends StatelessWidget {
     if (!store.isPro) {
       return Card(
         child: ListTile(
-          leading: const Text('🔮', style: TextStyle(fontSize: 24)),
+          leading: const VIcon(PhosphorIconsRegular.chartLineUp),
           title: const Text('Dự báo cuối kỳ & đường băng sinh tồn', style: TextStyle(fontWeight: FontWeight.w700)),
           subtitle: const Text('Biết trước ngày nào chạm đáy ví · Pro'),
-          trailing: const Icon(Icons.lock_outline),
+          trailing: const Icon(PhosphorIconsRegular.lockSimple),
           onTap: () => Pro.check(context, 'forecast'),
         ),
       );
@@ -474,7 +478,7 @@ class _ForecastCard extends StatelessWidget {
         child: Row(children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('🔮 Dự báo cuối kỳ', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+              Text('Dự báo cuối kỳ', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
               const SizedBox(height: 2),
               Text(compactMoney(f.endBalance),
                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: bad ? const Color(0xFFEF8F00) : Brand.income)),
@@ -488,7 +492,7 @@ class _ForecastCard extends StatelessWidget {
             Container(width: 1, height: 48, color: cs.outlineVariant, margin: const EdgeInsets.symmetric(horizontal: 12)),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('🛟 Đường băng sinh tồn', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                Text('Đường băng sinh tồn', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                 const SizedBox(height: 2),
                 Text(runway >= 365 ? '> 1 năm' : '$runway ngày', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
                 Text('sống được nếu mất thu nhập (chỉ chi thiết yếu)', style: TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant)),
@@ -562,10 +566,10 @@ class _GuiltFreeCard extends StatelessWidget {
     if (g == null) {
       return Card(
         child: ListTile(
-          leading: const Text('💛', style: TextStyle(fontSize: 26)),
+          leading: const VIcon(PhosphorIconsRegular.heart, color: Brand.red),
           title: const Text('Mỗi ngày được tiêu bao nhiêu?', style: TextStyle(fontWeight: FontWeight.w800)),
           subtitle: const Text('Nhập thu nhập, VieTing trừ sẵn tiền cố định + tiết kiệm rồi chia hạn mức từng ngày'),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const Icon(PhosphorIconsRegular.caretRight),
           onTap: () => setup(context),
         ),
       );

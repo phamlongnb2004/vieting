@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../models.dart';
@@ -51,7 +52,7 @@ class TxnTile extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(13)),
-              child: const Icon(Icons.lock_outline),
+              child: const Icon(PhosphorIconsRegular.lockSimple),
             )
           : CatAvatar(cat: cat),
       title: Row(children: [

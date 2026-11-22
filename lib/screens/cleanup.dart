@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../insights.dart';
@@ -46,7 +47,7 @@ class CleanupScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _Step(n: 1, title: 'Xếp lại khoản chưa phân loại (${unsorted.length})'),
           if (unsorted.isEmpty)
-            Padding(padding: const EdgeInsets.all(8), child: Text('Gọn gàng rồi 👍', style: TextStyle(color: cs.onSurfaceVariant)))
+            Padding(padding: const EdgeInsets.all(8), child: Text('Gọn gàng rồi', style: TextStyle(color: cs.onSurfaceVariant)))
           else
             Card(
               clipBehavior: Clip.antiAlias,
@@ -63,7 +64,7 @@ class CleanupScreen extends StatelessWidget {
                   trailing: Text(money(store.walletBalance(w)), style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ListTile(
-                leading: const Icon(Icons.edit_outlined),
+                leading: const Icon(PhosphorIconsRegular.pencilSimple),
                 title: const Text('Lệch với app ngân hàng / ví thật? Chỉnh số dư'),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletsScreen())),
               ),
@@ -80,7 +81,7 @@ class CleanupScreen extends StatelessWidget {
                   return Text('Đặt ngân sách tổng ở tab Kế hoạch để có hạn mức mỗi ngày.', style: TextStyle(color: cs.onSurfaceVariant));
                 }
                 return Text('Tuần này giữ mỗi ngày dưới ${money(allowance)} là đúng kế hoạch. '
-                    'Chuỗi hiện tại: ${store.streak} ngày 🔥');
+                    'Chuỗi hiện tại: ${store.streak} ngày.');
               }),
             ),
           ),
@@ -88,7 +89,7 @@ class CleanupScreen extends StatelessWidget {
           FilledButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Xong! Sổ sách tuần này gọn gàng 🎋')));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Xong! Sổ sách tuần này gọn gàng')));
             },
             child: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Xong')),
           ),

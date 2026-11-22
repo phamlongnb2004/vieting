@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../store.dart';
 import '../theme.dart';
@@ -124,7 +125,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: _sending ? null : _send,
-            icon: const Icon(Icons.send),
+            icon: const Icon(PhosphorIconsRegular.paperPlaneRight),
             label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Gửi')),
           ),
           if (store.loggedIn) ...[
@@ -166,7 +167,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(color: Brand.bamboo.withAlpha(25), borderRadius: BorderRadius.circular(10)),
-                          child: Text('💬 VieTing: ${t['reply']}'),
+                          child: Text('VieTing: ${t['reply']}'),
                         ),
                       ],
                     ]),

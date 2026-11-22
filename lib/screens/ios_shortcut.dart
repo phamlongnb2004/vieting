@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../theme.dart';
 
@@ -61,7 +62,7 @@ class IosShortcutScreen extends StatelessWidget {
               title: const SelectableText(link, style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700)),
               subtitle: const Text('Có thể thêm &bank=Vietcombank để gắn đúng ví'),
               trailing: IconButton(
-                icon: const Icon(Icons.copy),
+                icon: const Icon(PhosphorIconsRegular.copy),
                 onPressed: () {
                   Clipboard.setData(const ClipboardData(text: link));
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã copy link')));

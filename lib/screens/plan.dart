@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'bills.dart';
 import 'budgets.dart';
@@ -23,13 +24,13 @@ class PlanScreen extends StatelessWidget {
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             tabs: [
-              Tab(icon: Icon(Icons.savings_outlined), text: 'Ngân sách'),
-              Tab(icon: Icon(Icons.forest_outlined), text: 'Mục tiêu'),
-              Tab(icon: Icon(Icons.local_fire_department_outlined), text: 'Thói quen'),
-              Tab(icon: Icon(Icons.autorenew), text: 'Định kỳ'),
-              Tab(icon: Icon(Icons.ac_unit), text: 'Chờ mua'),
-              Tab(icon: Icon(Icons.groups_2_outlined), text: 'Sổ chung'),
-              Tab(icon: Icon(Icons.redeem), text: 'Hiếu hỉ'),
+              Tab(icon: Icon(PhosphorIconsRegular.piggyBank), text: 'Ngân sách'),
+              Tab(icon: Icon(PhosphorIconsRegular.tree), text: 'Mục tiêu'),
+              Tab(icon: Icon(PhosphorIconsRegular.fire), text: 'Thói quen'),
+              Tab(icon: Icon(PhosphorIconsRegular.arrowsClockwise), text: 'Định kỳ'),
+              Tab(icon: Icon(PhosphorIconsRegular.snowflake), text: 'Chờ mua'),
+              Tab(icon: Icon(PhosphorIconsRegular.usersThree), text: 'Sổ chung'),
+              Tab(icon: Icon(PhosphorIconsRegular.gift), text: 'Hiếu hỉ'),
             ],
           ),
         ),

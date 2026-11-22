@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../insights.dart';
@@ -231,7 +232,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
       }, c.text.trim());
       if (!mounted) return;
       setState(() => _aiRead = null);
-      showToast(context, 'Cảm ơn bạn! VieTing sẽ đọc tốt hơn ở bản sau 🙏');
+      showToast(context, 'Cảm ơn bạn! VieTing sẽ đọc tốt hơn ở bản sau');
     } catch (e) {
       if (mounted) showToast(context, 'Chưa gửi được: $e');
     }
@@ -369,7 +370,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
       appBar: AppBar(
         title: Text(widget.txn == null ? 'Thêm giao dịch' : 'Sửa giao dịch'),
         actions: [
-          if (widget.txn != null) IconButton(onPressed: _delete, icon: const Icon(Icons.delete_outline)),
+          if (widget.txn != null) IconButton(onPressed: _delete, icon: const Icon(PhosphorIconsRegular.trash)),
         ],
       ),
       body: ListView(
@@ -381,7 +382,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
               if (Voice.supported)
                 Expanded(
                   child: _QuickBtn(
-                    icon: _listening ? Icons.stop_circle : Icons.mic,
+                    icon: _listening ? PhosphorIconsRegular.stopCircle : PhosphorIconsRegular.microphone,
                     label: _listening ? 'Đang nghe…' : 'Nói',
                     active: _listening,
                     onTap: _voice,
@@ -390,7 +391,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
               if (Voice.supported) const SizedBox(width: 8),
               Expanded(
                 child: _QuickBtn(
-                  icon: Icons.document_scanner_outlined,
+                  icon: PhosphorIconsRegular.scan,
                   label: _reading ? 'Đang đọc…' : 'Chụp hóa đơn',
                   active: _reading,
                   onTap: _reading ? null : () => _receipt(true),
@@ -399,7 +400,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: _QuickBtn(
-                  icon: Icons.qr_code_2,
+                  icon: PhosphorIconsRegular.qrCode,
                   label: 'Ảnh CK / QR',
                   onTap: _reading ? null : () => _receipt(false),
                 ),
@@ -435,8 +436,8 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
           ],
           SegmentedButton<bool>(
             segments: const [
-              ButtonSegment(value: false, label: Text('Khoản chi'), icon: Icon(Icons.north_east)),
-              ButtonSegment(value: true, label: Text('Khoản thu'), icon: Icon(Icons.south_west)),
+              ButtonSegment(value: false, label: Text('Khoản chi'), icon: Icon(PhosphorIconsRegular.arrowUpRight)),
+              ButtonSegment(value: true, label: Text('Khoản thu'), icon: Icon(PhosphorIconsRegular.arrowDownLeft)),
             ],
             selected: {_income},
             onSelectionChanged: (s) => setState(() {
@@ -455,7 +456,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
             decoration: InputDecoration(
               hintText: '0',
               suffixText: '₫',
-              suffixIcon: IconButton(tooltip: 'Nhập bằng ngoại tệ', icon: const Icon(Icons.currency_exchange), onPressed: _foreign),
+              suffixIcon: IconButton(tooltip: 'Nhập bằng ngoại tệ', icon: const Icon(PhosphorIconsRegular.currencyCircleDollar), onPressed: _foreign),
               prefixText: _income ? '+ ' : '− ',
               prefixStyle: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color),
             ),
@@ -463,7 +464,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
           if (!_income && parseMoneyInput(_amount.text) >= 50000 && store.workHours(parseMoneyInput(_amount.text)).isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text('⏱️ ≈ ${store.workHours(parseMoneyInput(_amount.text))} của bạn',
+              child: Text('≈ ${store.workHours(parseMoneyInput(_amount.text))} của bạn',
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
             ),
           if (_aiRead != null)
@@ -471,7 +472,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 onPressed: _reportAi,
-                icon: const Icon(Icons.flag_outlined, size: 18),
+                icon: const Icon(PhosphorIconsRegular.flag, size: 18),
                 label: const Text('AI đọc sai? Báo để VieTing đọc tốt hơn'),
               ),
             ),
@@ -508,7 +509,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Row(children: [
-                    Icon(Icons.account_balance_wallet_outlined, size: 20),
+                    Icon(PhosphorIconsRegular.wallet, size: 20),
                     SizedBox(width: 10),
                     Text('Ví / tài khoản', style: TextStyle(fontSize: 15)),
                   ]),
@@ -526,7 +527,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
               ),
               const Divider(height: 1),
               ListTile(
-                leading: const Icon(Icons.event),
+                leading: const Icon(PhosphorIconsRegular.calendarBlank),
                 title: const Text('Thời gian'),
                 trailing: Text('${hm(_date)} · ${dmy(_date)}', style: const TextStyle(fontWeight: FontWeight.w600)),
                 onTap: _pickDate,
@@ -536,7 +537,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
           const SizedBox(height: 6),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.lock_outline),
+            secondary: const Icon(PhosphorIconsRegular.lockSimple),
             title: const Text('Khoản riêng tư'),
             subtitle: const Text('Ẩn chi tiết (VD quà bí mật), chỉ mở bằng vân tay / mã PIN'),
             value: _hidden,
@@ -553,7 +554,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
           TextField(
             controller: _note,
             maxLines: 2,
-            decoration: const InputDecoration(labelText: 'Ghi chú', prefixIcon: Icon(Icons.notes)),
+            decoration: const InputDecoration(labelText: 'Ghi chú', prefixIcon: Icon(PhosphorIconsRegular.notepad)),
           ),
           if (widget.txn != null && widget.txn!.raw.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -563,7 +564,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
                 padding: const EdgeInsets.all(14),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    const Icon(Icons.notifications_outlined, size: 18),
+                    const Icon(PhosphorIconsRegular.bell, size: 18),
                     const SizedBox(width: 6),
                     Text('Đọc từ ${widget.txn!.source == 'shortcut' ? 'Phím tắt iPhone' : 'thông báo'}',
                         style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -582,7 +583,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: _save,
-            icon: const Icon(Icons.check),
+            icon: const Icon(PhosphorIconsRegular.check),
             label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Lưu')),
           ),
         ],

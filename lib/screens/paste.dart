@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../models.dart';
@@ -109,7 +110,7 @@ class _PasteScreenState extends State<PasteScreen> {
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               hintText: 'VD: TK 1234 -50,000VND lúc 15:20. SD: 1,234,567VND. ND: thanh toan highlands',
-              suffixIcon: IconButton(icon: const Icon(Icons.content_paste), onPressed: () => _paste(force: true)),
+              suffixIcon: IconButton(icon: const Icon(PhosphorIconsRegular.clipboard), onPressed: () => _paste(force: true)),
             ),
           ),
           const SizedBox(height: 16),
@@ -160,14 +161,14 @@ class _PasteScreenState extends State<PasteScreen> {
               onPressed: _ai ? null : _askAi,
               icon: _ai
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.auto_awesome),
+                  : const Icon(PhosphorIconsRegular.sparkle),
               label: const Text('Nhờ AI đọc (MoMo, ZaloPay, nhiều tin một lúc…)'),
             ),
           ],
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: p == null ? null : _add,
-            icon: const Icon(Icons.add),
+            icon: const Icon(PhosphorIconsRegular.plus),
             label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Thêm giao dịch')),
           ),
         ],

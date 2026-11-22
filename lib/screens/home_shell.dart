@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../insights.dart';
 import '../models.dart';
@@ -153,17 +154,17 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       const SettingsScreen(),
     ];
     const items = [
-      (Icons.space_dashboard_outlined, Icons.space_dashboard, 'Tổng quan'),
-      (Icons.receipt_long_outlined, Icons.receipt_long, 'Giao dịch'),
-      (Icons.auto_awesome_outlined, Icons.auto_awesome, 'Trợ lý'),
-      (Icons.forest_outlined, Icons.forest, 'Kế hoạch'),
-      (Icons.settings_outlined, Icons.settings, 'Cài đặt'),
+      (PhosphorIconsRegular.squaresFour, PhosphorIconsFill.squaresFour, 'Tổng quan'),
+      (PhosphorIconsRegular.receipt, PhosphorIconsRegular.receipt, 'Giao dịch'),
+      (PhosphorIconsRegular.sparkle, PhosphorIconsRegular.sparkle, 'Trợ lý'),
+      (PhosphorIconsRegular.tree, PhosphorIconsFill.tree, 'Kế hoạch'),
+      (PhosphorIconsRegular.gear, PhosphorIconsRegular.gear, 'Cài đặt'),
     ];
     final wide = MediaQuery.sizeOf(context).width >= 840;
     final fab = _tab < 2
         ? FloatingActionButton.extended(
             onPressed: () => openEditTxn(context, null),
-            icon: const Icon(Icons.add),
+            icon: const Icon(PhosphorIconsRegular.plus),
             label: const Text('Thêm'),
           )
         : null;

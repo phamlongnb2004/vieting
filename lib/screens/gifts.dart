@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../insights.dart';
 import '../models.dart';
@@ -6,6 +7,7 @@ import '../pro.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
+import '../widgets/vicon.dart';
 
 /// Sổ hiếu hỉ: ai mừng mình bao nhiêu, mình đi lại bao nhiêu, nhắc khi sắp tới dịp.
 class GiftsScreen extends StatelessWidget {
@@ -57,7 +59,7 @@ class GiftsScreen extends StatelessWidget {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.event),
+                  leading: const Icon(PhosphorIconsRegular.calendarBlank),
                   title: Text('Ngày: ${dmy(date)}'),
                   onTap: () async {
                     final d = await showDatePicker(context: c, initialDate: date, firstDate: DateTime(2000), lastDate: DateTime.now().add(const Duration(days: 365)));
@@ -66,7 +68,7 @@ class GiftsScreen extends StatelessWidget {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.notifications_outlined),
+                  leading: const Icon(PhosphorIconsRegular.bell),
                   title: Text(remind == null ? 'Nhắc dịp sắp tới của người này (không bắt buộc)' : 'Nhắc: ${dmy(remind!)}'),
                   onTap: () async {
                     final d = await showDatePicker(
@@ -116,7 +118,7 @@ class GiftsScreen extends StatelessWidget {
         categoryId: given ? 'gia_dinh' : 'khac_thu',
         walletId: wallets.any((w) => w.id == 'cash') ? 'cash' : wallets.first.id,
         date: date,
-        note: '${kGiftEvents[event]!.split(' ').skip(1).join(' ')} ${e.person}',
+        note: '${kGiftEvents[event]} ${e.person}',
       ));
     }
   }
@@ -129,7 +131,7 @@ class GiftsScreen extends StatelessWidget {
     final upcoming = store.upcomingGiftEvents;
     return Scaffold(
       appBar: embedded ? null : AppBar(title: const Text('Sổ hiếu hỉ')),
-      floatingActionButton: FloatingActionButton(heroTag: 'gift', onPressed: () => edit(context, null), child: const Icon(Icons.card_giftcard)),
+      floatingActionButton: FloatingActionButton(heroTag: 'gift', onPressed: () => edit(context, null), child: const Icon(PhosphorIconsRegular.gift)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
@@ -137,7 +139,7 @@ class GiftsScreen extends StatelessWidget {
             Card(
               color: Brand.yellow.withAlpha(50),
               child: ListTile(
-                leading: const Icon(Icons.notifications_active, color: Color(0xFFEF8F00)),
+                leading: const Icon(PhosphorIconsFill.bellRinging, color: Color(0xFFEF8F00)),
                 title: Text('${dmy(u.remind!)}: dịp của ${u.person}', style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text(_hint(store, u.person)),
               ),
@@ -146,7 +148,7 @@ class GiftsScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(children: [
-                const Text('🧧', style: TextStyle(fontSize: 48)),
+                const VIcon(PhosphorIconsRegular.envelopeSimple, color: Brand.red, size: 64),
                 const SizedBox(height: 8),
                 const Text('Sổ hiếu hỉ', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
                 const SizedBox(height: 6),
@@ -175,7 +177,7 @@ class GiftsScreen extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 8),
                     child: TextButton.icon(
                       onPressed: () => edit(context, null, person: p.person),
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(PhosphorIconsRegular.plus),
                       label: const Text('Thêm dịp cho người này'),
                     ),
                   ),

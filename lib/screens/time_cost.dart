@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../insights.dart';
 import '../store.dart';
@@ -99,10 +100,10 @@ class _TimeCostScreenState extends State<TimeCostScreen> {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.timer_outlined),
+            leading: const Icon(PhosphorIconsRegular.timer),
             title: Text(wage > 0 ? 'Thu nhập: ${money(wage)}/giờ' : 'Chưa có thu nhập mỗi giờ'),
             subtitle: Text(store.hourlyWage > 0 ? 'Bạn tự nhập' : wage > 0 ? 'Tự tính từ khoản lương' : 'Bấm để nhập'),
-            trailing: const Icon(Icons.edit_outlined),
+            trailing: const Icon(PhosphorIconsRegular.pencilSimple),
             onTap: _setWage,
           ),
           const SizedBox(height: 10),
@@ -130,7 +131,7 @@ class _TimeCostScreenState extends State<TimeCostScreen> {
                     const Text('tốn của mình', style: TextStyle(color: Colors.white70)),
                     Text(hours, style: const TextStyle(color: Brand.yellow, fontSize: 34, fontWeight: FontWeight.w900, height: 1.1)),
                     const SizedBox(height: 14),
-                    const Text('Mua hay không mua? 🤔', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    const Text('Mua hay không mua?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 10),
                     const Text('Đổi giá ra giờ làm trên VieTing', style: TextStyle(color: Colors.white38, fontSize: 11)),
                   ]),
@@ -140,7 +141,7 @@ class _TimeCostScreenState extends State<TimeCostScreen> {
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _busy ? null : _share,
-              icon: const Icon(Icons.ios_share),
+              icon: const Icon(PhosphorIconsRegular.shareNetwork),
               label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Chia sẻ lên story')),
             ),
           ] else

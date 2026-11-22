@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../insights.dart';
 import '../models.dart';
@@ -10,6 +11,7 @@ import '../util/format.dart';
 import 'edit_txn.dart';
 import 'goals.dart';
 import 'time_cost.dart';
+import '../widgets/vicon.dart';
 
 /// Danh sách chờ 48 giờ: "làm nguội" trước khi mua món không thiết yếu.
 /// Món đã mua thì theo dõi giá chia theo số lần dùng (cost-per-use).
@@ -46,7 +48,7 @@ class WishlistScreen extends StatelessWidget {
                 ),
                 if (hours.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text('⏱️ Món này tốn của bạn $hours', style: const TextStyle(fontWeight: FontWeight.w700, color: Brand.red)),
+                  Text('Món này tốn của bạn $hours', style: const TextStyle(fontWeight: FontWeight.w700, color: Brand.red)),
                 ],
                 const SizedBox(height: 8),
                 const Text('Món sẽ nằm trong danh sách chờ 48 giờ, sau đó VieTing hỏi lại bạn còn muốn mua không.'),
@@ -104,16 +106,16 @@ class WishlistScreen extends StatelessWidget {
     final skipped = store.savedBySkipping;
     return Scaffold(
       appBar: embedded ? null : AppBar(title: const Text('Danh sách chờ')),
-      floatingActionButton: FloatingActionButton(heroTag: 'wish', onPressed: () => add(context), child: const Icon(Icons.add_shopping_cart)),
+      floatingActionButton: FloatingActionButton(heroTag: 'wish', onPressed: () => add(context), child: const Icon(PhosphorIconsRegular.shoppingCartSimple)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
           Card(
             child: ListTile(
-              leading: const Text('⏱️', style: TextStyle(fontSize: 24)),
+              leading: const VIcon(PhosphorIconsRegular.hourglassMedium),
               title: const Text('Đổi giá ra giờ làm việc', style: TextStyle(fontWeight: FontWeight.w700)),
               subtitle: const Text('Xem món đồ tốn bao nhiêu giờ làm, chia sẻ lên story'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TimeCostScreen())),
             ),
           ),
@@ -121,7 +123,7 @@ class WishlistScreen extends StatelessWidget {
             Card(
               color: Brand.bamboo.withAlpha(30),
               child: ListTile(
-                leading: const Text('🧊', style: TextStyle(fontSize: 26)),
+                leading: const VIcon(PhosphorIconsRegular.snowflake, color: Brand.bamboo),
                 title: Text('Đã giữ lại ${money(skipped)}', style: const TextStyle(fontWeight: FontWeight.w800)),
                 subtitle: const Text('nhờ "làm nguội" 48 giờ rồi không mua'),
               ),
@@ -138,7 +140,7 @@ class WishlistScreen extends StatelessWidget {
           for (final w in waiting)
             Card(
               child: ListTile(
-                leading: Icon(w.ready ? Icons.alarm_on : Icons.ac_unit, color: w.ready ? const Color(0xFFEF8F00) : Brand.navy),
+                leading: Icon(w.ready ? PhosphorIconsRegular.alarm : PhosphorIconsRegular.snowflake, color: w.ready ? const Color(0xFFEF8F00) : Brand.navy),
                 title: Text(w.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text([
                   money(w.price),
@@ -148,7 +150,7 @@ class WishlistScreen extends StatelessWidget {
                 trailing: w.ready
                     ? FilledButton(onPressed: () => decide(context, w), child: const Text('Quyết'))
                     : IconButton(
-                        icon: const Icon(Icons.delete_outline),
+                        icon: const Icon(PhosphorIconsRegular.trash),
                         onPressed: () {
                           w.status = 'skipped';
                           w.decidedAt = DateTime.now();
@@ -172,7 +174,7 @@ class WishlistScreen extends StatelessWidget {
                 title: Text(w.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text('${money(w.price)} · dùng ${w.uses} lần · ${money(w.costPerUse)}/lần'),
                 trailing: IconButton.filledTonal(
-                  icon: const Icon(Icons.plus_one),
+                  icon: const Icon(PhosphorIconsRegular.plusCircle),
                   onPressed: () {
                     w.uses++;
                     store.saveWish(w);

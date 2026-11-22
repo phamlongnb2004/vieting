@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../insights.dart';
@@ -97,7 +98,7 @@ class BillsScreen extends StatelessWidget {
                 ],
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.event),
+                  leading: const Icon(PhosphorIconsRegular.calendarBlank),
                   title: Text('Kỳ tới: ${dmy(next)}'),
                   onTap: () async {
                     final d = await showDatePicker(
@@ -146,7 +147,7 @@ class BillsScreen extends StatelessWidget {
     final now = DateTime.now();
     return Scaffold(
       appBar: embedded ? null : AppBar(title: const Text('Khoản định kỳ')),
-      floatingActionButton: FloatingActionButton(heroTag: 'bill', onPressed: () => edit(context, null), child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(heroTag: 'bill', onPressed: () => edit(context, null), child: const Icon(PhosphorIconsRegular.plus)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
@@ -155,7 +156,7 @@ class BillsScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(children: [
-                const Icon(Icons.autorenew, color: Colors.white),
+                const Icon(PhosphorIconsRegular.arrowsClockwise, color: Colors.white),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text('Định kỳ tốn khoảng ${money(store.monthlyBills)}/tháng · ${compactMoney(store.monthlyBills * 12)}/năm',
@@ -177,7 +178,7 @@ class BillsScreen extends StatelessWidget {
                 onTap: () => edit(context, b),
                 leading: CircleAvatar(
                   backgroundColor: catById(b.categoryId).color.withAlpha(35),
-                  child: Icon(b.isInstallment ? Icons.credit_score : Icons.autorenew, color: catById(b.categoryId).color),
+                  child: Icon(b.isInstallment ? PhosphorIconsRegular.creditCard : PhosphorIconsRegular.arrowsClockwise, color: catById(b.categoryId).color),
                 ),
                 title: Text(b.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text([
@@ -187,7 +188,7 @@ class BillsScreen extends StatelessWidget {
                 ].join(' · ')),
                 trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   if (b.next.isBefore(now.add(const Duration(days: 3))))
-                    const Padding(padding: EdgeInsets.only(right: 4), child: Icon(Icons.notifications_active, color: Color(0xFFEF8F00), size: 20)),
+                    const Padding(padding: EdgeInsets.only(right: 4), child: Icon(PhosphorIconsFill.bellRinging, color: Color(0xFFEF8F00), size: 20)),
                   PopupMenuButton<String>(
                     onSelected: (v) {
                       if (v == 'pay') {
@@ -212,10 +213,10 @@ class BillsScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.calculate_outlined, color: Brand.bamboo),
+              leading: const Icon(PhosphorIconsRegular.calculator, color: Brand.bamboo),
               title: const Text('Thử trả góp trước khi mua', style: TextStyle(fontWeight: FontWeight.w700)),
               subtitle: const Text('Xem 6 tháng tới tháng nào bị âm tiền'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => Pro.open(context, 'installment', const InstallmentSimScreen()),
             ),
           ),
@@ -287,7 +288,7 @@ class _InstallmentSimScreenState extends State<InstallmentSimScreen> {
               padding: const EdgeInsets.all(14),
               child: Text(
                 firstNeg.isEmpty
-                    ? 'Với thu chi trung bình hiện tại, 6 tháng tới bạn vẫn dương tiền khi thêm khoản này 👍'
+                    ? 'Với thu chi trung bình hiện tại, 6 tháng tới bạn vẫn dương tiền khi thêm khoản này.'
                     : 'Tháng ${firstNeg.first.month.month}/${firstNeg.first.month.year} có thể bị âm ${money(-firstNeg.first.balance)}. Cân nhắc kéo dài kỳ hạn hoặc để dành thêm trước khi mua nhé.',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
@@ -333,7 +334,7 @@ class _InstallmentSimScreenState extends State<InstallmentSimScreen> {
                     );
                     await BillsScreen.edit(context, b, installment: true);
                   },
-            icon: const Icon(Icons.add),
+            icon: const Icon(PhosphorIconsRegular.plus),
             label: const Text('Đã quyết mua trả góp: thêm vào khoản định kỳ'),
           ),
         ],

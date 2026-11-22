@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../config.dart';
 import '../store.dart';
@@ -99,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline)),
+                decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(PhosphorIconsRegular.envelopeSimple)),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -107,9 +108,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: _hide,
                 decoration: InputDecoration(
                   labelText: 'Mật khẩu',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: const Icon(PhosphorIconsRegular.lockSimple),
                   suffixIcon: IconButton(
-                    icon: Icon(_hide ? Icons.visibility : Icons.visibility_off),
+                    icon: Icon(_hide ? PhosphorIconsRegular.eye : PhosphorIconsRegular.eyeSlash),
                     onPressed: () => setState(() => _hide = !_hide),
                   ),
                 ),
@@ -119,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextField(
                   controller: _pass2,
                   obscureText: _hide,
-                  decoration: const InputDecoration(labelText: 'Nhập lại mật khẩu', prefixIcon: Icon(Icons.lock_reset)),
+                  decoration: const InputDecoration(labelText: 'Nhập lại mật khẩu', prefixIcon: Icon(PhosphorIconsRegular.lockKeyOpen)),
                 ),
               ],
               if (_error != null) ...[

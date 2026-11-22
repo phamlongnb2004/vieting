@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../insights.dart';
 import '../ui_keys.dart';
@@ -23,7 +24,7 @@ void showNudges(List<Nudge> nudges) {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(n.serious ? Icons.warning_amber_rounded : Icons.lightbulb_outline, color: const Color(0xFFFFCD00), size: 18),
+              Icon(n.serious ? PhosphorIconsRegular.warning : PhosphorIconsRegular.lightbulb, color: const Color(0xFFFFCD00), size: 18),
               const SizedBox(width: 8),
               Expanded(child: Text(n.text, style: const TextStyle(color: Colors.white))),
             ]),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../models.dart';
 import '../store.dart';
@@ -54,7 +55,7 @@ class WalletsScreen extends StatelessWidget {
                     child: CircleAvatar(
                       radius: 15,
                       backgroundColor: Color(col),
-                      child: color == col ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
+                      child: color == col ? const Icon(PhosphorIconsRegular.check, color: Colors.white, size: 16) : null,
                     ),
                   ),
               ]),
@@ -93,7 +94,7 @@ class WalletsScreen extends StatelessWidget {
     final wallets = store.activeWallets;
     return Scaffold(
       appBar: AppBar(title: const Text('Ví & tài khoản')),
-      floatingActionButton: FloatingActionButton(onPressed: () => _edit(context, null), child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(onPressed: () => _edit(context, null), child: const Icon(PhosphorIconsRegular.plus)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

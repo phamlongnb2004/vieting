@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../insights.dart';
@@ -48,7 +49,7 @@ class _WrappedScreenState extends State<WrappedScreen> {
       final dir = await getTemporaryDirectory();
       final f = File('${dir.path}${Platform.pathSeparator}vieting-tong-ket.png');
       await f.writeAsBytes(data!.buffer.asUint8List());
-      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], text: 'Tổng kết chi tiêu của mình trên VieTing 🎋');
+      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], text: 'Tổng kết chi tiêu của mình trên VieTing');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không chia sẻ được: $e')));
     } finally {
@@ -81,7 +82,7 @@ class _WrappedScreenState extends State<WrappedScreen> {
               _m = d.month;
               });
             },
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(PhosphorIconsRegular.caretLeft),
           ),
           IconButton(
             onPressed: () => setState(() {
@@ -89,7 +90,7 @@ class _WrappedScreenState extends State<WrappedScreen> {
               _y = d.year;
               _m = d.month;
             }),
-            icon: const Icon(Icons.chevron_right),
+            icon: const Icon(PhosphorIconsRegular.caretRight),
           ),
         ],
       ),
@@ -129,7 +130,7 @@ class _WrappedScreenState extends State<WrappedScreen> {
                   if (w.topPlace != null && w.topPlaceCount >= 2) stat('"${w.topPlace}" × ${w.topPlaceCount}', 'chỗ quen thuộc nhất'),
                   if (w.biggest != null && !w.biggest!.hidden)
                     stat(compactMoney(w.biggest!.amount), 'khoản lớn nhất: ${catById(w.biggest!.categoryId).name}'),
-                  if (w.income > 0) stat(compactMoney(w.income - w.expense), w.income >= w.expense ? 'để dành được 🎋' : 'chi vượt thu'),
+                  if (w.income > 0) stat(compactMoney(w.income - w.expense), w.income >= w.expense ? 'để dành được' : 'chi vượt thu'),
                   const SizedBox(height: 10),
                   const Text('Tải VieTing – có tiền vào ra là ting', style: TextStyle(color: Colors.white54, fontSize: 11)),
                 ]),
@@ -139,7 +140,7 @@ class _WrappedScreenState extends State<WrappedScreen> {
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _sharing ? null : _share,
-            icon: const Icon(Icons.ios_share),
+            icon: const Icon(PhosphorIconsRegular.shareNetwork),
             label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Chia sẻ lên story')),
           ),
         ],

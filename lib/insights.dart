@@ -45,29 +45,29 @@ extension Insights on AppStore {
         .length;
     if (g != null && g.leftToday < 0) {
       return _tone(
-        gentle: 'Hôm nay hơi quá tay ${compactMoney(-g.leftToday)}, mai mình tiết chế chút là ổn 🌿',
-        funny: 'Lố ${compactMoney(-g.leftToday)} rồi đó bạn ơi, ví đang khóc thầm 🥲',
-        strict: 'Tiêu lố ${compactMoney(-g.leftToday)} rồi! Từ giờ tới tối không chi thêm nữa nghe chưa 😤',
+        gentle: 'Hôm nay hơi quá tay ${compactMoney(-g.leftToday)}, mai mình tiết chế chút là ổn',
+        funny: 'Lố ${compactMoney(-g.leftToday)} rồi đó bạn ơi, ví đang khóc thầm',
+        strict: 'Tiêu lố ${compactMoney(-g.leftToday)} rồi! Từ giờ tới tối không chi thêm nữa nghe chưa',
         expert: 'Vượt hạn mức ngày ${compactMoney(-g.leftToday)}. Hạn mức các ngày còn lại sẽ giảm tương ứng.',
       );
     }
     if (drinks >= 4) {
       return _tone(
-        gentle: 'Tuần này $drinks lần trà sữa / cà phê rồi, thử pha ở nhà vài hôm nhé ☕',
-        funny: '$drinks ly trà sữa / cà phê trong tuần — máu bạn chắc ngọt hơn ví rồi 🧋',
-        strict: '$drinks ly trong một tuần! Trà sữa không phải bữa chính đâu con 😤',
+        gentle: 'Tuần này $drinks lần trà sữa / cà phê rồi, thử pha ở nhà vài hôm nhé',
+        funny: '$drinks ly trà sữa / cà phê trong tuần — máu bạn chắc ngọt hơn ví rồi',
+        strict: '$drinks ly trong một tuần! Trà sữa không phải bữa chính đâu con',
         expert: '$drinks lần đồ uống trong 7 ngày ≈ ${compactMoney(drinks * 45000 * 4)}/tháng nếu duy trì.',
       );
     }
     if (g != null) {
       return _tone(
-        gentle: 'Hôm nay còn ${compactMoney(g.leftToday)} để tiêu thoải mái, không cần áy náy 💛',
-        funny: 'Còn ${compactMoney(g.leftToday)} hôm nay, quẩy nhẹ thôi nha 😎',
+        gentle: 'Hôm nay còn ${compactMoney(g.leftToday)} để tiêu thoải mái, không cần áy náy',
+        funny: 'Còn ${compactMoney(g.leftToday)} hôm nay, quẩy nhẹ thôi nha',
         strict: 'Còn ${compactMoney(g.leftToday)}. Tiêu gì cũng phải ghi lại đấy!',
         expert: 'Hạn mức an toàn hôm nay: ${compactMoney(g.leftToday)} (đã trừ cố định & tiết kiệm).',
       );
     }
-    return 'Nhập thu nhập để biết mỗi ngày được tiêu thoải mái bao nhiêu 🎋';
+    return 'Nhập thu nhập để biết mỗi ngày được tiêu thoải mái bao nhiêu';
   }
 
   // ---------------- Gợi ý theo khung giờ ----------------
@@ -115,15 +115,15 @@ extension Insights on AppStore {
       final name = id == 'all' ? 'tổng chi' : catById(id).name;
       if (spent > b.limit && before <= b.limit) {
         out.add(Nudge(_tone(
-            gentle: 'Kỳ này mình tiêu cho $name hơi quá tay một chút (${compactMoney(spent)}/${compactMoney(b.limit)}). Không sao, tuần tới mình cùng điều chỉnh nhẹ nhé 🌱',
-            funny: 'Ối, ngân sách $name "bay màu" rồi (${compactMoney(spent)}/${compactMoney(b.limit)}). Ví đang khóc thầm đấy 😅',
+            gentle: 'Kỳ này mình tiêu cho $name hơi quá tay một chút (${compactMoney(spent)}/${compactMoney(b.limit)}). Không sao, tuần tới mình cùng điều chỉnh nhẹ nhé',
+            funny: 'Ối, ngân sách $name "bay màu" rồi (${compactMoney(spent)}/${compactMoney(b.limit)}). Ví đang khóc thầm đấy',
             strict: 'Đã vượt ngân sách $name: ${compactMoney(spent)}/${compactMoney(b.limit)}. Dừng chi mục này đến hết kỳ!'), serious: true));
       } else if (spent >= b.limit * 0.8 && before < b.limit * 0.8) {
         final left = b.limit - spent;
         final perDay = left ~/ daysLeft;
         out.add(Nudge(_tone(
             gentle: 'Ngân sách $name đã dùng ${(spent * 100 / b.limit).round()}%. Còn ${compactMoney(left)}, mình chi khoảng ${compactMoney(perDay)}/ngày là vừa đẹp.',
-            funny: '$name đã ăn ${(spent * 100 / b.limit).round()}% ngân sách rồi nha. Còn ${compactMoney(left)} thôi, ~${compactMoney(perDay)}/ngày, liệu cơm gắp mắm 🍚',
+            funny: '$name đã ăn ${(spent * 100 / b.limit).round()}% ngân sách rồi nha. Còn ${compactMoney(left)} thôi, ~${compactMoney(perDay)}/ngày, liệu cơm gắp mắm',
             strict: 'Ngân sách $name đã dùng ${(spent * 100 / b.limit).round()}%. Chỉ được chi tối đa ${compactMoney(perDay)}/ngày.')));
       }
     }
@@ -138,7 +138,7 @@ extension Insights on AppStore {
       if (med > 0 && t.amount >= med * 3 && t.amount >= 100000) {
         out.add(Nudge(_tone(
             gentle: 'Khoản này lớn hơn thường lệ (gấp ${(t.amount / med).toStringAsFixed(1)} lần mức hay chi cho ${catById(t.categoryId).name}). Nếu là dịp đặc biệt thì cứ thoải mái nhé.',
-            funny: 'Gấp ${(t.amount / med).toStringAsFixed(1)} lần bình thường luôn! Hôm nay có biến gì vui à? 👀',
+            funny: 'Gấp ${(t.amount / med).toStringAsFixed(1)} lần bình thường luôn! Hôm nay có biến gì vui à?',
             strict: 'Bất thường: gấp ${(t.amount / med).toStringAsFixed(1)} lần mức chi ${catById(t.categoryId).name} thông thường (${compactMoney(med)}).')));
       }
     }
@@ -155,12 +155,12 @@ extension Insights on AppStore {
     if (avg > 0 && thisWeek > avg * 1.5 && thisWeek - t.amount <= avg * 1.5) {
       out.add(Nudge(_tone(
           gentle: 'Tuần này mình chi ${compactMoney(thisWeek)}, hơi nhiều hơn mọi tuần (${compactMoney(avg)}). Mấy ngày tới thong thả lại chút nhé.',
-          funny: 'Tuần này tiêu ${compactMoney(thisWeek)}, vượt phong độ thường ngày (${compactMoney(avg)}) rồi đó 🏃',
+          funny: 'Tuần này tiêu ${compactMoney(thisWeek)}, vượt phong độ thường ngày (${compactMoney(avg)}) rồi đó',
           strict: 'Tuần này chi ${compactMoney(thisWeek)}, cao hơn 50% mức trung bình ${compactMoney(avg)}/tuần.')));
     }
     if (t.tag == 'boc_dong') {
       final c = activeChallenge;
-      if (c != null) out.add(Nudge(_tone(gentle: 'Thử thách 7 ngày tạm dừng ở đây. Không sao cả, mình bắt đầu lại khi sẵn sàng nhé.', funny: 'Toang thử thách 7 ngày rồi 😆 Làm lại ván mới nào!', strict: 'Thử thách 7 ngày thất bại vì khoản bốc đồng này.')));
+      if (c != null) out.add(Nudge(_tone(gentle: 'Thử thách 7 ngày tạm dừng ở đây. Không sao cả, mình bắt đầu lại khi sẵn sàng nhé.', funny: 'Toang thử thách 7 ngày rồi Làm lại ván mới nào!', strict: 'Thử thách 7 ngày thất bại vì khoản bốc đồng này.')));
     }
     return out;
   }
@@ -549,21 +549,21 @@ extension Planning on AppStore {
     final share = total == 0 ? 0.0 : topAmt / total;
     String title;
     if (exp.isEmpty) {
-      title = 'Tháng của sự tĩnh lặng 🧘';
+      title = 'Tháng của sự tĩnh lặng';
     } else if (late >= 5) {
-      title = 'Chiến thần săn sale đêm khuya 🌙';
+      title = 'Chiến thần săn sale đêm khuya';
     } else if (topCat == 'an_uong' && share > 0.35) {
-      title = 'Tín đồ ẩm thực chính hiệu 🍜';
+      title = 'Tín đồ ẩm thực chính hiệu';
     } else if (topCat == 'mua_sam' && share > 0.3) {
-      title = 'Thánh chốt đơn 🛒';
+      title = 'Thánh chốt đơn';
     } else if (topCat == 'di_lai' && share > 0.25) {
-      title = 'Dân du mục thành phố 🛵';
+      title = 'Dân du mục thành phố';
     } else if (topCat == 'giao_duc') {
-      title = 'Nhà đầu tư cho bản thân 📚';
+      title = 'Nhà đầu tư cho bản thân';
     } else if (inc > total) {
-      title = 'Cao thủ giữ tiền 🎋';
+      title = 'Cao thủ giữ tiền';
     } else {
-      title = 'Người cân bằng thu chi ⚖️';
+      title = 'Người cân bằng thu chi';
     }
     return Wrapped(
       period: periodLabel(y, m),

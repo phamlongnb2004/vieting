@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../config.dart';
 import '../insights.dart';
@@ -7,6 +8,7 @@ import '../widgets/nudge.dart';
 import '../services/assistant.dart';
 import '../services/voice.dart';
 import '../store.dart';
+import 'pro_screen.dart';
 import '../ui_keys.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -148,7 +150,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
             child: Card(
               color: Brand.yellow.withAlpha(55),
               child: ListTile(
-                leading: const Icon(Icons.cloud_off_outlined),
+                leading: const Icon(PhosphorIconsRegular.cloudSlash),
                 title: const Text('Chưa nối server AI', style: TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: const Text('Vẫn ghi nhanh được câu kiểu "phở 45k". Nhập địa chỉ server để hỏi đáp.'),
                 trailing: kServerUrl.isEmpty ? TextButton(onPressed: _serverDialog, child: const Text('Nhập')) : null,
@@ -183,6 +185,35 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ],
             ),
           ),
+        Builder(builder: (context) {
+          final q = store.chatQuota;
+          if (q == null || q['pro'] == true) return const SizedBox.shrink();
+          final left = ((q['left'] as num?) ?? 0).toInt();
+          final limit = ((q['limit'] as num?) ?? 30).toInt();
+          final low = left <= 5;
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Row(children: [
+              Icon(PhosphorIconsRegular.chatCircleText, size: 16, color: low ? Brand.red : Theme.of(context).colorScheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  left > 0 ? 'Còn $left/$limit tin nhắn trợ lý hôm nay' : 'Hôm nay đã hết $limit tin nhắn miễn phí',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: low ? FontWeight.w700 : FontWeight.w500,
+                    color: low ? Brand.red : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProScreen())),
+                child: const Text('Nâng cấp Pro'),
+              ),
+            ]),
+          );
+        }),
         SafeArea(
           top: false,
           child: Padding(
@@ -206,13 +237,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 const SizedBox(width: 4),
                 IconButton(
                   onPressed: _busy ? null : _mic,
-                  icon: Icon(_listening ? Icons.stop_circle : Icons.mic, color: Brand.red),
+                  icon: Icon(_listening ? PhosphorIconsRegular.stopCircle : PhosphorIconsRegular.microphone, color: Brand.red),
                 ),
               ],
               const SizedBox(width: 4),
               IconButton.filled(
                 onPressed: _busy ? null : () => _send(),
-                icon: const Icon(Icons.arrow_upward),
+                icon: const Icon(PhosphorIconsRegular.arrowUp),
               ),
             ]),
           ),
@@ -322,7 +353,7 @@ class _Bubble extends StatelessWidget {
                   color: Brand.bamboo.withAlpha(18),
                 ),
                 child: Row(children: [
-                  Icon(msg.actions[i]['type'] == 'add_txn' ? Icons.edit_note : Icons.savings_outlined,
+                  Icon(msg.actions[i]['type'] == 'add_txn' ? PhosphorIconsRegular.notePencil : PhosphorIconsRegular.piggyBank,
                       color: Brand.bamboo, size: 20),
                   const SizedBox(width: 8),
                   Flexible(child: Text(Assistant.describe(msg.actions[i]), style: const TextStyle(fontWeight: FontWeight.w600))),
@@ -331,7 +362,7 @@ class _Bubble extends StatelessWidget {
                     const Padding(
                       padding: EdgeInsets.all(6),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.check_circle, color: Brand.bamboo, size: 18),
+                        Icon(PhosphorIconsFill.checkCircle, color: Brand.bamboo, size: 18),
                         SizedBox(width: 4),
                         Text('Đã xong', style: TextStyle(color: Brand.bamboo, fontWeight: FontWeight.w700)),
                       ]),

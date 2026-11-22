@@ -4,6 +4,8 @@ import '../store.dart';
 import '../theme.dart';
 import '../ui_keys.dart';
 import '../util/format.dart';
+import '../widgets/vicon.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Màn giới thiệu VieTing Pro: quyền lợi, giá, nhập mã khuyến mãi.
 /// Thanh toán qua App Store / Google Play sẽ nối vào khi app lên cửa hàng.
@@ -21,13 +23,13 @@ class _ProScreenState extends State<ProScreen> {
   int _plan = 1;
 
   static const _perks = [
-    ('🤖', 'AI thoải mái', 'Đọc ảnh hóa đơn & tách hóa đơn siêu thị không giới hạn, nhờ AI đọc tin MoMo / ZaloPay, 300 lượt trợ lý mỗi ngày'),
-    ('🔮', 'Dự báo & đường băng', 'Biết trước cuối kỳ còn bao nhiêu, ngày nào chạm đáy ví, sống được bao lâu nếu mất thu nhập'),
-    ('🗓️', 'Kế hoạch không giới hạn', 'Khoản định kỳ, hũ mục tiêu, danh sách chờ mua, sổ chung không giới hạn'),
-    ('🧮', 'Mô phỏng', 'Trả góp hay trả thẳng, cắt giảm chi tiêu thì bao lâu đạt mục tiêu'),
-    ('🧧', 'Sổ hiếu hỉ', 'Ai mừng mình bao nhiêu, nhắc trước mỗi dịp'),
-    ('🎭', 'Đủ tính cách trợ lý', 'Bạn thân cà khịa, Mẹ khó tính, Chuyên gia tài chính'),
-    ('✨', 'Tổng kết mọi kỳ', 'Xem lại và chia sẻ thẻ tổng kết của tất cả các tháng'),
+    (PhosphorIconsRegular.sparkle, 'AI thoải mái', 'Đọc ảnh hóa đơn & tách hóa đơn siêu thị không giới hạn, nhờ AI đọc tin MoMo / ZaloPay, 300 lượt trợ lý mỗi ngày'),
+    (PhosphorIconsRegular.chartLineUp, 'Dự báo & đường băng', 'Biết trước cuối kỳ còn bao nhiêu, ngày nào chạm đáy ví, sống được bao lâu nếu mất thu nhập'),
+    (PhosphorIconsRegular.calendarCheck, 'Kế hoạch không giới hạn', 'Khoản định kỳ, hũ mục tiêu, danh sách chờ mua, sổ chung không giới hạn'),
+    (PhosphorIconsRegular.calculator, 'Mô phỏng', 'Trả góp hay trả thẳng, cắt giảm chi tiêu thì bao lâu đạt mục tiêu'),
+    (PhosphorIconsRegular.envelopeSimple, 'Sổ hiếu hỉ', 'Ai mừng mình bao nhiêu, nhắc trước mỗi dịp'),
+    (PhosphorIconsRegular.userSound, 'Đủ tính cách trợ lý', 'Bạn thân cà khịa, Mẹ khó tính, Chuyên gia tài chính'),
+    (PhosphorIconsRegular.shareNetwork, 'Tổng kết mọi kỳ', 'Xem lại và chia sẻ thẻ tổng kết của tất cả các tháng'),
   ];
 
   static const _plans = [
@@ -53,7 +55,7 @@ class _ProScreenState extends State<ProScreen> {
     try {
       final days = await store.redeem(_code.text.trim());
       if (!mounted) return;
-      showToast(context, '🎉 Đã mở Pro thêm $days ngày');
+      showToast(context, ' Đã mở Pro thêm $days ngày');
       Navigator.pop(context);
     } catch (e) {
       if (mounted) showToast(context, '$e'.replaceFirst('Exception: ', ''));
@@ -78,11 +80,11 @@ class _ProScreenState extends State<ProScreen> {
               gradient: const LinearGradient(colors: [Brand.red, Color(0xFF7A1418)], begin: Alignment.topLeft, end: Alignment.bottomRight),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('👑 VieTing Pro', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+              const Text('VieTing Pro', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
               Text(
                 store.isPro
-                    ? 'Bạn đang dùng Pro đến ${dmy(store.proUntil!)}. Cảm ơn bạn đã ủng hộ! 🎋'
+                    ? 'Bạn đang dùng Pro đến ${dmy(store.proUntil!)}. Cảm ơn bạn đã ủng hộ!'
                     : widget.reason != null
                         ? '${widget.reason}. Nâng cấp để dùng thoải mái.'
                         : 'Ghi chép luôn miễn phí. Pro dành cho ai muốn đi xa hơn.',
@@ -94,7 +96,7 @@ class _ProScreenState extends State<ProScreen> {
           for (final p in _perks)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Text(p.$1, style: const TextStyle(fontSize: 26)),
+              leading: VIcon(p.$1, color: Brand.red),
               title: Text(p.$2, style: const TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Text(p.$3),
             ),

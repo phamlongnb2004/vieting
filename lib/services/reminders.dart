@@ -36,7 +36,7 @@ class Reminders {
     }
 
     // 1) Nhắc ghi chi tiêu buổi tối (chỉ khi hôm đó chưa ghi gì)
-    final daily = rule('daily', {'on': true, 'hour': 21, 'title': 'Hôm nay tiêu gì rồi? 📝', 'body': 'Dành 10 giây ghi lại chi tiêu hôm nay nhé.'});
+    final daily = rule('daily', {'on': true, 'hour': 21, 'title': 'Hôm nay tiêu gì rồi?', 'body': 'Dành 10 giây ghi lại chi tiêu hôm nay nhé.'});
     if (daily['on'] != false) {
       final h = ((daily['hour'] as num?) ?? 21).toInt();
       final hasToday = s.activeTxns.any((t) => sameDay(t.date, now));
@@ -44,13 +44,13 @@ class Reminders {
       add(1002, _at(now.add(const Duration(days: 1)), h), '${daily['title']}', '${daily['body']}');
     }
     // 2) Lâu không mở app
-    final back = rule('comeback', {'on': true, 'days': 3, 'title': 'Lâu rồi không gặp 🎋', 'body': 'Mở VieTing xem tuần này đã tiêu bao nhiêu nhé.'});
+    final back = rule('comeback', {'on': true, 'days': 3, 'title': 'Lâu rồi không gặp', 'body': 'Mở VieTing xem tuần này đã tiêu bao nhiêu nhé.'});
     if (back['on'] != false) {
       final d = ((back['days'] as num?) ?? 3).toInt();
       add(1100, _at(now.add(Duration(days: d)), 19, 30), '${back['title']}', '${back['body']}');
     }
     // 3) Ngày nhận lương
-    final pay = rule('payday', {'on': true, 'title': 'Hôm nay nhận lương 💰', 'body': 'Trích tiền tiết kiệm trước khi tiêu nhé.'});
+    final pay = rule('payday', {'on': true, 'title': 'Hôm nay nhận lương', 'body': 'Trích tiền tiết kiệm trước khi tiêu nhé.'});
     if (pay['on'] != false && s.cycleDay > 1) {
       var d = DateTime(now.year, now.month, s.cycleDay, 9);
       if (!d.isAfter(now)) d = DateTime(now.year, now.month + 1, s.cycleDay, 9);
@@ -132,7 +132,7 @@ class Reminders {
     if (!NotifyBridge.supported) return;
     try {
       await _ch.invokeMethod('askNotifyPermission');
-      await _ch.invokeMethod('testNotify', {'title': 'VieTing đã bật nhắc nhở 🎋', 'body': 'Thông báo sẽ hiện như thế này, kể cả khi bạn không mở app.'});
+      await _ch.invokeMethod('testNotify', {'title': 'VieTing đã bật nhắc nhở', 'body': 'Thông báo sẽ hiện như thế này, kể cả khi bạn không mở app.'});
     } catch (_) {}
   }
 }

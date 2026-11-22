@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../insights.dart';
 import '../models.dart';
@@ -7,6 +8,7 @@ import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import 'simulate.dart';
+import '../widgets/vicon.dart';
 
 /// Thói quen: chuỗi ngày giữ ngân sách, thử thách 7 ngày, tiền đi đâu vì lý do gì.
 class HabitsScreen extends StatelessWidget {
@@ -32,7 +34,7 @@ class HabitsScreen extends StatelessWidget {
         children: [
           Card(
             child: SwitchListTile(
-              secondary: const Text('💛', style: TextStyle(fontSize: 22)),
+              secondary: const VIcon(PhosphorIconsRegular.heart, color: Brand.red, size: 36),
               title: const Text('Hôm nay là ngày ngoại lệ'),
               subtitle: const Text('Sinh nhật, đám cưới, đi chơi… tiêu nhiều cũng không mất chuỗi'),
               value: store.isSkipDay(DateTime.now()),
@@ -48,7 +50,7 @@ class HabitsScreen extends StatelessWidget {
               gradient: const LinearGradient(colors: [Color(0xFFE8710A), Brand.red]),
             ),
             child: Row(children: [
-              const Text('🔥', style: TextStyle(fontSize: 40)),
+              const VIcon(PhosphorIconsFill.flame, color: Color(0xFFEF6C00), size: 56),
               const SizedBox(width: 14),
               Expanded(
                 child: allowance == null
@@ -80,12 +82,12 @@ class HabitsScreen extends StatelessWidget {
                   ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       const Text('7 ngày không mua sắm bốc đồng', style: TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 4),
-                      Text('Mỗi khoản chi gắn thẻ "Bốc đồng" sẽ làm đứt thử thách. Giữ đủ 7 ngày để nhận huy hiệu 🎋.',
+                      Text('Mỗi khoản chi gắn thẻ "Bốc đồng" sẽ làm đứt thử thách. Giữ đủ 7 ngày để nhận huy hiệu.',
                           style: TextStyle(color: cs.onSurfaceVariant)),
                       const SizedBox(height: 12),
                       FilledButton.icon(
                         onPressed: () => store.startChallenge('no_impulse_7'),
-                        icon: const Icon(Icons.flag),
+                        icon: const Icon(PhosphorIconsFill.flag),
                         label: const Text('Bắt đầu thử thách'),
                       ),
                     ])
@@ -131,10 +133,10 @@ class HabitsScreen extends StatelessWidget {
           const SizedBox(height: 18),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.auto_graph, color: Brand.bamboo),
+              leading: const Icon(PhosphorIconsRegular.chartLineUp, color: Brand.bamboo),
               title: const Text('Mô phỏng: nếu bớt một thói quen thì sao?', style: TextStyle(fontWeight: FontWeight.w700)),
               subtitle: const Text('VD bớt 2 ly trà sữa/tuần, sau 1 năm có thêm bao nhiêu'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => Pro.open(context, 'simulate', const SimulateScreen()),
             ),
           ),
@@ -157,9 +159,9 @@ class _ChallengeView extends StatelessWidget {
     final n = c.days;
     final what = c.title.isEmpty ? 'không mua sắm bốc đồng' : c.title;
     final title = switch (status) {
-      'failed' => '${c.emoji} Thử thách "$what" đã đứt 😅',
-      'done' => 'Hoàn thành! 🎋 Bạn giữ được $n ngày',
-      _ => '${c.emoji.isEmpty ? '' : '${c.emoji} '}Ngày $day/$n · $what',
+      'failed' => 'Thử thách "$what" đã đứt',
+      'done' => 'Hoàn thành! Bạn giữ được $n ngày',
+      _ => 'Ngày $day/$n · $what',
     };
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
@@ -234,7 +236,7 @@ class _CampaignCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${c['emoji'] ?? '🎯'}', style: const TextStyle(fontSize: 30)),
+          VIcon(goalIcon('${c['emoji'] ?? 'target'}'), color: const Color(0xFFB8860B), size: 44),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -249,7 +251,7 @@ class _CampaignCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               if (joined)
-                const Text('✓ Bạn đang tham gia', style: TextStyle(fontWeight: FontWeight.w700, color: Brand.bamboo))
+                const Text('Bạn đang tham gia', style: TextStyle(fontWeight: FontWeight.w700, color: Brand.bamboo))
               else if (!upcoming)
                 FilledButton(
                   onPressed: () {
@@ -258,7 +260,7 @@ class _CampaignCard extends StatelessWidget {
                         id: newId(),
                         name: title,
                         target: ((c['target'] as num?) ?? 0).toInt(),
-                        emoji: '${c['emoji'] ?? '🎯'}',
+                        emoji: '${c['emoji'] ?? 'target'}',
                         deadline: end,
                       ));
                     } else {
