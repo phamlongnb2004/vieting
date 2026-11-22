@@ -203,6 +203,7 @@ function interactionText(j) {
 
 /** Model đang "nghỉ" vì hết lượt / không dùng được: model -> thời điểm được thử lại (ms). Dùng chung qua D1. */
 let cool = { at: 0, map: {} };
+let lastAttempts = []; // các lần thử gần nhất (để chẩn đoán)
 let route = null; // { api: 'gen' | 'int', ver, model } lần gọi thành công gần nhất
 
 async function loadState(env) {
@@ -265,12 +266,14 @@ async function geminiFetch(env, body, prefer = 'flash') {
   if (route && !(cool.map[route.model] > now) && !(cool.map[route.api + ':' + route.model] > now)) cands.push(route);
   for (const m of models) {
     if (cool.map[m] > now) continue;
-    if (!route || route.api === 'gen') cands.push({ api: 'gen', model: m });
+    // Interactions API là cách gọi mặc định mới của Google; generateContent là "legacy" -> thử Interactions trước
     if (!route || route.api === 'int') cands.push({ api: 'int', ver: route?.ver || 'v1beta', model: m });
+    if (!route || route.api === 'gen') cands.push({ api: 'gen', model: m });
   }
   let last = null;
   let tries = 0;
   const seen = new Set();
+  lastAttempts = [];
   for (const r of cands) {
     const key = r.api + r.model;
     if (seen.has(key) || cool.map[r.model] > Date.now() || cool.map[r.api + ':' + r.model] > Date.now()) continue;
@@ -291,6 +294,11 @@ async function geminiFetch(env, body, prefer = 'flash') {
     }
     last = res;
     const text = await res.clone().text();
+    let gm = text;
+    try {
+      gm = JSON.parse(text)?.error?.message || text;
+    } catch {}
+    lastAttempts.push(`${r.api}:${r.model} ${res.status} ${String(gm).slice(0, 90)}`);
     await saveAiError(env, (r.api === 'gen' ? 'generateContent ' : r.ver + ' interactions ') + r.model, res.status, text);
     if (res.status === 429) await coolDown(env, r.model, retryMs(text));
     else if (res.status === 404 || (res.status === 400 && /model|not (found|supported)/i.test(text))) await coolDown(env, r.api + ':' + r.model, 6 * 3600000);
@@ -309,7 +317,7 @@ async function askGemini(env, sys, contents) {
     contents,
     generationConfig: { temperature: 0.3, maxOutputTokens: 1024, responseMimeType: 'application/json' },
   }, 'lite');
-  if (!res || !res.ok) throw new Error('gemini ' + (res?.status ?? 'none') + (res ? ': ' + (await googleMsg(res)) : ''));
+  if (!res || !res.ok) throw new Error('gemini ' + (res?.status ?? 'none') + ' | ' + lastAttempts.join(' | '));
   const j = await res.json();
   const text = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('');
   return { text, provider: 'gemini' };
@@ -428,7 +436,7 @@ export async function handleChat(req, env, userId) {
       out = await askGemini(env, sys, history.map((m) => ({ role: m.role, parts: [{ text: m.text }] })));
     } catch (e) {
       out = null; // hết lượt / lỗi: chuyển sang Workers AI
-      geminiNote = String(e?.message || e).slice(0, 200);
+      geminiNote = String(e?.message || e).slice(0, 600);
     }
   }
   if (!out && env.AI) {

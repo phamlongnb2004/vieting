@@ -188,7 +188,7 @@ export default {
       if (req.method === 'GET' && url.pathname === '/api/push') return await pushFeed(req, env, await auth(req, env), h);
       if (req.method === 'POST' && url.pathname === '/api/ocr-report') return await ocrReport(req, env, await auth(req, env), h);
       if (url.pathname === '/admin' || url.pathname === '/admin/') return adminPage();
-      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai6' });
+      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai7' });
       const p = url.pathname.replace(/\/+$/, '') || '/';
       if (env.ASSETS) {
         const r = await handleDownload(req, env, p);
