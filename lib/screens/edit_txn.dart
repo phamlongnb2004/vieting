@@ -14,6 +14,7 @@ import '../widgets/nudge.dart';
 import 'lock.dart';
 import '../theme.dart';
 import '../util/format.dart';
+import '../widgets/vicon.dart';
 
 Future<void> openEditTxn(BuildContext context, Txn? txn,
     {int? presetAmount, bool presetIncome = false, String? presetNote}) {
@@ -527,7 +528,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
               ),
               const Divider(height: 1),
               ListTile(
-                leading: const Icon(PhosphorIconsRegular.calendarBlank),
+                leading: const VIcon(PhosphorIconsRegular.calendarBlank, size: 36),
                 title: const Text('Thời gian'),
                 trailing: Text('${hm(_date)} · ${dmy(_date)}', style: const TextStyle(fontWeight: FontWeight.w600)),
                 onTap: _pickDate,
@@ -537,7 +538,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
           const SizedBox(height: 6),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            secondary: const Icon(PhosphorIconsRegular.lockSimple),
+            secondary: const VIcon(PhosphorIconsRegular.lockSimple, size: 36),
             title: const Text('Khoản riêng tư'),
             subtitle: const Text('Ẩn chi tiết (VD quà bí mật), chỉ mở bằng vân tay / mã PIN'),
             value: _hidden,

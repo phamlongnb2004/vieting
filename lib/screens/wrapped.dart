@@ -11,6 +11,7 @@ import '../categories.dart';
 import '../insights.dart';
 import '../pro.dart';
 import '../store.dart';
+import '../ui_keys.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/logo.dart';
@@ -49,7 +50,7 @@ class _WrappedScreenState extends State<WrappedScreen> {
       final dir = await getTemporaryDirectory();
       final f = File('${dir.path}${Platform.pathSeparator}vieting-tong-ket.png');
       await f.writeAsBytes(data!.buffer.asUint8List());
-      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], text: 'Tổng kết chi tiêu của mình trên VieTing');
+      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], sharePositionOrigin: shareOrigin(context), text: 'Tổng kết chi tiêu của mình trên VieTing');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không chia sẻ được: $e')));
     } finally {

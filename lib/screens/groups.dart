@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models.dart';
 import '../pro.dart';
 import '../store.dart';
+import '../ui_keys.dart';
 import '../theme.dart';
 import '../util/format.dart';
 
@@ -210,7 +211,7 @@ class GroupDetailScreen extends StatelessWidget {
           IconButton(
             tooltip: 'Chia sẻ tóm tắt',
             icon: const Icon(PhosphorIconsRegular.shareNetwork),
-            onPressed: () => Share.share(_summary(g)),
+            onPressed: () => Share.share(_summary(g), sharePositionOrigin: shareOrigin(context)),
           ),
           PopupMenuButton<String>(
             onSelected: (v) async {

@@ -26,7 +26,7 @@ class Pro {
     'simulate': 'Mô phỏng tương lai là tính năng Pro',
     'forecast': 'Dự báo cuối kỳ & đường băng sinh tồn là tính năng Pro',
     'wrapped': 'Xem tổng kết các kỳ cũ là tính năng Pro',
-    'tone': 'Các tính cách trợ lý khác là tính năng Pro',
+    'tone': 'Tính cách Mẹ khó tính và Chuyên gia tài chính là tính năng Pro',
     'ai': 'Bạn đã dùng hết lượt AI miễn phí',
   };
 

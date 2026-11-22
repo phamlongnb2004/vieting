@@ -59,7 +59,7 @@ class GiftsScreen extends StatelessWidget {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(PhosphorIconsRegular.calendarBlank),
+                  leading: const VIcon(PhosphorIconsRegular.calendarBlank, size: 36),
                   title: Text('Ngày: ${dmy(date)}'),
                   onTap: () async {
                     final d = await showDatePicker(context: c, initialDate: date, firstDate: DateTime(2000), lastDate: DateTime.now().add(const Duration(days: 365)));
@@ -68,7 +68,7 @@ class GiftsScreen extends StatelessWidget {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(PhosphorIconsRegular.bell),
+                  leading: const VIcon(PhosphorIconsRegular.bell, size: 36),
                   title: Text(remind == null ? 'Nhắc dịp sắp tới của người này (không bắt buộc)' : 'Nhắc: ${dmy(remind!)}'),
                   onTap: () async {
                     final d = await showDatePicker(

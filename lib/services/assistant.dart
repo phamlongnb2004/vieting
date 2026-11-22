@@ -79,7 +79,7 @@ class Assistant {
     );
   }
 
-  static Future<AssistantReply> ask(AppStore s, String question) async {
+  static Future<AssistantReply> ask(AppStore s, String question, {String? imageB64, String mime = 'image/jpeg'}) async {
     final base = s.serverUrl.replaceAll(RegExp(r'/+$'), '');
     if (base.isEmpty) {
       return _offline(question, s, why: 'Chưa nối server trợ lý AI nên mình chỉ ghi nhanh được thôi.') ??
@@ -105,7 +105,7 @@ class Assistant {
               'content-type': 'application/json',
               if (s.token.isNotEmpty) 'authorization': 'Bearer ${s.token}',
             },
-            body: jsonEncode({'messages': history, 'context': buildContext(s), 'today': _d(DateTime.now()), 'tone': s.aiTone, 'payday': s.cycleDay > 1 && DateTime.now().difference(s.periodStart(s.currentPeriod.year, s.currentPeriod.month)).inHours < 48}),
+            body: jsonEncode({if (imageB64 != null) 'image': imageB64, if (imageB64 != null) 'mime': mime, 'messages': history, 'context': buildContext(s), 'today': _d(DateTime.now()), 'tone': s.aiTone, 'payday': s.cycleDay > 1 && DateTime.now().difference(s.periodStart(s.currentPeriod.year, s.currentPeriod.month)).inHours < 48}),
           )
           .timeout(const Duration(seconds: 45));
       Map<String, dynamic> body;
@@ -115,6 +115,9 @@ class Assistant {
         body = {'error': 'Server trả về dữ liệu lạ (${res.statusCode})'};
       }
       if (body['quota'] is Map) s.updateChatQuota(Map<String, dynamic>.from(body['quota'] as Map));
+      if (res.statusCode == 402 || res.statusCode == 429) {
+        return AssistantReply((body['error'] ?? 'Hết lượt rồi bestie ơi').toString(), const []);
+      }
       if (res.statusCode != 200) {
         final err = (body['error'] ?? 'Lỗi server (${res.statusCode})').toString();
         return _offline(question, s, why: err) ?? AssistantReply(err, const []);

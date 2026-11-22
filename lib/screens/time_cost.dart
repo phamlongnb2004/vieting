@@ -13,6 +13,7 @@ import '../theme.dart';
 import '../ui_keys.dart';
 import '../util/format.dart';
 import '../widgets/logo.dart';
+import '../widgets/vicon.dart';
 
 /// Đổi giá món đồ ra "giờ làm việc" + thẻ chia sẻ lên mạng xã hội.
 class TimeCostScreen extends StatefulWidget {
@@ -69,7 +70,7 @@ class _TimeCostScreenState extends State<TimeCostScreen> {
       final dir = await getTemporaryDirectory();
       final f = File('${dir.path}${Platform.pathSeparator}vieting-gio-lam.png');
       await f.writeAsBytes(data!.buffer.asUint8List());
-      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], text: 'Món này tốn bao nhiêu giờ làm của bạn? #VieTing');
+      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], sharePositionOrigin: shareOrigin(context), text: 'Món này tốn bao nhiêu giờ làm của bạn? #VieTing');
     } catch (e) {
       if (mounted) showToast(context, 'Không chia sẻ được: $e');
     } finally {
@@ -100,7 +101,7 @@ class _TimeCostScreenState extends State<TimeCostScreen> {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(PhosphorIconsRegular.timer),
+            leading: const VIcon(PhosphorIconsRegular.timer, size: 36),
             title: Text(wage > 0 ? 'Thu nhập: ${money(wage)}/giờ' : 'Chưa có thu nhập mỗi giờ'),
             subtitle: Text(store.hourlyWage > 0 ? 'Bạn tự nhập' : wage > 0 ? 'Tự tính từ khoản lương' : 'Bấm để nhập'),
             trailing: const Icon(PhosphorIconsRegular.pencilSimple),

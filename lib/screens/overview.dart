@@ -133,6 +133,17 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
             ),
             const SizedBox(height: 12),
           ],
+          Builder(builder: (context) {
+            final g = store.greeting;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(g.hello, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -.5)),
+                const SizedBox(height: 2),
+                Text(g.quip, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
+              ]),
+            );
+          }),
           _BalanceCard(total: store.totalBalance, locked: store.lockedInGoals, income: totals.income, expense: totals.expense, label: store.cycleDay == 1 ? 'tháng ${now.month}' : 'kỳ này'),
           const SizedBox(height: 12),
           _GuiltFreeCard(store: store),
@@ -249,8 +260,12 @@ class _BalanceCard extends StatelessWidget {
     Widget stat(IconData icon, String label, int v) => Expanded(
           child: Row(children: [
             Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: Colors.white.withAlpha(40), borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(38),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withAlpha(40)),
+              ),
               child: Icon(icon, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 8),
@@ -266,29 +281,34 @@ class _BalanceCard extends StatelessWidget {
         );
 
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [Brand.red, Color(0xFF8E1B1F)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [BoxShadow(color: Brand.red.withAlpha(70), blurRadius: 18, offset: const Offset(0, 8))],
+        borderRadius: BorderRadius.circular(28),
+        gradient: Brand.heroGradient,
+        boxShadow: [BoxShadow(color: Brand.red.withAlpha(80), blurRadius: 24, offset: const Offset(0, 10))],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Stack(children: [
-        Positioned(
-          right: -6,
-          top: -6,
-          child: Icon(PhosphorIconsFill.star, size: 70, color: Brand.yellow.withAlpha(80)),
-        ),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Positioned.fill(child: CustomPaint(painter: _HeroPainter())),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: Colors.white.withAlpha(36), borderRadius: BorderRadius.circular(99)),
+              child: Text(label.isEmpty ? 'VieTing' : label[0].toUpperCase() + label.substring(1),
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+            ),
+            const Spacer(),
+            Icon(PhosphorIconsFill.star, size: 22, color: Brand.yellow.withAlpha(230)),
+          ]),
+          const SizedBox(height: 14),
           Text(locked > 0 ? 'Có thể tiêu' : 'Tổng số dư', style: TextStyle(color: Colors.white.withAlpha(220))),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(money(total - locked),
-                style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
+                style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1, height: 1.15)),
           ),
           if (locked > 0)
             Padding(
@@ -309,9 +329,43 @@ class _BalanceCard extends StatelessWidget {
             stat(PhosphorIconsRegular.arrowUpRight, 'Chi $label', expense),
           ]),
         ]),
+        ),
       ]),
     );
   }
+}
+
+/// Hoa văn nền thẻ số dư: thân tre mảnh + vòng tròn mờ (không dùng ảnh).
+class _HeroPainter extends CustomPainter {
+  const _HeroPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final glow = Paint()..color = Colors.white.withAlpha(18);
+    canvas.drawCircle(Offset(size.width * .92, size.height * .1), size.height * .62, glow);
+    canvas.drawCircle(Offset(size.width * .05, size.height * 1.05), size.height * .42, glow);
+    final stalk = Paint()
+      ..color = Colors.white.withAlpha(22)
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+    final node = Paint()
+      ..color = Colors.white.withAlpha(34)
+      ..strokeWidth = 11
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 3; i++) {
+      final x = size.width * (.66 + i * .11);
+      final top = size.height * (.18 + i * .12);
+      canvas.drawLine(Offset(x, top), Offset(x - 18, size.height + 10), stalk);
+      for (var k = 1; k <= 3; k++) {
+        final t = k / 4;
+        final p = Offset(x - 18 * t, top + (size.height + 10 - top) * t);
+        canvas.drawLine(p.translate(-3, 0), p.translate(3, 0), node);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 

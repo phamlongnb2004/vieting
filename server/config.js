@@ -3,7 +3,7 @@
 
 export const DEFAULT_TONES = {
   gentle: 'Giọng nhẹ nhàng, đồng cảm, động viên, không phán xét; khi người dùng tiêu quá tay thì gợi ý điều chỉnh nhẹ nhàng.',
-  funny: 'Giọng hài hước, cà khịa nhẹ kiểu bạn thân, dùng vài emoji, nhưng vẫn đưa lời khuyên hữu ích; không xúc phạm.',
+  funny: 'Giọng BẠN THÂN GEN Z cực lầy: dùng tiếng lóng Gen Z Việt (khum, xỉu ngang, ét o ét, u là trời, flex, slay, real, bestie, main character, "tui", "bà/ông"...), cà khịa mặn mà, so sánh hài hước (ví khô như tình cũ, ăn mì gói arc...), vài emoji vừa phải; vẫn đưa số liệu và lời khuyên thật sự hữu ích; tuyệt đối không xúc phạm, không body-shaming.',
   strict: 'Giọng nghiêm khắc kiểu "mẹ mắng" khi người dùng tiêu hoang (VD chốt đơn Shopee), thẳng thắn, ngắn gọn; vẫn tôn trọng, không xúc phạm.',
   expert: 'Giọng chuyên gia tài chính: điềm tĩnh, dựa trên số liệu, đưa con số và quy tắc cụ thể (VD quy tắc 50/30/20, quỹ dự phòng 3–6 tháng), ngắn gọn, không phán xét.',
 };
@@ -18,13 +18,41 @@ export const DEFAULT_OCCASIONS = [
 ];
 
 // Nhắc tự động trên máy người dùng (app tự hẹn giờ, admin chỉnh lời & mốc)
+// Nhiều câu cách nhau bằng " || ": mỗi ngày app chọn một câu khác nhau cho đỡ nhàm.
 export const DEFAULT_SMART = {
-  daily: { on: true, hour: 21, title: 'Hôm nay tiêu gì rồi?', body: 'Dành 10 giây ghi lại chi tiêu hôm nay để cuối tháng không bất ngờ nhé.' },
-  comeback: { on: true, days: 3, title: 'Lâu rồi không gặp', body: 'Ví của bạn vẫn đang chờ. Mở VieTing xem tuần này đã tiêu bao nhiêu nhé — chỉ mất 1 phút.' },
-  bill: { on: true, before: 1, title: 'Sắp trừ tiền: {name}', body: '{amount} sẽ bị trừ ngày mai. Không dùng nữa thì hủy kịp nhé.' },
-  wish: { on: true, title: 'Đủ 48 giờ rồi: {name}', body: 'Bạn còn muốn mua không? Mở VieTing để quyết định.' },
-  gift: { on: true, title: 'Sắp tới dịp của {name}', body: 'Xem lần trước đã mừng bao nhiêu để chuẩn bị phong bì.' },
-  payday: { on: true, title: 'Hôm nay nhận lương', body: 'Trích tiền tiết kiệm trước khi tiêu nhé — cây tre của bạn đang chờ lớn.' },
+  daily: {
+    on: true,
+    hour: 21,
+    title: 'Ê bestie, hôm nay tiêu gì rồi? || Ví gọi tên bạn nè || Check-in tài chính 10 giây thôi || Đừng để tiền đi mà không lời từ biệt',
+    body: 'Ghi lại đi, chứ cuối tháng nhìn số dư lại xỉu ngang đó || Trà sữa, Grab, Shopee... khai hết ra đây, VieTing khum phán xét đâu (một chút thôi) || 10 giây ghi chép = cả tháng không hoang mang. Deal? || Tiền tiêu mà không ghi thì như crush seen không rep: mất dấu luôn',
+  },
+  comeback: {
+    on: true,
+    days: 3,
+    title: 'Ủa alo, mất tích 3 ngày rồi đó || VieTing nhớ bạn (và nhớ cả cái ví của bạn) || Bạn ơi, ví đang ở một mình',
+    body: 'Mở app 1 phút xem tuần này tiền đi đâu hết, hứa không mắng || Cây tre mục tiêu của bạn đang héo vì thiếu quan tâm nè || Số dư không tự lớn đâu, nhưng mở app thì có thể bớt lo đó',
+  },
+  bill: {
+    on: true,
+    before: 1,
+    title: 'Mai {name} trừ tiền nha || {name} sắp rút ví bạn rồi',
+    body: '{amount} sẽ bay vào ngày mai. Còn xài thì thôi, khum xài thì hủy lẹ còn kịp || Nhắc nhẹ: {amount} cho {name}. Đừng để nó trừ tiền trong im lặng',
+  },
+  wish: {
+    on: true,
+    title: 'Hết 48 giờ làm nguội: {name} || {name} đang đợi bạn ra quyết định',
+    body: 'Còn mê không hay hết thích rồi? Mở VieTing chốt kèo nè || Nếu giờ thấy cũng thường thôi thì xin chúc mừng, bạn vừa giữ được tiền',
+  },
+  gift: {
+    on: true,
+    title: 'Sắp tới dịp của {name} || Chuẩn bị phong bì cho {name} nha',
+    body: 'Xem lần trước đi bao nhiêu để lần này khỏi lăn tăn || Lật sổ hiếu hỉ xem nào, đi cho đẹp mà ví vẫn ổn',
+  },
+  payday: {
+    on: true,
+    title: 'LƯƠNG VỀ RỒI || Ting ting! Ngày lương đây rồi',
+    body: 'Cất tiền tiết kiệm trước, quẩy sau. Ai cất trước người đó main character || Trích tiền vào hũ trước khi tay kịp mở Shopee nha bestie',
+  },
 };
 
 // Lượt hỏi trợ lý mỗi ngày (tính theo ngày Việt Nam)

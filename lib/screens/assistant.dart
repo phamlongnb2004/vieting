@@ -1,4 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../config.dart';
@@ -14,6 +20,7 @@ import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/logo.dart';
 import 'edit_txn.dart';
+import '../widgets/vicon.dart';
 
 const _suggestions = [
   'Tháng này mình chi bao nhiêu rồi?',
@@ -92,6 +99,64 @@ class _AssistantScreenState extends State<AssistantScreen> {
     _toBottom();
   }
 
+  /// Gửi ảnh cho trợ lý: hóa đơn, ảnh chuyển khoản, món đồ định mua... AI tự phân tích.
+  Future<void> _sendImage() async {
+    if (_busy) return;
+    final mobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+    ImageSource? src = ImageSource.gallery;
+    if (mobile) {
+      src = await showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (c) => SafeArea(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text('Gửi ảnh cho trợ lý', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            ),
+            ListTile(
+              leading: const VIcon(PhosphorIconsRegular.camera, size: 36),
+              title: const Text('Chụp ảnh'),
+              subtitle: const Text('Hóa đơn, bill quán, món đồ định mua...'),
+              onTap: () => Navigator.pop(c, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const VIcon(PhosphorIconsRegular.images, size: 36),
+              title: const Text('Chọn từ thư viện'),
+              subtitle: const Text('Ảnh chụp màn hình chuyển khoản, đơn Shopee...'),
+              onTap: () => Navigator.pop(c, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ]),
+        ),
+      );
+    }
+    if (src == null || !mounted) return;
+    final x = await ImagePicker().pickImage(source: src, maxWidth: 1600, maxHeight: 1600, imageQuality: 80);
+    if (x == null || !mounted) return;
+    final bytes = await x.readAsBytes();
+    var path = '';
+    try {
+      final dir = Directory('${(await getApplicationDocumentsDirectory()).path}${Platform.pathSeparator}vieting_chat');
+      if (!dir.existsSync()) dir.createSync(recursive: true);
+      final f = File('${dir.path}${Platform.pathSeparator}${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await f.writeAsBytes(bytes);
+      path = f.path;
+    } catch (_) {}
+    if (!mounted) return;
+    final store = StoreScope.read(context);
+    final text = _input.text.trim().isEmpty ? 'Phân tích ảnh này giúp mình nha' : _input.text.trim();
+    _input.clear();
+    store.addChat(ChatMsg(role: 'user', text: text, image: path));
+    setState(() => _busy = true);
+    _toBottom();
+    final r = await Assistant.ask(store, text,
+        imageB64: base64Encode(bytes), mime: x.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+    if (!mounted) return;
+    store.addChat(Assistant.toMsg(r));
+    setState(() => _busy = false);
+    _toBottom();
+  }
+
   Future<void> _serverDialog() async {
     final store = StoreScope.read(context);
     final c = TextEditingController(text: store.serverUrl);
@@ -150,7 +215,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
             child: Card(
               color: Brand.yellow.withAlpha(55),
               child: ListTile(
-                leading: const Icon(PhosphorIconsRegular.cloudSlash),
+                leading: const VIcon(PhosphorIconsRegular.cloudSlash, size: 36),
                 title: const Text('Chưa nối server AI', style: TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: const Text('Vẫn ghi nhanh được câu kiểu "phở 45k". Nhập địa chỉ server để hỏi đáp.'),
                 trailing: kServerUrl.isEmpty ? TextButton(onPressed: _serverDialog, child: const Text('Nhập')) : null,
@@ -227,14 +292,19 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _send(),
                   decoration: InputDecoration(
-                    hintText: 'Hỏi hoặc ghi: "cafe 35k", "tháng này chi bao nhiêu?"',
+                    hintText: 'Hỏi, ghi "cafe 35k" hoặc gửi ảnh bill',
                     isDense: true,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
                   ),
                 ),
               ),
+              const SizedBox(width: 2),
+              IconButton(
+                tooltip: 'Gửi ảnh',
+                onPressed: _busy ? null : _sendImage,
+                icon: const Icon(PhosphorIconsRegular.image, color: Brand.navy),
+              ),
               if (Voice.supported) ...[
-                const SizedBox(width: 4),
                 IconButton(
                   onPressed: _busy ? null : _mic,
                   icon: Icon(_listening ? PhosphorIconsRegular.stopCircle : PhosphorIconsRegular.microphone, color: Brand.red),
@@ -332,7 +402,9 @@ class _Bubble extends StatelessWidget {
               margin: const EdgeInsets.symmetric(vertical: 5),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: mine ? Brand.red : Theme.of(context).cardTheme.color,
+                color: mine ? null : Theme.of(context).cardTheme.color,
+                gradient: mine ? Brand.heroGradient : null,
+                border: mine ? null : Border.all(color: cs.outlineVariant),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(18),
                   topRight: const Radius.circular(18),
@@ -340,8 +412,18 @@ class _Bubble extends StatelessWidget {
                   bottomRight: Radius.circular(mine ? 4 : 18),
                 ),
               ),
-              child: SelectableText(msg.text,
-                  style: TextStyle(color: mine ? Colors.white : cs.onSurface, fontSize: 15, height: 1.35)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                if (msg.image.isNotEmpty && !kIsWeb && File(msg.image).existsSync())
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(File(msg.image), height: 180, fit: BoxFit.cover, cacheHeight: 540),
+                    ),
+                  ),
+                SelectableText(msg.text,
+                    style: TextStyle(color: mine ? Colors.white : cs.onSurface, fontSize: 15, height: 1.35)),
+              ]),
             ),
             for (var i = 0; i < msg.actions.length; i++)
               Container(

@@ -9,6 +9,7 @@ import '../util/format.dart';
 import '../widgets/txn_tile.dart';
 import 'edit_txn.dart';
 import 'wallets.dart';
+import '../widgets/vicon.dart';
 
 /// "Dọn dẹp tài chính" 60 giây mỗi Chủ nhật: xếp lại khoản chưa phân loại, đối chiếu số dư, nhìn lại tuần.
 class CleanupScreen extends StatelessWidget {
@@ -64,7 +65,7 @@ class CleanupScreen extends StatelessWidget {
                   trailing: Text(money(store.walletBalance(w)), style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ListTile(
-                leading: const Icon(PhosphorIconsRegular.pencilSimple),
+                leading: const VIcon(PhosphorIconsRegular.pencilSimple, size: 36),
                 title: const Text('Lệch với app ngân hàng / ví thật? Chỉnh số dư'),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletsScreen())),
               ),

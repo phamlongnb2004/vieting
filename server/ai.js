@@ -18,7 +18,7 @@ const WORKERS_AI_FALLBACK = '@cf/meta/llama-3.1-8b-instruct';
 
 const TONES = {
   gentle: 'Giọng nhẹ nhàng, đồng cảm, động viên, không phán xét; khi người dùng tiêu quá tay thì gợi ý điều chỉnh nhẹ nhàng.',
-  funny: 'Giọng hài hước, cà khịa nhẹ kiểu bạn thân, dùng vài emoji, nhưng vẫn đưa lời khuyên hữu ích; không xúc phạm.',
+  funny: 'Giọng BẠN THÂN GEN Z cực lầy: dùng tiếng lóng Gen Z Việt (khum, xỉu ngang, ét o ét, u là trời, flex, slay, real, bestie, main character, "tui", "bà/ông"...), cà khịa mặn mà, so sánh hài hước (ví khô như tình cũ, ăn mì gói arc...), vài emoji vừa phải; vẫn đưa số liệu và lời khuyên thật sự hữu ích; tuyệt đối không xúc phạm, không body-shaming.',
   strict: 'Giọng nghiêm khắc kiểu "mẹ mắng" khi người dùng tiêu hoang (VD chốt đơn Shopee), thẳng thắn, ngắn gọn; vẫn tôn trọng, không xúc phạm.',
   expert: 'Giọng chuyên gia tài chính: điềm tĩnh, dựa trên số liệu, đưa con số và quy tắc cụ thể (VD quy tắc 50/30/20, quỹ dự phòng 3–6 tháng), ngắn gọn, không phán xét.',
 };
@@ -439,20 +439,41 @@ export async function handleChat(req, env, userId) {
     .filter((m) => m && typeof m.text === 'string' && m.text.trim())
     .slice(-12)
     .map((m) => ({ role: m.role === 'model' ? 'model' : 'user', text: m.text.slice(0, 2000) }));
+  const img = typeof b.image === 'string' && b.image.length > 100 && b.image.length < 6_000_000 ? b.image : null;
+  const mime = /^image\/(png|jpe?g|webp|heic)$/.test(b.mime || '') ? b.mime : 'image/jpeg';
+  if (img && !history.length) history.push({ role: 'user', text: 'Phân tích ảnh này giúp mình.' });
   if (!history.length || history[history.length - 1].role !== 'user') return json({ error: 'Thiếu câu hỏi' }, 400);
+  if (img) {
+    // ảnh tính chung hạn mức đọc ảnh theo tháng của gói miễn phí
+    const q = await monthlyQuota(env, 'receipt', key, userId);
+    if (q) return json({ error: q.replace('đọc được', 'phân tích được').replace('ảnh hóa đơn', 'ảnh'), pro: true, quota }, 402);
+  }
 
   const ex = { ...(await aiExtras(env).catch(() => null)), payday: !!b.payday };
   const dt = dictText(ex.dict);
-  const sys = systemPrompt(today, b.tone, ex) + (dt ? '\n\n' + dt : '') + '\n\nDỮ LIỆU:\n' + context;
+  const IMG_RULES = `
+NGƯỜI DÙNG GỬI KÈM ẢNH. Phân tích ảnh:
+- Hóa đơn, biên lai, ảnh chuyển khoản, mã QR thanh toán, màn hình ví điện tử: đọc tổng tiền, cửa hàng, ngày; tạo action add_txn (nhiều nhóm hàng khác danh mục thì mỗi nhóm một action, tổng bằng hóa đơn).
+- Ảnh món đồ đang định mua: đoán món gì, ước giá phổ biến ở Việt Nam, so với số liệu chi tiêu của người dùng để khuyên mua hay không (không tạo action).
+- Ảnh đồ ăn / quán / vé...: đoán khoản chi, hỏi lại số tiền nếu ảnh không có giá; có giá thì tạo add_txn.
+- Ảnh không liên quan tiền: nhận xét vui vẻ theo đúng tính cách rồi kéo về chuyện chi tiêu.`;
+  const sys = systemPrompt(today, b.tone, ex) + (img ? '\n' + IMG_RULES : '') + (dt ? '\n\n' + dt : '') + '\n\nDỮ LIỆU:\n' + context;
   let out = null;
   let geminiNote = '';
   if (env.GEMINI_API_KEY) {
     try {
-      out = await askGemini(env, sys, history.map((m) => ({ role: m.role, parts: [{ text: m.text }] })));
+      const contents = history.map((m) => ({ role: m.role, parts: [{ text: m.text }] }));
+      if (img) contents[contents.length - 1].parts.unshift({ inline_data: { mime_type: mime, data: img } });
+      out = await askGemini(env, sys, contents);
     } catch (e) {
       out = null; // hết lượt / lỗi: chuyển sang Workers AI
       geminiNote = String(e?.message || e).slice(0, 600);
     }
+  }
+  if (!out && env.AI && img) {
+    const q = history[history.length - 1].text;
+    const t = await visionWorkersAI(env, sys + '\n\nCâu của người dùng: ' + q + '\nTrả JSON {"reply": "...", "actions": [...]}.', img, mime);
+    if (t) out = { text: t, provider: 'workers-ai' };
   }
   if (!out && env.AI) {
     try {

@@ -9,6 +9,7 @@ import '../store.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/nudge.dart';
+import '../widgets/vicon.dart';
 
 /// Khoản định kỳ: gói đăng ký (Netflix, Spotify, gym...) và trả góp. Nhắc trước 3 ngày.
 class BillsScreen extends StatelessWidget {
@@ -98,7 +99,7 @@ class BillsScreen extends StatelessWidget {
                 ],
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(PhosphorIconsRegular.calendarBlank),
+                  leading: const VIcon(PhosphorIconsRegular.calendarBlank, size: 36),
                   title: Text('Kỳ tới: ${dmy(next)}'),
                   onTap: () async {
                     final d = await showDatePicker(

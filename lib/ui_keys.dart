@@ -28,3 +28,14 @@ void showToast(BuildContext? context, String text,
     } catch (_) {}
   });
 }
+
+/// Vùng gốc cho bảng chia sẻ. iPad và iOS mới bắt buộc có vùng này, thiếu là lỗi
+/// "PlatformException ... sharePositionOrigin must be set".
+Rect shareOrigin(BuildContext context) {
+  final box = context.findRenderObject();
+  if (box is RenderBox && box.hasSize && box.size.width > 0 && box.size.height > 0) {
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+  final size = MediaQuery.maybeOf(context)?.size ?? const Size(400, 800);
+  return Rect.fromLTWH(size.width / 2 - 1, size.height / 2 - 1, 2, 2);
+}

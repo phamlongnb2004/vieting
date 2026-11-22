@@ -51,7 +51,7 @@ class GoalsScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(PhosphorIconsRegular.calendarBlank),
+                  leading: const VIcon(PhosphorIconsRegular.calendarBlank, size: 36),
                   title: Text(deadline == null ? 'Hạn (không bắt buộc)' : 'Hạn: ${dmy(deadline!)}'),
                   onTap: () async {
                     final d = await showDatePicker(

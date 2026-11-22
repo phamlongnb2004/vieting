@@ -443,7 +443,7 @@ export async function handleAdmin(req, env, url, userId, h) {
       const out = {};
       for (const k of Object.keys(DEFAULT_SMART)) {
         const d = DEFAULT_SMART[k], v = b?.smart?.[k] || {};
-        out[k] = { on: v.on !== false, title: str(v.title, 120) || d.title, body: str(v.body, 300) || d.body };
+        out[k] = { on: v.on !== false, title: str(v.title, 600) || d.title, body: str(v.body, 1500) || d.body };
         if ('hour' in d) out[k].hour = Math.min(23, Math.max(0, Number(v.hour) || d.hour));
         if ('days' in d) out[k].days = Math.min(30, Math.max(1, Number(v.days) || d.days));
         if ('before' in d) out[k].before = Math.min(7, Math.max(0, Number(v.before ?? d.before)));

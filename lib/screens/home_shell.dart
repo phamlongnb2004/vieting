@@ -155,17 +155,17 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     ];
     const items = [
       (PhosphorIconsRegular.squaresFour, PhosphorIconsFill.squaresFour, 'Tổng quan'),
-      (PhosphorIconsRegular.receipt, PhosphorIconsRegular.receipt, 'Giao dịch'),
-      (PhosphorIconsRegular.sparkle, PhosphorIconsRegular.sparkle, 'Trợ lý'),
-      (PhosphorIconsRegular.tree, PhosphorIconsFill.tree, 'Kế hoạch'),
-      (PhosphorIconsRegular.gear, PhosphorIconsRegular.gear, 'Cài đặt'),
+      (PhosphorIconsRegular.receipt, PhosphorIconsFill.receipt, 'Giao dịch'),
+      (PhosphorIconsRegular.sparkle, PhosphorIconsFill.sparkle, 'Trợ lý'),
+      (PhosphorIconsRegular.plant, PhosphorIconsFill.plant, 'Kế hoạch'),
+      (PhosphorIconsRegular.gearSix, PhosphorIconsFill.gearSix, 'Cài đặt'),
     ];
     final wide = MediaQuery.sizeOf(context).width >= 840;
     final fab = _tab < 2
         ? FloatingActionButton.extended(
             onPressed: () => openEditTxn(context, null),
-            icon: const Icon(PhosphorIconsRegular.plus),
-            label: const Text('Thêm'),
+            icon: const Icon(PhosphorIconsBold.plus),
+            label: const Text('Ghi khoản'),
           )
         : null;
 
@@ -194,12 +194,17 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     return Scaffold(
       body: pages[_tab],
       floatingActionButton: fab,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+        ),
+        child: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: [
           for (final it in items) NavigationDestination(icon: Icon(it.$1), selectedIcon: Icon(it.$2), label: it.$3),
         ],
+      ),
       ),
     );
   }

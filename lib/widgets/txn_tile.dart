@@ -17,7 +17,15 @@ class CatAvatar extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(color: cat.color.withAlpha(36), borderRadius: BorderRadius.circular(size * 0.32)),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(size * 0.34),
+          gradient: LinearGradient(
+            colors: [cat.color.withAlpha(46), cat.color.withAlpha(22)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: cat.color.withAlpha(40)),
+        ),
         child: Icon(cat.icon, color: cat.color, size: size * 0.52),
       );
 }

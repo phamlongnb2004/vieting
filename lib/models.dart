@@ -206,6 +206,7 @@ class ChatMsg {
   final List<String> status; // '' | done | skip, theo từng hành động
   final DateTime time;
   final bool error;
+  final String image; // đường dẫn ảnh người dùng gửi (lưu trên máy)
 
   ChatMsg({
     required this.role,
@@ -214,6 +215,7 @@ class ChatMsg {
     List<String>? status,
     DateTime? time,
     this.error = false,
+    this.image = '',
   })  : actions = actions ?? [],
         status = status ?? List.filled((actions ?? []).length, '', growable: true),
         time = time ?? DateTime.now();
@@ -225,6 +227,7 @@ class ChatMsg {
         if (actions.isNotEmpty) 's': status,
         'tm': time.millisecondsSinceEpoch,
         if (error) 'e': true,
+        if (image.isNotEmpty) 'img': image,
       };
 
   factory ChatMsg.fromJson(Map<String, dynamic> j) {
@@ -240,6 +243,7 @@ class ChatMsg {
       status: st,
       time: DateTime.fromMillisecondsSinceEpoch((j['tm'] as num?)?.toInt() ?? nowMs()),
       error: j['e'] == true,
+      image: (j['img'] ?? '') as String,
     );
   }
 }

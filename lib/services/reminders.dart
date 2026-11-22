@@ -15,14 +15,22 @@ class Reminders {
   static String _last = '';
   static bool _asked = false;
 
-  static String _fill(String s, {String name = '', int amount = 0}) =>
-      s.replaceAll('{name}', name).replaceAll('{amount}', amount > 0 ? money(amount) : '');
+  static int _seed = 0;
+
+  /// Câu nhắc có nhiều biến thể cách nhau bằng "||": chọn theo ngày + loại nhắc cho đỡ nhàm.
+  static String _fill(String s, {String name = '', int amount = 0}) {
+    final opts = s.split('||').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final pick = opts.isEmpty ? s : opts[(_seed + name.length) % opts.length];
+    return pick.replaceAll('{name}', name).replaceAll('{amount}', amount > 0 ? money(amount) : '');
+  }
 
   static DateTime _at(DateTime d, int h, [int m = 0]) => DateTime(d.year, d.month, d.day, h, m);
 
   static List<Map<String, dynamic>> build(AppStore s) {
     final out = <Map<String, dynamic>>[];
     if (!s.remindersOn) return out;
+    final d0 = DateTime.now();
+    _seed = d0.year * 400 + d0.month * 31 + d0.day;
     final now = DateTime.now();
     void add(int id, DateTime at, String title, String body) {
       if (at.isAfter(now.add(const Duration(minutes: 1)))) {
@@ -40,21 +48,22 @@ class Reminders {
     if (daily['on'] != false) {
       final h = ((daily['hour'] as num?) ?? 21).toInt();
       final hasToday = s.activeTxns.any((t) => sameDay(t.date, now));
-      if (!hasToday) add(1001, _at(now, h), '${daily['title']}', '${daily['body']}');
-      add(1002, _at(now.add(const Duration(days: 1)), h), '${daily['title']}', '${daily['body']}');
+      if (!hasToday) add(1001, _at(now, h), _fill('${daily['title']}'), _fill('${daily['body']}'));
+      _seed++;
+      add(1002, _at(now.add(const Duration(days: 1)), h), _fill('${daily['title']}'), _fill('${daily['body']}'));
     }
     // 2) Lâu không mở app
     final back = rule('comeback', {'on': true, 'days': 3, 'title': 'Lâu rồi không gặp', 'body': 'Mở VieTing xem tuần này đã tiêu bao nhiêu nhé.'});
     if (back['on'] != false) {
       final d = ((back['days'] as num?) ?? 3).toInt();
-      add(1100, _at(now.add(Duration(days: d)), 19, 30), '${back['title']}', '${back['body']}');
+      add(1100, _at(now.add(Duration(days: d)), 19, 30), _fill('${back['title']}'), _fill('${back['body']}'));
     }
     // 3) Ngày nhận lương
     final pay = rule('payday', {'on': true, 'title': 'Hôm nay nhận lương', 'body': 'Trích tiền tiết kiệm trước khi tiêu nhé.'});
     if (pay['on'] != false && s.cycleDay > 1) {
       var d = DateTime(now.year, now.month, s.cycleDay, 9);
       if (!d.isAfter(now)) d = DateTime(now.year, now.month + 1, s.cycleDay, 9);
-      add(1200, d, '${pay['title']}', '${pay['body']}');
+      add(1200, d, _fill('${pay['title']}'), _fill('${pay['body']}'));
     }
     // 4) Khoản định kỳ sắp trừ tiền
     final bill = rule('bill', {'on': true, 'before': 1, 'title': 'Sắp trừ tiền: {name}', 'body': '{amount} sẽ bị trừ sớm. Không dùng thì hủy kịp nhé.'});
@@ -132,7 +141,7 @@ class Reminders {
     if (!NotifyBridge.supported) return;
     try {
       await _ch.invokeMethod('askNotifyPermission');
-      await _ch.invokeMethod('testNotify', {'title': 'VieTing đã bật nhắc nhở', 'body': 'Thông báo sẽ hiện như thế này, kể cả khi bạn không mở app.'});
+      await _ch.invokeMethod('testNotify', {'title': 'Nhắc nhở đã lên sóng', 'body': 'Từ giờ VieTing sẽ cà khịa bạn đúng lúc, kể cả khi không mở app. Chuẩn bị tinh thần nha bestie!'});
     } catch (_) {}
   }
 }

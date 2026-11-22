@@ -59,7 +59,7 @@ class AppStore extends ChangeNotifier {
 
   bool dark = false;
   int cycleDay = 1; // ngày bắt đầu kỳ chi tiêu (ngày nhận lương)
-  String aiTone = 'gentle'; // gentle | funny | strict
+  String aiTone = 'funny'; // gentle | funny (Gen Z) | strict | expert
   Set<String> skipDays = {}; // ngày ngoại lệ (yyyy-mm-dd) không tính vào chuỗi
   Set<String> sweptDays = {}; // ngày đã cất tiền dư vào hũ
   String serverUrl = kServerUrl;
@@ -145,7 +145,7 @@ class AppStore extends ChangeNotifier {
         allowedApps = ((s['allowed'] as List?) ?? []).map((e) => e.toString()).toSet();
         pinHash = (s['pin'] ?? '') as String;
         cycleDay = ((s['cycle'] as num?)?.toInt() ?? 1).clamp(1, 28);
-        aiTone = (s['tone'] ?? 'gentle') as String;
+        aiTone = (s['tone'] ?? 'funny') as String;
         hourlyWage = (s['wage'] as num?)?.toInt() ?? 0;
         noticeSeen = (s['notice'] as num?)?.toInt() ?? 0;
         savePct = (s['savePct'] as num?)?.toInt() ?? 10;

@@ -28,7 +28,7 @@ class _ProScreenState extends State<ProScreen> {
     (PhosphorIconsRegular.calendarCheck, 'Kế hoạch không giới hạn', 'Khoản định kỳ, hũ mục tiêu, danh sách chờ mua, sổ chung không giới hạn'),
     (PhosphorIconsRegular.calculator, 'Mô phỏng', 'Trả góp hay trả thẳng, cắt giảm chi tiêu thì bao lâu đạt mục tiêu'),
     (PhosphorIconsRegular.envelopeSimple, 'Sổ hiếu hỉ', 'Ai mừng mình bao nhiêu, nhắc trước mỗi dịp'),
-    (PhosphorIconsRegular.userSound, 'Đủ tính cách trợ lý', 'Bạn thân cà khịa, Mẹ khó tính, Chuyên gia tài chính'),
+    (PhosphorIconsRegular.userSound, 'Thêm tính cách trợ lý', 'Mẹ khó tính, Chuyên gia tài chính (Nhẹ nhàng và Bạn thân Gen Z luôn miễn phí)'),
     (PhosphorIconsRegular.shareNetwork, 'Tổng kết mọi kỳ', 'Xem lại và chia sẻ thẻ tổng kết của tất cả các tháng'),
   ];
 
