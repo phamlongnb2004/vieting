@@ -209,10 +209,10 @@ let route = null; // { api: 'gen' | 'int', ver, model } lần gọi thành công
 async function loadState(env) {
   if (Date.now() - cool.at < 20000) return;
   try {
-    const r = await env.DB.prepare("SELECT k, v FROM config WHERE k IN ('ai_cool2', 'ai_route2')").all();
+    const r = await env.DB.prepare("SELECT k, v FROM config WHERE k IN ('ai_cool3', 'ai_route3')").all();
     for (const row of r.results || []) {
-      if (row.k === 'ai_cool2') cool.map = JSON.parse(row.v) || {};
-      if (row.k === 'ai_route2') route = JSON.parse(row.v);
+      if (row.k === 'ai_cool3') cool.map = JSON.parse(row.v) || {};
+      if (row.k === 'ai_route3') route = JSON.parse(row.v);
     }
   } catch {}
   cool.at = Date.now();
@@ -227,7 +227,7 @@ async function saveState(env, k, v) {
 async function coolDown(env, model, ms) {
   cool.map[model] = Date.now() + ms;
   for (const [m, t] of Object.entries(cool.map)) if (t < Date.now()) delete cool.map[m];
-  await saveState(env, 'ai_cool2', cool.map);
+  await saveState(env, 'ai_cool3', cool.map);
 }
 
 function retryMs(text) {
@@ -288,7 +288,7 @@ async function geminiFetch(env, body, prefer = 'flash') {
     if (res.ok) {
       if (!route || route.api !== r.api || route.model !== r.model) {
         route = r;
-        await saveState(env, 'ai_route2', r);
+        await saveState(env, 'ai_route3', r);
       }
       return res;
     }
@@ -301,11 +301,12 @@ async function geminiFetch(env, body, prefer = 'flash') {
     lastAttempts.push(`${r.api}:${r.model} ${res.status} ${String(gm).slice(0, 90)}`);
     await saveAiError(env, (r.api === 'gen' ? 'generateContent ' : r.ver + ' interactions ') + r.model, res.status, text);
     if (res.status === 429) await coolDown(env, r.model, retryMs(text));
-    else if (res.status === 404 || (res.status === 400 && /model|not (found|supported)/i.test(text))) await coolDown(env, r.api + ':' + r.model, 6 * 3600000);
+    else if (/location is not supported/i.test(text)) break; // máy chủ Cloudflare đang chạy ở vùng Google chặn (VD Hồng Kông): thử model khác cũng vô ích
+    else if (res.status === 404 || (res.status === 400 && /model|not found/i.test(text))) await coolDown(env, r.api + ':' + r.model, 6 * 3600000);
     else if (res.status === 401 || res.status === 403) break;
     if (route && route.model === r.model && route.api === r.api && res.status !== 429) {
       route = null;
-      await saveState(env, 'ai_route2', null);
+      await saveState(env, 'ai_route3', null);
     }
   }
   return last;

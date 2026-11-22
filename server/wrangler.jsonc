@@ -22,5 +22,8 @@
   "ai": { "binding": "AI" },
   // GEMINI_MODEL: để trống = server tự chọn model Gemini (ưu tiên Flash-Lite vì hạn mức miễn phí rộng)
   "vars": {},
+  // Chạy Worker ở Singapore: người dùng Việt Nam hay bị Cloudflare định tuyến qua Hồng Kông,
+  // nơi Google chặn Gemini ("User location is not supported"). Singapore gần VN và được Gemini hỗ trợ.
+  "placement": { "region": "gcp:asia-southeast1" },
   "observability": { "enabled": true }
 }
