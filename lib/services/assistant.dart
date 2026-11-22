@@ -19,7 +19,8 @@ class AssistantReply {
 /// Gọi trợ lý AI qua server VieTing (/api/chat). Khóa AI nằm trên server, app chỉ gửi câu hỏi + tóm tắt chi tiêu.
 class Assistant {
   static String _d(DateTime d) => '${d.year}-${two(d.month)}-${two(d.day)}';
-  static String _m(int v) => groupDigits(v);
+  // giữ dấu âm: groupDigits bỏ dấu, làm trợ lý tưởng số dư âm là dương
+  static String _m(int v) => '${v < 0 ? '-' : ''}${groupDigits(v)}';
 
   /// Tóm tắt dữ liệu chi tiêu gửi kèm câu hỏi (không gửi nội dung thông báo gốc).
   static String buildContext(AppStore s) {
@@ -28,6 +29,11 @@ class Assistant {
     final prev = DateTime(cur.year, cur.month - 1);
     final b = StringBuffer();
     b.writeln('Tổng số dư các ví: ${_m(s.totalBalance)} đ');
+    if (s.totalBalance < 0) {
+      b.writeln('CHÚ Ý: tổng số dư đang ÂM ${_m(-s.totalBalance)} đ (đang tiêu quá số tiền có / nợ). Không được nói là còn tiền.');
+    } else if (s.spendableBalance < 0) {
+      b.writeln('CHÚ Ý: số tiền có thể tiêu đang ÂM ${_m(-s.spendableBalance)} đ: đã tiêu lấn vào tiền hũ mục tiêu.');
+    }
     if (s.lockedInGoals > 0) {
       b.writeln('Trong đó đã cất vào hũ mục tiêu (KHÔNG được khuyên tiêu): ${_m(s.lockedInGoals)} đ; số tiền có thể tiêu: ${_m(s.spendableBalance)} đ');
     }
