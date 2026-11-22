@@ -210,3 +210,38 @@ CREATE TABLE IF NOT EXISTS space_records (
   PRIMARY KEY (space_id, id)
 );
 CREATE INDEX IF NOT EXISTS space_records_srv ON space_records (space_id, srv);
+
+-- Quỹ chung: thủ quỹ, tài khoản nhận, ngưỡng cần duyệt, lần đối chiếu gần nhất (JSON)
+CREATE TABLE IF NOT EXISTS space_settings (
+  space_id INTEGER PRIMARY KEY,
+  data TEXT NOT NULL DEFAULT '{}'
+);
+-- Xác nhận đã nhận tiền (thủ quỹ) / duyệt khoản chi (thành viên khác): mỗi người một dấu trên mỗi khoản
+CREATE TABLE IF NOT EXISTS space_marks (
+  space_id INTEGER NOT NULL,
+  rec_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  at INTEGER NOT NULL,
+  PRIMARY KEY (space_id, rec_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS space_marks_at ON space_marks (space_id, at);
+-- Nhật ký quỹ: ai ghi / sửa / xóa / xác nhận / đối chiếu, không ai xóa được
+CREATE TABLE IF NOT EXISTS space_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  space_id INTEGER NOT NULL,
+  at INTEGER NOT NULL,
+  by_user INTEGER NOT NULL,
+  rec_id TEXT NOT NULL DEFAULT '',
+  action TEXT NOT NULL,
+  text TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS space_log_space ON space_log (space_id, at);
+-- Ảnh chứng từ của khoản chi / nộp quỹ
+CREATE TABLE IF NOT EXISTS space_proofs (
+  space_id INTEGER NOT NULL,
+  rec_id TEXT NOT NULL,
+  img TEXT NOT NULL,
+  at INTEGER NOT NULL,
+  PRIMARY KEY (space_id, rec_id)
+);

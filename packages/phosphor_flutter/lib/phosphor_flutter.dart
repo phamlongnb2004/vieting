@@ -10,9 +10,11 @@ class PhosphorIconsBold {
 
 class PhosphorIconsFill {
   const PhosphorIconsFill._();
+  static const IconData bank = IconData(0xe0b4, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData bellRinging = IconData(0xe5e8, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData checkCircle = IconData(0xe184, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData crown = IconData(0xe614, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
+  static const IconData envelopeSimple = IconData(0xe218, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData flag = IconData(0xe244, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData flame = IconData(0xe624, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData gearSix = IconData(0xe272, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
@@ -22,6 +24,7 @@ class PhosphorIconsFill {
   static const IconData money = IconData(0xe588, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData plant = IconData(0xebae, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData receipt = IconData(0xe3ec, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
+  static const IconData shieldCheck = IconData(0xe40c, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData sparkle = IconData(0xe6a2, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData squaresFour = IconData(0xe464, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData star = IconData(0xe46a, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
@@ -92,6 +95,7 @@ class PhosphorIconsRegular {
   static const IconData house = IconData(0xe2c2, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData image = IconData(0xe2ca, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData images = IconData(0xe836, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData info = IconData(0xe2ce, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData key = IconData(0xe2d6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData laptop = IconData(0xe586, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData lifebuoy = IconData(0xe63a, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
@@ -118,7 +122,9 @@ class PhosphorIconsRegular {
   static const IconData qrCode = IconData(0xe3e6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData question = IconData(0xe3e8, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData receipt = IconData(0xe3ec, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData scales = IconData(0xe750, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData scan = IconData(0xebb6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData sealCheck = IconData(0xe606, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData shareNetwork = IconData(0xe408, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData shoppingBag = IconData(0xe416, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData shoppingCartSimple = IconData(0xe420, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
@@ -129,6 +135,7 @@ class PhosphorIconsRegular {
   static const IconData stopCircle = IconData(0xe46e, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData table = IconData(0xe476, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData target = IconData(0xe47c, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData thumbsUp = IconData(0xe48e, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData timer = IconData(0xe492, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData trash = IconData(0xe4a6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData tree = IconData(0xe6da, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
@@ -140,5 +147,6 @@ class PhosphorIconsRegular {
   static const IconData usersThree = IconData(0xe68e, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData wallet = IconData(0xe68a, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData warning = IconData(0xe4e0, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData warningCircle = IconData(0xe4e2, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData x = IconData(0xe4f6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
 }

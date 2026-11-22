@@ -474,7 +474,12 @@ extension Planning on AppStore {
   // ---------------- Quy đổi giờ làm việc ----------------
 
   /// Tiền đã cất vào các hũ mục tiêu (vẫn nằm trong ví nhưng không nên tiêu).
-  int get lockedInGoals => activeGoals.fold<int>(0, (s, g) => s + g.saved);
+  /// Tiền đã cất cho mục tiêu nhưng vẫn nằm trong các ví đang theo dõi (mục tiêu có tài khoản tiết kiệm riêng
+  /// thì tiền đã chuyển ra khỏi ví, không cần trừ thêm).
+  int get lockedInGoals => activeGoals.where((g) => g.hold != 'bank').fold<int>(0, (s, g) => s + g.saved);
+
+  /// Tiền đang nằm trong tài khoản tiết kiệm / hũ riêng của các mục tiêu.
+  int get savedOutside => activeGoals.where((g) => g.hold == 'bank').fold<int>(0, (s, g) => s + g.saved);
 
   /// Số tiền thật sự được tiêu = tổng số dư − tiền đã cất trong hũ.
   int get spendableBalance => totalBalance - lockedInGoals;

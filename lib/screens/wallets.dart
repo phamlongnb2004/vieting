@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models.dart';
 import '../store.dart';
 import '../util/format.dart';
+import 'overview.dart' show fixBalanceGap;
 
 class WalletsScreen extends StatelessWidget {
   const WalletsScreen({super.key});
@@ -78,6 +79,41 @@ class WalletsScreen extends StatelessWidget {
     store.saveWallet(wallet, currentBalance: negative ? -v : v);
   }
 
+  /// Mở app ngân hàng xem số dư thật, nhập vào: lệch thì ghi khoản thiếu hoặc chỉnh sổ.
+  Future<void> _reconcile(BuildContext context, Wallet w) async {
+    final store = StoreScope.read(context);
+    final c = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Đối chiếu "${w.name}"'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Sổ đang ghi ${money(store.walletBalance(w))}. Mở app ngân hàng / ví (hoặc đếm tiền mặt) rồi nhập số dư thật.'),
+          const SizedBox(height: 10),
+          TextField(
+            controller: c,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [ThousandsFormatter()],
+            decoration: const InputDecoration(labelText: 'Số dư thật', suffixText: '₫'),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('So sánh')),
+        ],
+      ),
+    );
+    if (ok != true || c.text.trim().isEmpty || !context.mounted) return;
+    final gap = store.reconcileWallet(w, parseMoneyInput(c.text));
+    if (gap.abs() < 1000) {
+      if (gap != 0) store.reconcileWallet(w, parseMoneyInput(c.text), fix: true);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Khớp rồi, sổ sạch sẽ!')));
+      return;
+    }
+    await fixBalanceGap(context, store, w, gap, DateTime.now().millisecondsSinceEpoch);
+  }
+
   Future<void> _delete(BuildContext context, Wallet w) async {
     final store = StoreScope.read(context);
     if (store.walletHasTxns(w.id)) {
@@ -109,8 +145,13 @@ class WalletsScreen extends StatelessWidget {
                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text(money(store.walletBalance(w)), style: const TextStyle(fontWeight: FontWeight.w700)),
                     PopupMenuButton<String>(
-                      onSelected: (v) => v == 'edit' ? _edit(context, w) : _delete(context, w),
+                      onSelected: (v) => switch (v) {
+                        'edit' => _edit(context, w),
+                        'recon' => _reconcile(context, w),
+                        _ => _delete(context, w),
+                      },
                       itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'recon', child: Text('Đối chiếu với số dư thật')),
                         PopupMenuItem(value: 'edit', child: Text('Sửa / chỉnh số dư')),
                         PopupMenuItem(value: 'del', child: Text('Xóa ví')),
                       ],

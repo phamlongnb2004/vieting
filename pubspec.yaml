@@ -19,6 +19,7 @@ dependencies:
   local_auth: ^2.3.0
   share_plus: ^10.1.4
   shared_preferences: ^2.3.2
+  qr_flutter: ^4.1.0
   phosphor_flutter:
     path: packages/phosphor_flutter
 

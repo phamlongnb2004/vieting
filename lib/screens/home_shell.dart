@@ -12,6 +12,8 @@ import '../widgets/nudge.dart';
 import '../services/notify_bridge.dart';
 import '../services/quick_queue.dart';
 import '../services/reminders.dart';
+import '../services/goal_money.dart';
+import '../services/spaces.dart';
 import '../store.dart';
 import '../ui_keys.dart';
 import '../util/format.dart';
@@ -93,6 +95,27 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         if (r.status == 'added') added.add(r.txn!);
       }
       if (added.isEmpty) return;
+      // Tiền chuyển sang hũ mục tiêu ("VTG <mã>") và tiền nộp quỹ chung về tài khoản thủ quỹ ("VT <mã quỹ>")
+      final matched = <String>[];
+      for (final t in added) {
+        final g = GoalMoney.autoMatch(store, t);
+        if (g != null) matched.add('Đã cất ${money(t.amount)} vào "${g.name}"');
+      }
+      for (final t in added.where((t) => t.income).toList()) {
+        final hit = await Spaces.autoConfirm(store, amount: t.amount, text: '${t.raw} ${t.note}');
+        if (hit != null) {
+          t
+            ..categoryId = 'chuyen_vi'
+            ..note = 'Nhận quỹ "${hit.sp.name}" · ${hit.sp.nameOf(hit.e.by)}';
+          store.saveTxn(t);
+          matched.add('${hit.sp.nameOf(hit.e.by)} đã nộp ${money(t.amount)} vào "${hit.sp.name}". Đã tự xác nhận');
+        }
+      }
+      if (!mounted) return;
+      if (matched.isNotEmpty) {
+        showToast(context, matched.join('\n'));
+        return;
+      }
       final nudges = [for (final t in added) ...store.nudgesFor(t)];
       if (nudges.isNotEmpty) {
         showNudges(nudges);

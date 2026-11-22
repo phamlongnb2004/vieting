@@ -3,16 +3,19 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
 import '../insights.dart';
+import '../models.dart';
 import '../services/notify_bridge.dart';
 import '../pro.dart';
 import '../store.dart';
 import '../theme.dart';
+import '../ui_keys.dart';
 import '../util/format.dart';
 import '../widgets/charts.dart';
 import '../widgets/logo.dart';
 import '../widgets/txn_tile.dart';
 import 'edit_txn.dart';
 import 'goals.dart';
+import 'spaces.dart';
 import 'habits.dart';
 import 'notify_setup.dart';
 import 'paste.dart';
@@ -446,6 +449,29 @@ class _Alerts extends StatelessWidget {
         );
     void open(Widget w) => Navigator.push(context, MaterialPageRoute(builder: (_) => w));
 
+    // Sổ lệch với số dư ngân hàng báo về: có khoản chưa ghi
+    for (final g in store.balanceGaps.take(2)) {
+      items.add(card(
+        PhosphorIconsRegular.scales,
+        Brand.red,
+        'Sổ "${g.w.name}" đang ${g.gap > 0 ? 'thiếu' : 'thừa'} ${compactMoney(g.gap.abs())} so với ngân hàng',
+        g.gap > 0 ? 'Ngân hàng nhiều tiền hơn sổ: có khoản tiền vào chưa ghi?' : 'Ngân hàng ít tiền hơn sổ: có khoản chi chưa ghi (quẹt thẻ, rút tiền...)?',
+        onTap: () => fixBalanceGap(context, store, g.w, g.gap, g.at),
+      ));
+    }
+    // Quỹ chung: việc đang chờ mình
+    for (final sp in store.spaces.values) {
+      final todo = sp.todoFor(store.myUserId);
+      if (todo.isEmpty) continue;
+      items.add(card(
+        PhosphorIconsFill.bellRinging,
+        Brand.navy,
+        '${sp.name}: ${todo.length} khoản chờ bạn',
+        sp.holder == store.myUserId ? 'Xác nhận tiền đã về tài khoản hoặc duyệt khoản chi' : 'Duyệt khoản chi của thành viên khác',
+        onTap: () => open(SpaceDetailScreen(spaceId: sp.id)),
+      ));
+    }
+
     for (final b in store.billsDueSoon.take(2)) {
       final days = DateTime(b.next.year, b.next.month, b.next.day).difference(DateTime(now.year, now.month, now.day)).inDays;
       items.add(card(
@@ -674,5 +700,77 @@ class _GuiltFreeCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+
+/// Ghi khoản còn thiếu cho khớp số dư ngân hàng, hoặc chấp nhận số dư ngân hàng.
+Future<void> fixBalanceGap(BuildContext context, AppStore store, Wallet w, int gap, int at) async {
+  final income = gap > 0;
+  var cat = income ? 'khac_thu' : 'khac_chi';
+  final note = TextEditingController();
+  final cats = catsFor(income).take(10).toList();
+  if (!cats.any((c) => c.id == cat)) cat = cats.first.id;
+  final r = await showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setS) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(c).bottom + 20),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Sổ "${w.name}" lệch ${money(gap.abs())}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(
+              income
+                  ? 'Ngân hàng báo nhiều hơn sổ. Có thể là khoản tiền vào chưa ghi (ai đó chuyển, hoàn tiền, lãi...).'
+                  : 'Ngân hàng báo ít hơn sổ. Có thể là khoản chi chưa ghi (quẹt thẻ, rút ATM, trừ phí, thông báo bị tắt...).',
+              style: TextStyle(color: Theme.of(c).colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 12),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final x in cats)
+              ChoiceChip(
+                avatar: Icon(x.icon, size: 16, color: x.color),
+                label: Text(x.name),
+                selected: cat == x.id,
+                onSelected: (_) => setS(() => cat = x.id),
+              ),
+          ]),
+          const SizedBox(height: 8),
+          TextField(controller: note, decoration: const InputDecoration(labelText: 'Ghi chú (không bắt buộc)')),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(c, 'add'),
+              child: Text('Ghi khoản ${income ? 'thu' : 'chi'} ${compactMoney(gap.abs())}'),
+            ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(onPressed: () => Navigator.pop(c, 'accept'), child: const Text('Không có khoản nào, chỉnh sổ theo ngân hàng')),
+          ),
+        ]),
+      ),
+    ),
+  );
+  if (r == 'add') {
+    store.saveTxn(Txn(
+      id: newId(),
+      amount: gap.abs(),
+      income: income,
+      categoryId: cat,
+      walletId: w.id,
+      date: DateTime.fromMillisecondsSinceEpoch(at - 60000),
+      note: note.text.trim().isEmpty ? 'Khoản bổ sung cho khớp số dư' : note.text.trim(),
+    ));
+    if (context.mounted) showToast(context, 'Đã ghi, sổ "${w.name}" giờ khớp với ngân hàng');
+  } else if (r == 'accept') {
+    if (store.balanceGaps.any((x) => x.w.id == w.id)) {
+      store.acceptBankBalance(w.id);
+    } else {
+      store.reconcileWallet(w, store.walletBalance(w) + gap, fix: true);
+    }
+    if (context.mounted) showToast(context, 'Đã chỉnh sổ "${w.name}" theo số dư ngân hàng');
   }
 }

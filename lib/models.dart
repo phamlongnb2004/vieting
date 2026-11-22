@@ -273,6 +273,34 @@ TagInfo? tagById(String id) {
 }
 
 /// Hũ mục tiêu tiết kiệm (du lịch, laptop, quỹ dự phòng...).
+/// Một lần bỏ tiền vào / rút ra khỏi mục tiêu.
+class GoalMove {
+  String id;
+  int amount; // dương: bỏ vào · âm: rút ra
+  int at;
+  String status; // ok | pending (đã tạo mã QR, chờ thấy tiền đi thật)
+  String reason; // lý do rút / ghi chú
+  String txnId; // giao dịch "chuyển sang hũ" trong sổ (nếu có)
+  GoalMove({required this.id, required this.amount, required this.at, this.status = 'ok', this.reason = '', this.txnId = ''});
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'a': amount,
+        'at': at,
+        if (status != 'ok') 's': status,
+        if (reason.isNotEmpty) 'r': reason,
+        if (txnId.isNotEmpty) 't': txnId,
+      };
+  factory GoalMove.fromJson(Map<String, dynamic> j) => GoalMove(
+        id: '${j['id'] ?? ''}',
+        amount: (j['a'] as num?)?.toInt() ?? 0,
+        at: (j['at'] as num?)?.toInt() ?? 0,
+        status: '${j['s'] ?? 'ok'}',
+        reason: '${j['r'] ?? ''}',
+        txnId: '${j['t'] ?? ''}',
+      );
+}
+
 class Goal {
   String id;
   String name;
@@ -282,6 +310,15 @@ class Goal {
   DateTime? deadline;
   int updatedAt;
   bool deleted;
+  // Tiền của mục tiêu nằm ở đâu: app (chỉ giữ chỗ trong ví) · bank (tài khoản tiết kiệm / hũ riêng) · cash (tiền mặt để riêng)
+  String hold;
+  String holdName; // VD "Hũ Techcombank", "Phong bì tủ quần áo"
+  String bin; // ngân hàng của tài khoản tiết kiệm (mã NAPAS) để tạo mã VietQR
+  String acct;
+  String owner;
+  String code; // 4 ký tự trong nội dung chuyển khoản "VTG <code>"
+  int reconAt; // lần đối chiếu số dư gần nhất
+  List<GoalMove> moves;
   Goal({
     required this.id,
     required this.name,
@@ -291,9 +328,21 @@ class Goal {
     this.deadline,
     int? updatedAt,
     this.deleted = false,
-  }) : updatedAt = updatedAt ?? nowMs();
+    this.hold = 'app',
+    this.holdName = '',
+    this.bin = '',
+    this.acct = '',
+    this.owner = '',
+    this.code = '',
+    this.reconAt = 0,
+    List<GoalMove>? moves,
+  })  : updatedAt = updatedAt ?? nowMs(),
+        moves = moves ?? [];
 
   double get progress => target <= 0 ? 0 : (saved / target).clamp(0.0, 1.0);
+  bool get separate => hold == 'bank' || hold == 'cash';
+  bool get hasQr => hold == 'bank' && bin.isNotEmpty && acct.isNotEmpty;
+  List<GoalMove> get pending => moves.where((m) => m.status == 'pending').toList();
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -304,6 +353,14 @@ class Goal {
         if (deadline != null) 'deadline': deadline!.millisecondsSinceEpoch,
         'u': updatedAt,
         'del': deleted,
+        if (hold != 'app') 'hold': hold,
+        if (holdName.isNotEmpty) 'holdName': holdName,
+        if (bin.isNotEmpty) 'bin': bin,
+        if (acct.isNotEmpty) 'acct': acct,
+        if (owner.isNotEmpty) 'owner': owner,
+        if (code.isNotEmpty) 'code': code,
+        if (reconAt > 0) 'recon': reconAt,
+        if (moves.isNotEmpty) 'moves': [for (final m in moves.length > 120 ? moves.sublist(moves.length - 120) : moves) m.toJson()],
       };
   factory Goal.fromJson(Map<String, dynamic> j) => Goal(
         id: j['id'] as String,
@@ -314,6 +371,17 @@ class Goal {
         deadline: j['deadline'] == null ? null : DateTime.fromMillisecondsSinceEpoch((j['deadline'] as num).toInt()),
         updatedAt: (j['u'] as num?)?.toInt() ?? 0,
         deleted: j['del'] == true,
+        hold: '${j['hold'] ?? 'app'}',
+        holdName: '${j['holdName'] ?? ''}',
+        bin: '${j['bin'] ?? ''}',
+        acct: '${j['acct'] ?? ''}',
+        owner: '${j['owner'] ?? ''}',
+        code: '${j['code'] ?? ''}',
+        reconAt: (j['recon'] as num?)?.toInt() ?? 0,
+        moves: [
+          for (final m in (j['moves'] as List? ?? const []))
+            if (m is Map) GoalMove.fromJson(Map<String, dynamic>.from(m))
+        ],
       );
 }
 

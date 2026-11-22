@@ -48,6 +48,8 @@ class AppStore extends ChangeNotifier {
   int noticeSeen = 0; // id thông báo admin đã tắt
   final Map<int, Space> spaces = {}; // Quỹ chung kết nối tài khoản (dữ liệu trên server, bản sao trên máy)
   int myUserId = 0;
+  // Số dư ngân hàng báo về lần gần nhất, để phát hiện sổ lệch với tài khoản thật (có khoản chưa ghi)
+  final Map<String, ({int bal, int at})> bankBal = {};
   int savePct = 10; // Quỹ tiêu thoải mái: % thu nhập trích tiết kiệm đầu kỳ
   int incomePlan = 0; // thu nhập dự kiến mỗi kỳ; 0 = tự tính
   Map<String, dynamic>? notice; // thông báo admin đang hiện
@@ -159,6 +161,10 @@ class AppStore extends ChangeNotifier {
             spaces[sp.id] = sp;
           }
         }
+        for (final e in ((s['bankBal'] as Map?) ?? const {}).entries) {
+          final v = e.value;
+          if (v is List && v.length == 2) bankBal['${e.key}'] = (bal: (v[0] as num).toInt(), at: (v[1] as num).toInt());
+        }
         incomePlan = (s['incomePlan'] as num?)?.toInt() ?? 0;
         remindersOn = s['remind'] != false;
         if (s['remote'] is Map) _applyRemote(Map<String, dynamic>.from(s['remote'] as Map), notify: false);
@@ -209,6 +215,7 @@ class AppStore extends ChangeNotifier {
           'savePct': savePct,
           'me': myUserId,
           'spaces': [for (final sp in spaces.values) sp.toCache()],
+          'bankBal': {for (final e in bankBal.entries) e.key: [e.value.bal, e.value.at]},
           'incomePlan': incomePlan,
           'remind': remindersOn,
           'remote': remote,
@@ -633,6 +640,44 @@ class AppStore extends ChangeNotifier {
 
   void spacesChanged() => _changed(syncSoon: false);
 
+  /// Sổ đang lệch bao nhiêu so với số dư ngân hàng báo về gần nhất (dương: ngân hàng nhiều hơn sổ).
+  List<({Wallet w, int gap, int at})> get balanceGaps {
+    final out = <({Wallet w, int gap, int at})>[];
+    final cutoff = nowMs() - 7 * 86400000;
+    for (final e in bankBal.entries) {
+      final w = wallets[e.key];
+      if (w == null || w.deleted || e.value.at < cutoff) continue;
+      // chỉ tính các khoản ghi tới thời điểm ngân hàng báo số dư
+      var book = w.initial;
+      for (final t in txns.values) {
+        if (!t.deleted && t.walletId == w.id && t.date.millisecondsSinceEpoch <= e.value.at + 1000) book += t.signed;
+      }
+      final gap = e.value.bal - book;
+      if (gap.abs() >= 1000) out.add((w: w, gap: gap, at: e.value.at));
+    }
+    return out;
+  }
+
+  /// Chấp nhận số dư ngân hàng là đúng: chỉnh số dư đầu của ví cho khớp.
+  void acceptBankBalance(String walletId) {
+    final g = balanceGaps.where((x) => x.w.id == walletId).firstOrNull;
+    if (g == null) return;
+    g.w.initial += g.gap;
+    g.w.updatedAt = nowMs();
+    _changed();
+  }
+
+  /// Đối chiếu tay (iPhone / ví không có thông báo): nhập số dư thật, trả về chênh lệch so với sổ.
+  int reconcileWallet(Wallet w, int actual, {bool fix = false}) {
+    final gap = actual - walletBalance(w);
+    if (fix && gap != 0) {
+      w.initial += gap;
+      w.updatedAt = nowMs();
+      _changed();
+    }
+    return gap;
+  }
+
   void setRemindersOn(bool v) {
     remindersOn = v;
     _changed(syncSoon: false);
@@ -926,10 +971,16 @@ class AppStore extends ChangeNotifier {
     );
     txns[t.id] = t;
     if (parsed.balance != null) {
-      // Khớp số dư ví với số dư ngân hàng báo về
-      wallet.initial = 0;
-      wallet.initial = parsed.balance! - walletBalance(wallet);
-      wallet.updatedAt = nowMs();
+      // Ví đã từng khớp với ngân hàng mà giờ lệch: có khoản chưa được ghi (tiêu thẻ khác, thông báo bị tắt...).
+      // Không lặng lẽ sửa số dư nữa mà giữ lại để nhắc người dùng ghi khoản thiếu.
+      final synced = bankBal.containsKey(wallet.id) ||
+          txns.values.any((x) => x.id != t.id && !x.deleted && x.walletId == wallet.id && x.balanceAfter != null);
+      final gap = parsed.balance! - walletBalance(wallet);
+      if (!synced || gap.abs() < 1000) {
+        wallet.initial += gap;
+        wallet.updatedAt = nowMs();
+      }
+      bankBal[wallet.id] = (bal: parsed.balance!, at: n.time.millisecondsSinceEpoch);
     }
     _recentSigs.add({'s': _sig(parsed), 't': n.time.millisecondsSinceEpoch});
     if (_recentSigs.length > 200) _recentSigs.removeRange(0, _recentSigs.length - 200);
@@ -985,6 +1036,7 @@ class AppStore extends ChangeNotifier {
     email = '';
     spaces.clear();
     myUserId = 0;
+    bankBal.clear();
     lastSync = 0;
     lastPush = 0;
     _changed(syncSoon: false);
