@@ -588,3 +588,26 @@ Không thấy giao dịch nào: {"txns":[]}.${dt ? '\n' + dt : ''}`;
     return json({ error: 'AI đang bận, thử lại sau.' }, 502);
   }
 }
+
+/** Đọc ảnh, trả về JSON AI trả lời (Gemini, dự phòng Workers AI). Dùng cho kiểm tra chứng từ Quỹ chung. */
+export async function visionJson(env, prompt, img, mime = 'image/jpeg') {
+  const res = !env.GEMINI_API_KEY
+    ? null
+    : await geminiFetch(env, {
+        contents: [{ role: 'user', parts: [{ inline_data: { mime_type: mime, data: img } }, { text: prompt }] }],
+        generationConfig: { temperature: 0, maxOutputTokens: 1024, responseMimeType: 'application/json' },
+      }).catch(() => null);
+  let text = null;
+  if (res && res.ok) {
+    const j = await res.json();
+    text = (j.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('');
+  } else {
+    text = await visionWorkersAI(env, prompt, img, mime);
+  }
+  return text == null ? null : extractJson(text);
+}
+
+/** Đếm lượt AI trong ngày (dùng chung hạn mức trợ lý). */
+export async function aiAllowed(env, userId) {
+  return underLimit(env, 'u' + userId, userId);
+}

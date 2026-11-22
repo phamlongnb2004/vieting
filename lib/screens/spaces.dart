@@ -312,9 +312,9 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
 
   String _memo(Space sp, SpaceEntry e, String myName) => 'VT ${sp.code} ${e.tag} ${plainMemo(myName).toUpperCase()}';
 
-  Future<void> _showQr(Space sp, SpaceEntry e) async {
+  Future<bool?> _showQr(Space sp, SpaceEntry e, {bool again = false}) {
     final store = StoreScope.read(context);
-    await showVietQrSheet(
+    return showVietQrSheet(
       context,
       title: 'Chuyển ${compactMoney(e.amount)} cho thủ quỹ ${sp.nameOf(sp.holder)}',
       bin: sp.bankBin,
@@ -322,50 +322,87 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
       owner: sp.bankOwner,
       amount: e.amount,
       memo: _memo(sp, e, sp.nameOf(store.myUserId)),
-      hint: 'Giữ nguyên nội dung chuyển khoản. Khi tiền về tài khoản thủ quỹ, khoản này chuyển từ "Chờ xác nhận" sang "Đã nhận" '
-          '(máy Android của thủ quỹ tự khớp, iPhone thì thủ quỹ bấm xác nhận). Chưa xác nhận thì chưa cộng vào quỹ.',
-      primary: 'Đã chuyển xong',
-      secondary: 'Đóng',
+      hint: 'Giữ nguyên nội dung chuyển khoản. Chuyển xong chụp màn hình rồi gửi ảnh ở bước sau. Khi tiền về tài khoản thủ quỹ, '
+          'khoản này chuyển từ "Chờ xác nhận" sang "Đã nhận" (Android của thủ quỹ tự khớp, iPhone thì thủ quỹ bấm xác nhận).',
+      primary: again ? 'Đóng' : 'Đã chuyển, gửi ảnh',
+      secondary: again ? 'Đóng' : 'Hủy',
     );
   }
 
-  /// Chụp / chọn ảnh chứng từ, AI đọc số tiền, so với số đã khai rồi gửi cho cả nhóm xem.
-  Future<void> _attachProof(Space sp, SpaceEntry e) async {
-    final store = StoreScope.read(context);
+  /// Chọn nguồn ảnh rồi lấy ảnh chứng từ (đã nén cho nhẹ).
+  Future<Uint8List?> _pickProof({String title = 'Ảnh chứng từ'}) async {
     final src = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (c) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(padding: const EdgeInsets.all(14), child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
           ListTile(
             leading: const Icon(PhosphorIconsRegular.camera),
-            title: const Text('Chụp bill / hóa đơn'),
+            title: const Text('Chụp ảnh (bill, hóa đơn, tiền mặt giao tay)'),
             onTap: () => Navigator.pop(c, ImageSource.camera),
           ),
           ListTile(
             leading: const Icon(PhosphorIconsRegular.image),
-            title: const Text('Chọn ảnh chuyển khoản / hóa đơn'),
+            title: const Text('Chọn ảnh chụp màn hình chuyển khoản'),
             onTap: () => Navigator.pop(c, ImageSource.gallery),
           ),
         ]),
       ),
     );
-    if (src == null) return;
+    if (src == null) return null;
     final x = await ImagePicker().pickImage(source: src, maxWidth: 1100, maxHeight: 1100, imageQuality: 62);
-    if (x == null || !mounted) return;
-    final bytes = await x.readAsBytes();
+    if (x == null) return null;
+    return x.readAsBytes();
+  }
+
+  /// Đổi / thêm ảnh chứng từ cho khoản đã ghi (AI kiểm tra lại từ đầu).
+  Future<void> _attachProof(Space sp, SpaceEntry e) async {
+    final store = StoreScope.read(context);
+    final bytes = await _pickProof();
+    if (bytes == null || !mounted) return;
     await _run(() async {
-      final ai = await Spaces.readAmount(store, bytes);
-      await Spaces.attachProof(store, sp, e, base64Encode(bytes), ai);
+      ProofCheck? chk;
+      try {
+        chk = await Spaces.verify(store, sp, recId: e.id, bytes: bytes, type: e.type, amount: e.amount, tag: e.tag);
+      } catch (_) {}
+      final ok = chk?.okFor(e.amount) ?? false;
+      e
+        ..proofOk = ok
+        ..proofWhy = ok ? '' : (chk?.whyFor(e.amount) ?? 'AI chưa kiểm tra được ảnh');
+      await Spaces.attachProof(store, sp, e, base64Encode(bytes), chk?.amount);
       if (!mounted) return;
-      if (ai == null) {
-        showToast(context, 'Đã gửi ảnh. AI chưa đọc được số tiền, cả nhóm tự xem ảnh nhé.');
-      } else if (e.proofOff) {
-        showToast(context, 'AI đọc được ${money(ai)}, lệch với số khai ${money(e.amount)}. Cả nhóm sẽ thấy cờ cảnh báo, sửa lại số nếu bạn nhập nhầm.');
-      } else {
-        showToast(context, 'AI đọc được ${money(ai)}, khớp số đã khai.');
-      }
+      showToast(context, ok ? 'AI đã kiểm tra: ảnh khớp khoản này.' : 'Ảnh không khớp: ${e.proofWhy}. Khoản này cần người khác duyệt.');
     });
   }
+
+  /// Ảnh không khớp: cho xem lý do, sửa lại hoặc vẫn gửi (khoản sẽ cần người khác duyệt).
+  /// retry: true → "Chọn ảnh khác" trả false, "Bỏ" trả null.
+  Future<bool?> _confirmBadProof(BuildContext ctx, String why, {bool retry = false}) => showDialog<bool>(
+        context: ctx,
+        builder: (d) => AlertDialog(
+          title: const Text('Ảnh chứng từ không khớp'),
+          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            for (final w in why.split('; '))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Icon(PhosphorIconsFill.xCircle, size: 16, color: Brand.red),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(w)),
+                ]),
+              ),
+            const SizedBox(height: 8),
+            const Text('Vẫn gửi thì khoản này bị gắn cờ, cả nhóm thấy lý do và cần một người khác duyệt mới được tính vào quỹ.',
+                style: TextStyle(fontSize: 12.5)),
+          ]),
+          actions: [
+            if (retry) TextButton(onPressed: () => Navigator.pop(d), child: const Text('Bỏ')),
+            TextButton(onPressed: () => Navigator.pop(d, false), child: Text(retry ? 'Chọn ảnh khác' : 'Sửa lại')),
+            FilledButton(style: FilledButton.styleFrom(backgroundColor: Brand.red), onPressed: () => Navigator.pop(d, true), child: const Text('Vẫn gửi')),
+          ],
+        ),
+      );
+
 
   Future<void> _addEntry(String type) async {
     final store = StoreScope.read(context);
@@ -375,10 +412,18 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
     final note = TextEditingController();
     var cat = 'an_uong';
     var ask = false;
-    var proof = type == 'spend';
+    Uint8List? img;
+    ProofCheck? chk;
+    String? chkErr;
+    var reading = false;
+    var open = true;
     final wallets = store.activeWallets;
     String? wallet = type == 'contrib' && wallets.isNotEmpty ? wallets.first.id : null;
     final iAmHolder = sp.holder == store.myUserId;
+    // nộp cho thủ quỹ có tài khoản: chuyển khoản bằng mã QR trước, rồi gửi ảnh chuyển khoản
+    final qrMode = type == 'contrib' && sp.holder != 0 && !iAmHolder && sp.hasBank;
+    final recId = newId();
+    final tag = type == 'contrib' && sp.holder != 0 && !iAmHolder ? _tag() : '';
     final ok = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -386,24 +431,119 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
         builder: (c, setS) {
           final v = parseMoneyInput(amount.text);
           final big = type == 'spend' && sp.approveOver > 0 && v > sp.approveOver && sp.members.length > 1;
+          final cs = Theme.of(c).colorScheme;
+          Future<void> pick() async {
+            final b = await _pickProof(title: type == 'contrib' ? 'Ảnh chứng từ nộp quỹ' : 'Ảnh bill / chuyển khoản');
+            if (b == null || !open) return;
+            setS(() {
+              img = b;
+              chk = null;
+              chkErr = null;
+              reading = true;
+            });
+            ProofCheck? r;
+            String? err;
+            try {
+              r = await Spaces.verify(store, sp, recId: recId, bytes: b, type: type, amount: parseMoneyInput(amount.text), tag: tag);
+            } catch (e) {
+              err = _err(e);
+            }
+            if (!open) return;
+            setS(() {
+              reading = false;
+              chk = r;
+              chkErr = err;
+              if (r?.amount != null && parseMoneyInput(amount.text) <= 0) amount.text = groupDigits(r!.amount!);
+            });
+          }
+
+          final checks = chk?.forAmount(v) ?? const <({String id, bool ok, String text})>[];
+          final off = chk != null && !chk!.okFor(v);
           return Padding(
             padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(c).bottom + 20),
             child: SingleChildScrollView(
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(type == 'contrib' ? 'Nộp tiền vào quỹ' : 'Chi từ quỹ', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                if (type == 'contrib' && sp.holder != 0 && !iAmHolder)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                        sp.hasBank
-                            ? 'Bước sau có mã QR chuyển thẳng cho thủ quỹ ${sp.nameOf(sp.holder)}. Tiền về thật mới được cộng vào quỹ.'
-                            : 'Thủ quỹ ${sp.nameOf(sp.holder)} cần xác nhận đã nhận thì khoản này mới được cộng vào quỹ.',
-                        style: TextStyle(fontSize: 12.5, color: Theme.of(c).colorScheme.onSurfaceVariant)),
-                  ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                      qrMode
+                          ? 'Bước sau có mã QR chuyển thẳng cho thủ quỹ ${sp.nameOf(sp.holder)}, chuyển xong gửi ảnh chuyển khoản. Tiền về thật mới được cộng vào quỹ.'
+                          : type == 'contrib' && sp.holder != 0 && !iAmHolder
+                              ? 'Cần ảnh chứng từ, và thủ quỹ ${sp.nameOf(sp.holder)} xác nhận đã nhận thì khoản này mới được cộng vào quỹ.'
+                              : 'Mỗi khoản đều cần ảnh chứng từ để cả nhóm cùng xem.',
+                      style: TextStyle(fontSize: 12.5, color: cs.onSurfaceVariant)),
+                ),
                 const SizedBox(height: 12),
+                if (!qrMode) ...[
+                  InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: pick,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: img == null ? Brand.red.withAlpha(120) : Brand.bamboo.withAlpha(140), width: 1.4),
+                        color: (img == null ? Brand.red : Brand.bamboo).withAlpha(14),
+                      ),
+                      child: Row(children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: img == null
+                              ? Container(
+                                  width: 56,
+                                  height: 56,
+                                  color: Brand.red.withAlpha(25),
+                                  child: const Icon(PhosphorIconsRegular.camera, color: Brand.red),
+                                )
+                              : Image.memory(img!, width: 56, height: 56, fit: BoxFit.cover),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(img == null ? 'Thêm ảnh chứng từ (bắt buộc)' : 'Đã có ảnh · chạm để đổi',
+                                style: TextStyle(fontWeight: FontWeight.w800, color: img == null ? Brand.red : null)),
+                            const SizedBox(height: 2),
+                            Text(
+                              img == null
+                                  ? (type == 'contrib' ? 'Ảnh chuyển khoản, hoặc ảnh lúc giao tiền mặt' : 'Bill, hóa đơn hoặc ảnh chuyển khoản')
+                                  : reading
+                                      ? 'AI đang kiểm tra ảnh…'
+                                      : chk == null
+                                          ? 'AI chưa kiểm tra được${chkErr == null ? '' : ' ($chkErr)'}. Gửi vẫn được nhưng cần người khác duyệt'
+                                          : off
+                                              ? 'Ảnh KHÔNG khớp khoản này'
+                                              : 'AI đã kiểm tra: ảnh khớp',
+                              style: TextStyle(fontSize: 12.5, color: off ? Brand.red : cs.onSurfaceVariant, fontWeight: off ? FontWeight.w700 : null),
+                            ),
+                          ]),
+                        ),
+                        if (reading) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                      ]),
+                    ),
+                  ),
+                  if (checks.isNotEmpty && !reading)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        for (final k in checks)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Icon(k.ok ? PhosphorIconsFill.checkCircle : PhosphorIconsFill.xCircle, size: 16, color: k.ok ? Brand.bamboo : Brand.red),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                  child: Text(k.text,
+                                      style: TextStyle(fontSize: 12.5, color: k.ok ? null : Brand.red, fontWeight: k.ok ? null : FontWeight.w600))),
+                            ]),
+                          ),
+                      ]),
+                    ),
+                  const SizedBox(height: 10),
+                ],
                 TextField(
                   controller: amount,
-                  autofocus: true,
+                  autofocus: qrMode,
                   keyboardType: TextInputType.number,
                   inputFormatters: [ThousandsFormatter()],
                   onChanged: (_) => setS(() {}),
@@ -426,13 +566,7 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
                         onSelected: (_) => setS(() => cat = x.id),
                       ),
                   ]),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Đính kèm ảnh bill / chuyển khoản'),
-                    subtitle: const Text('AI đọc số tiền trên ảnh và so với số bạn khai'),
-                    value: proof,
-                    onChanged: (v) => setS(() => proof = v),
-                  ),
+                  const SizedBox(height: 6),
                   if (sp.members.length > 1)
                     big
                         ? Container(
@@ -462,8 +596,24 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
                   width: double.infinity,
                   child: FilledButton(
                     style: FilledButton.styleFrom(backgroundColor: type == 'contrib' ? Brand.bamboo : Brand.red),
-                    onPressed: () => Navigator.pop(c, true),
-                    child: Text(type == 'contrib' ? 'Nộp quỹ' : (big || ask ? 'Gửi đề xuất chi' : 'Ghi khoản chi')),
+                    onPressed: v > 0 && (qrMode || (img != null && !reading))
+                        ? () async {
+                            if (!qrMode && (chk == null || off)) {
+                              final go = await _confirmBadProof(c, chk?.whyFor(v) ?? 'AI chưa kiểm tra được ảnh');
+                              if (go != true || !c.mounted) return;
+                            }
+                            Navigator.pop(c, true);
+                          }
+                        : null,
+                    child: Text(qrMode
+                        ? 'Tiếp: lấy mã QR'
+                        : img == null
+                            ? 'Cần ảnh chứng từ'
+                            : reading
+                                ? 'Đang kiểm tra ảnh…'
+                                : type == 'contrib'
+                                    ? 'Nộp quỹ'
+                                    : (big || ask ? 'Gửi đề xuất chi' : 'Ghi khoản chi')),
                   ),
                 ),
               ]),
@@ -472,42 +622,108 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
         },
       ),
     );
+    open = false;
     final v = parseMoneyInput(amount.text);
     if (ok != true || v <= 0 || !mounted) return;
     final e = SpaceEntry(
-      id: newId(),
+      id: recId,
       by: store.myUserId,
       type: type,
       amount: v,
       note: note.text.trim(),
       category: type == 'spend' ? cat : '',
       date: DateTime.now(),
-      tag: type == 'contrib' && sp.holder != 0 && !iAmHolder ? _tag() : '',
+      tag: tag,
       ask: type == 'spend' && (ask || (sp.approveOver > 0 && v > sp.approveOver)),
     );
+    if (qrMode) {
+      // chuyển khoản trước, rồi bắt buộc gửi ảnh chuyển khoản mới ghi khoản
+      final done = await _showQr(sp, e);
+      if (!mounted) return;
+      if (done != true) {
+        showToast(context, 'Chưa ghi khoản nào. Chuyển xong bấm Nộp quỹ lại nhé.');
+        return;
+      }
+      while (mounted) {
+        final b = await _pickProof(title: 'Gửi ảnh chụp màn hình chuyển khoản');
+        if (!mounted) return;
+        if (b == null) {
+          final again = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Chưa có ảnh chuyển khoản'),
+              content: const Text('Cần ảnh chụp màn hình chuyển khoản để cả nhóm đối chiếu. Không có ảnh thì khoản này chưa được ghi.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Bỏ')),
+                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Chọn ảnh')),
+              ],
+            ),
+          );
+          if (again != true) {
+            if (mounted) showToast(context, 'Chưa ghi khoản nào.');
+            return;
+          }
+          continue;
+        }
+        setState(() => _busy = true);
+        try {
+          chk = await Spaces.verify(store, sp, recId: recId, bytes: b, type: type, amount: v, tag: tag);
+        } catch (_) {
+          chk = null;
+        }
+        if (!mounted) return;
+        setState(() => _busy = false);
+        if (chk != null && chk!.okFor(v)) {
+          img = b;
+          break;
+        }
+        final go = await _confirmBadProof(context, chk?.whyFor(v) ?? 'AI chưa kiểm tra được ảnh', retry: true);
+        if (!mounted) return;
+        if (go == true) {
+          img = b;
+          break;
+        }
+        if (go == null) {
+          showToast(context, 'Chưa ghi khoản nào.');
+          return;
+        }
+      }
+    }
+    if (img == null || !mounted) return;
+    setState(() => _busy = true);
     try {
+      await Spaces.uploadProof(store, sp, e.id, base64Encode(img!));
+      final okP = chk?.okFor(v) ?? false;
+      e
+        ..img = true
+        ..proofAi = chk?.amount
+        ..proofOk = okP
+        ..proofWhy = okP ? '' : (chk?.whyFor(v) ?? 'AI chưa kiểm tra được ảnh');
       await Spaces.add(store, sp, e, personalWallet: wallet);
       if (!mounted) return;
       final st = sp.statusOf(e);
-      if (st == 'pending' && sp.hasBank) {
-        await _showQr(sp, e);
-      } else if (st == 'pending') {
-        showToast(context, 'Đã ghi ${money(v)}, chờ thủ quỹ ${sp.nameOf(sp.holder)} xác nhận đã nhận.');
+      final proofNote = e.proofOff ? ' Ảnh chứng từ không khớp nên cần người khác duyệt.' : '';
+      if (st == 'pending') {
+        showToast(context, 'Đã gửi ${money(v)} kèm ảnh, chờ thủ quỹ ${sp.nameOf(sp.holder)} xác nhận đã nhận.$proofNote');
       } else if (st == 'await') {
-        showToast(context, 'Đã gửi đề xuất chi ${money(v)}. Có người duyệt là trừ vào quỹ.');
+        showToast(context, 'Đã gửi đề xuất chi ${money(v)} kèm ảnh. Có người duyệt là trừ vào quỹ.$proofNote');
       } else {
         final low = type == 'spend' && sp.balance < 0;
         showToast(
             context,
-            type == 'contrib'
-                ? 'Đã nộp ${money(v)}, cả nhóm thấy ngay. Quỹ giờ có ${money(sp.balance)}'
-                : low
-                    ? 'Đã ghi. Quỹ đang âm ${money(-sp.balance)}, hú cả nhóm nộp thêm thôi!'
-                    : 'Đã ghi chi ${money(v)}. Quỹ còn ${money(sp.balance)}');
+            (type == 'contrib'
+                    ? 'Đã nộp ${money(v)} kèm ảnh. Quỹ giờ có ${money(sp.balance)}'
+                    : low
+                        ? 'Đã ghi. Quỹ đang âm ${money(-sp.balance)}, hú cả nhóm nộp thêm thôi!'
+                        : 'Đã ghi chi ${money(v)} kèm ảnh. Quỹ còn ${money(sp.balance)}') +
+                proofNote);
       }
-      if (proof && mounted) await _attachProof(sp, e);
     } catch (err) {
-      if (mounted) showToast(context, 'Đã lưu trên máy, sẽ gửi lên khi có mạng: ${_err(err)}');
+      if (mounted) showToast(context, 'Chưa gửi được (cần mạng để tải ảnh chứng từ): ${_err(err)}');
+      sp.entries.remove(e.id);
+      store.spacesChanged();
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -672,8 +888,10 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
                     color: (e.proofOff ? Brand.red : Brand.bamboo).withAlpha(28), borderRadius: BorderRadius.circular(12)),
                 child: Text(
                     e.proofOff
-                        ? 'Ảnh chứng từ: AI đọc được ${money(e.proofAi!)}, lệch ${money((e.proofAi! - e.amount).abs())} so với số khai.'
-                        : 'Ảnh chứng từ: AI đọc được ${money(e.proofAi!)}, khớp số khai.',
+                        ? 'Ảnh chứng từ KHÔNG khớp: ${e.proofWhy.isNotEmpty ? e.proofWhy : 'AI đọc được ${money(e.proofAi ?? 0)}, khác số khai'}'
+                        : e.proofOk == true
+                            ? 'AI đã kiểm tra ảnh chứng từ: đúng loại, đúng số tiền${e.type == 'contrib' && sp.hasBank ? ', đúng người nhận và nội dung' : ''}, chưa dùng cho khoản khác.'
+                            : 'Có ảnh chứng từ (chưa được AI kiểm tra).',
                     style: const TextStyle(fontWeight: FontWeight.w600)),
               ),
               _ProofImage(store: store, sp: sp, e: e),
@@ -729,7 +947,7 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
       case 'confirm' || 'reject' || 'approve' || 'deny':
         await _run(() => Spaces.mark(store, sp, e, action), ok: 'Đã gửi, người ghi khoản sẽ được báo');
       case 'qr':
-        await _showQr(sp, e);
+        await _showQr(sp, e, again: true);
       case 'proof':
         await _attachProof(sp, e);
       case 'edit':
@@ -793,7 +1011,8 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
           Text('${sp.nameOf(e.by)} · ${dmy(e.date)} ${hm(e.date)}'),
           if (e.del || st != 'ok') _StatusChip(status: st, del: e.del, small: true),
           if (e.hasProof && !e.proofOff) const Icon(PhosphorIconsFill.receipt, size: 14, color: Brand.bamboo),
-          if (e.proofOff) const _Pill(text: 'Ảnh lệch số', color: Brand.red),
+          if (e.proofOff) const _Pill(text: 'Ảnh không khớp', color: Brand.red),
+          if (!e.hasProof && !e.del) const _Pill(text: 'Không có ảnh', color: Color(0xFFEF8F00)),
         ]),
         trailing: Text('${e.type == 'contrib' ? '+' : '−'}${money(e.amount)}',
             style: TextStyle(

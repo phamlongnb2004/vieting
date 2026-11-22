@@ -4,6 +4,8 @@
 // nhật ký sửa / xóa không ai xóa được, và đối chiếu số dư thật với số trên sổ.
 // Tác giả: Phạm Thành Long (thlong)
 
+import { visionJson, aiAllowed } from './ai.js';
+
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // bỏ chữ dễ nhầm (0/O, 1/I)
 
 function newCode() {
@@ -77,6 +79,37 @@ function holderOf(info) {
   return Number(info.settings?.holder) || 0;
 }
 
+
+const fold = (t) =>
+  String(t || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/gi, 'd')
+    .toUpperCase();
+
+async function sha(t) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+}
+
+/** Giờ Việt Nam từ chuỗi "YYYY-MM-DD HH:mm" AI đọc trên ảnh. */
+function vnTime(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/.exec(String(s || '').trim());
+  if (!m) return null;
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], m[4] ? +m[4] : 12, m[5] ? +m[5] : 0) - 7 * 3600000;
+}
+
+const VERIFY_PROMPT = `Bạn là người kiểm tra chứng từ cho một quỹ chung. Nhìn ảnh và trả về MỘT đối tượng JSON, chỉ ghi điều THẤY TRONG ẢNH, không đoán:
+{"kind":"transfer|receipt|cash|other","success":true,"direction":"out|in|unknown","amount":0,"to_account":"","to_name":"","memo":"","datetime":"YYYY-MM-DD HH:mm","merchant":"","app":"","suspicious":""}
+- kind: transfer = ảnh màn hình chuyển khoản / thanh toán thành công trong app ngân hàng hoặc ví; receipt = hóa đơn, bill, biên lai cửa hàng; cash = ảnh tiền mặt; other = ảnh khác (ảnh tự chế, ảnh chụp chữ, ảnh không liên quan...).
+- success: chỉ true khi ảnh ghi rõ giao dịch THÀNH CÔNG / đã thanh toán. Lệnh đang chờ, thất bại, màn hình nhập số tiền chưa bấm chuyển thì false.
+- direction: out nếu là tiền chuyển đi / trả tiền, in nếu là tiền nhận vào.
+- amount: số tiền giao dịch (đồng, số nguyên), KHÔNG lấy số dư, phí.
+- to_account, to_name: số tài khoản và tên NGƯỜI NHẬN đúng như trên ảnh (giữ dấu * nếu bị che).
+- memo: nội dung / lời nhắn chuyển khoản đúng như trên ảnh.
+- datetime: thời gian giao dịch trên ảnh, không có thì "".
+- suspicious: nếu ảnh có dấu hiệu bị sửa (chữ lệch font, số chồng lên nhau, cắt ghép) thì mô tả ngắn, không thì "".`;
+
 /** Tất cả /api/space/* — cần đăng nhập. */
 export async function handleSpace(req, env, url, userId, h) {
   if (userId == null) return h.json({ error: 'Đăng nhập để dùng Quỹ chung' }, 401);
@@ -97,15 +130,23 @@ export async function handleSpace(req, env, url, userId, h) {
     const name = str(b?.name, 60) || 'Quỹ chung';
     const count = (await env.DB.prepare('SELECT COUNT(*) AS n FROM space_members WHERE user_id = ?').bind(userId).first())?.n || 0;
     if (count >= 20) return h.json({ error: 'Tối đa 20 quỹ chung mỗi tài khoản' }, 400);
-    let code = newCode();
-    for (let i = 0; i < 5; i++) {
-      if (!(await env.DB.prepare('SELECT 1 AS x FROM spaces WHERE code = ?').bind(code).first())) break;
-      code = newCode();
-    }
+    // Mã mời ngẫu nhiên 6 ký tự (32^6 ≈ 1 tỷ mã). Cột code là UNIQUE: nếu trùng quỹ đã có thì sinh mã khác,
+    // kể cả khi hai người tạo quỹ cùng lúc ra cùng một mã.
     const now = Date.now();
-    const res = await env.DB.prepare('INSERT INTO spaces (name, code, owner, target, created) VALUES (?, ?, ?, ?, ?)')
-      .bind(name, code, userId, int(b?.target), now)
-      .run();
+    let res = null;
+    let code = '';
+    for (let i = 0; i < 20 && !res; i++) {
+      code = newCode();
+      if (await env.DB.prepare('SELECT 1 AS x FROM spaces WHERE code = ?').bind(code).first()) continue;
+      try {
+        res = await env.DB.prepare('INSERT INTO spaces (name, code, owner, target, created) VALUES (?, ?, ?, ?, ?)')
+          .bind(name, code, userId, int(b?.target), now)
+          .run();
+      } catch (e) {
+        if (!/UNIQUE/i.test(String(e?.message || e))) throw e;
+      }
+    }
+    if (!res) return h.json({ error: 'Chưa tạo được mã mời, thử lại nhé' }, 503);
     const id = res.meta.last_row_id;
     await env.DB.batch([
       env.DB.prepare('INSERT INTO space_members (space_id, user_id, nick, joined) VALUES (?, ?, ?, ?)').bind(id, userId, str(b?.nick, 30), now),
@@ -192,7 +233,7 @@ export async function handleSpace(req, env, url, userId, h) {
     if ((kind === 'confirm' || kind === 'reject') && (d.type !== 'contrib' || userId !== holder)) {
       return h.json({ error: 'Chỉ thủ quỹ xác nhận được tiền nộp vào' }, 403);
     }
-    if ((kind === 'approve' || kind === 'deny') && (d.type !== 'spend' || userId === r.by_user)) {
+    if ((kind === 'approve' || kind === 'deny') && userId === r.by_user) {
       return h.json({ error: 'Người khác (không phải người chi) mới duyệt được' }, 403);
     }
     const now = Date.now();
@@ -236,6 +277,94 @@ export async function handleSpace(req, env, url, userId, h) {
     return h.json({ space: await spaceInfo(env, id) });
   }
 
+  // Kiểm tra ảnh chứng từ: AI đọc loại ảnh, số tiền, người nhận, nội dung, thời gian rồi so với khoản đang khai.
+  // Chỉ "khớp" khi đúng là ảnh chuyển khoản / hóa đơn thành công, đúng số tiền, đúng người nhận + nội dung
+  // (nộp cho thủ quỹ), còn mới, và chưa dùng cho khoản khác.
+  if (req.method === 'POST' && path === '/verify') {
+    const rec = str(b?.rec, 64);
+    const img = String(b?.img || '');
+    if (!rec || !img || img.length > 600000) return h.json({ error: 'Ảnh trống hoặc quá lớn' }, 400);
+    if (!(await aiAllowed(env, userId))) return h.json({ error: 'Hôm nay đã hết lượt AI, mai thử lại nhé.' }, 429);
+    const info = await spaceInfo(env, id);
+    const type = b?.type === 'contrib' ? 'contrib' : 'spend';
+    const holder = holderOf(info);
+    const bank = info.settings?.bank;
+    const toHolder = type === 'contrib' && holder && holder !== userId;
+    const p = await visionJson(env, VERIFY_PROMPT, img).catch(() => null);
+    if (!p) return h.json({ error: 'AI chưa đọc được ảnh, thử lại sau ít phút.' }, 502);
+    const ai = {
+      kind: ['transfer', 'receipt', 'cash', 'other'].includes(p.kind) ? p.kind : 'other',
+      success: p.success === true,
+      direction: ['out', 'in'].includes(p.direction) ? p.direction : 'unknown',
+      amount: int(p.amount) || null,
+      to_account: str(p.to_account, 40),
+      to_name: str(p.to_name, 80),
+      memo: str(p.memo, 160),
+      datetime: str(p.datetime, 20),
+      merchant: str(p.merchant, 80),
+      suspicious: str(p.suspicious, 160),
+    };
+    const checks = [];
+    const add = (cid, ok, text) => checks.push({ id: cid, ok: !!ok, text });
+    // 1) loại ảnh
+    if (type === 'contrib') {
+      add('kind', ai.kind === 'transfer' || (!bank && ai.kind === 'cash'), ai.kind === 'transfer' ? 'Ảnh chuyển khoản' : ai.kind === 'cash' ? 'Ảnh tiền mặt' : 'Không phải ảnh chuyển khoản');
+    } else {
+      add('kind', ai.kind === 'transfer' || ai.kind === 'receipt', ai.kind === 'receipt' ? 'Hóa đơn / bill' : ai.kind === 'transfer' ? 'Ảnh chuyển khoản' : 'Không phải hóa đơn hay ảnh chuyển khoản');
+    }
+    if (ai.kind === 'transfer') {
+      add('success', ai.success, ai.success ? 'Giao dịch thành công' : 'Không thấy chữ giao dịch thành công');
+      if (ai.direction === 'in') add('dir', false, 'Đây là ảnh tiền NHẬN vào, không phải tiền chuyển đi');
+    }
+    // 2) số tiền: app so lại theo số người dùng nhập cuối cùng
+    add('amount', ai.amount != null && ai.amount === int(b?.amount), ai.amount != null ? `AI đọc được ${vnd(ai.amount)}` : 'Không đọc được số tiền');
+    // 3) đúng người nhận + nội dung khi nộp cho thủ quỹ
+    if (toHolder && bank?.acct && ai.kind === 'transfer') {
+      const digits = ai.to_account.replace(/\D/g, '');
+      const acctOk = digits.length >= 3 && String(bank.acct).endsWith(digits.slice(-Math.min(digits.length, 6)));
+      const nameOk = !!bank.owner && !!ai.to_name && fold(ai.to_name).replace(/[^A-Z]/g, '').includes(fold(bank.owner).replace(/[^A-Z]/g, '').slice(0, 12));
+      add('to', acctOk || nameOk, acctOk || nameOk ? `Đúng người nhận (${bank.name} ${bank.acct})` : `Người nhận trên ảnh (${ai.to_name || ai.to_account || 'không rõ'}) không phải tài khoản quỹ`);
+      const memoOk = fold(ai.memo).replace(/[^A-Z0-9]/g, '').includes(('VT' + info.code + str(b?.tag, 8)).toUpperCase());
+      add('memo', memoOk, memoOk ? 'Đúng nội dung chuyển khoản' : `Nội dung chuyển khoản không có mã "VT ${info.code} ${str(b?.tag, 8)}"`);
+    }
+    if (type === 'spend' && ai.kind === 'transfer' && bank?.acct) {
+      const digits = ai.to_account.replace(/\D/g, '');
+      if (digits.length >= 4 && String(bank.acct).endsWith(digits.slice(-6)) || fold(ai.memo).replace(/[^A-Z0-9]/g, '').includes('VT' + info.code)) {
+        add('dir', false, 'Đây là ảnh chuyển tiền VÀO quỹ, không phải khoản chi');
+      }
+    }
+    // 4) còn mới
+    const t = vnTime(ai.datetime);
+    const maxAge = type === 'contrib' ? 2 : 7;
+    if (t) {
+      const age = (Date.now() - t) / 86400000;
+      add('time', age < maxAge && age > -0.1, age < maxAge && age > -0.1 ? 'Thời gian giao dịch mới' : `Giao dịch từ ${ai.datetime}, đã cũ`);
+    } else if (ai.kind === 'transfer') {
+      add('time', false, 'Không thấy thời gian giao dịch trên ảnh');
+    }
+    // 5) dấu hiệu sửa ảnh
+    if (ai.suspicious) add('edit', false, 'Ảnh có dấu hiệu chỉnh sửa: ' + ai.suspicious);
+    // 6) ảnh / giao dịch đã dùng cho khoản khác
+    const keys = ['h:' + (await sha(img))];
+    if (ai.amount && ai.datetime) keys.push('f:' + (await sha([ai.amount, ai.datetime, ai.to_account, fold(ai.memo)].join('|'))));
+    let reused = null;
+    for (const k of keys) {
+      const r = await env.DB.prepare('SELECT rec_id FROM space_proof_keys WHERE space_id = ? AND k = ?').bind(id, k).first().catch(() => null);
+      if (!r || r.rec_id === rec) continue;
+      const live = await env.DB.prepare('SELECT deleted FROM space_records WHERE space_id = ? AND id = ?').bind(id, r.rec_id).first();
+      if (live && !live.deleted) reused = r.rec_id;
+    }
+    add('reuse', !reused, reused ? 'Ảnh / giao dịch này đã được dùng cho một khoản khác trong quỹ' : 'Chưa dùng cho khoản nào khác');
+    if (!reused) {
+      await env.DB.batch(
+        keys.map((k) =>
+          env.DB.prepare('INSERT INTO space_proof_keys (space_id, k, rec_id, at) VALUES (?, ?, ?, ?) ON CONFLICT (space_id, k) DO UPDATE SET rec_id = excluded.rec_id, at = excluded.at').bind(id, k, rec, Date.now())
+        )
+      ).catch(() => {});
+    }
+    return h.json({ ai, checks, ok: checks.every((c) => c.ok) });
+  }
+
   // Ảnh chứng từ: người ghi khoản tải lên, cả nhóm xem được.
   if (path === '/proof') {
     const rec = str(b?.rec ?? url.searchParams.get('rec'), 64);
@@ -243,8 +372,9 @@ export async function handleSpace(req, env, url, userId, h) {
       const p = await env.DB.prepare('SELECT img FROM space_proofs WHERE space_id = ? AND rec_id = ?').bind(id, rec).first();
       return p ? h.json({ img: p.img }) : h.json({ error: 'Chưa có ảnh' }, 404);
     }
+    // ảnh được tải lên trước khi ghi khoản (khoản chưa có) hoặc người ghi khoản đổi ảnh
     const r = await env.DB.prepare('SELECT by_user FROM space_records WHERE space_id = ? AND id = ?').bind(id, rec).first();
-    if (!r || r.by_user !== userId) return h.json({ error: 'Chỉ người ghi khoản mới thêm ảnh' }, 403);
+    if (r && r.by_user !== userId) return h.json({ error: 'Chỉ người ghi khoản mới thêm ảnh' }, 403);
     const img = String(b?.img || '');
     if (!img || img.length > 600000) return h.json({ error: 'Ảnh quá lớn' }, 400);
     await env.DB.prepare(
@@ -310,8 +440,17 @@ export async function handleSpace(req, env, url, userId, h) {
       const note = d.note ? ' · ' + str(d.note, 60) : '';
       if (!old) {
         if (!c.del) {
-          const extra = d.type === 'spend' && d.ask ? ' (cần duyệt)' : d.type === 'contrib' && d.pending ? ' (chờ thủ quỹ xác nhận)' : '';
-          stmts.push(logStmt(env, id, userId, c.id, d.type === 'contrib' ? 'contrib' : 'spend', `${who} ${label} ${vnd(amt)}${note}${extra}`, now));
+          let extra = d.type === 'spend' && d.ask ? ' (cần duyệt)' : d.type === 'contrib' && d.pending ? ' (chờ thủ quỹ xác nhận)' : '';
+          const ai = d.proofAi == null ? null : int(d.proofAi);
+          const off = d.proofOk === false || (ai != null && Math.abs(ai - amt) > Math.max(1000, amt * 0.02));
+          extra += d.img || ai != null
+            ? off
+              ? `, ẢNH CHỨNG TỪ KHÔNG KHỚP${d.proofWhy ? ': ' + str(d.proofWhy, 160) : ''}`
+              : d.proofOk
+                ? ', ảnh chứng từ đã được AI kiểm tra khớp'
+                : ', có ảnh chứng từ'
+            : ', KHÔNG có ảnh chứng từ';
+          stmts.push(logStmt(env, id, userId, c.id, off ? 'flag' : d.type === 'contrib' ? 'contrib' : 'spend', `${who} ${label} ${vnd(amt)}${note}${extra}`, now));
         }
       } else {
         const od = JSON.parse(old.data || '{}');
@@ -321,9 +460,9 @@ export async function handleSpace(req, env, url, userId, h) {
           stmts.push(logStmt(env, id, userId, c.id, 'edit', `${who} SỬA khoản ${label} ${vnd(od.amount)} → ${vnd(amt)}${note}`, now));
           // đổi số tiền thì các xác nhận / duyệt cũ hết hiệu lực
           stmts.push(env.DB.prepare('DELETE FROM space_marks WHERE space_id = ? AND rec_id = ?').bind(id, c.id));
-        } else if (!c.del && d.proofAi != null && od.proofAi == null) {
-          const ai = int(d.proofAi);
-          const off = Math.abs(ai - amt) > Math.max(1000, amt * 0.02);
+        } else if (!c.del && (d.proofAi != null || d.img) && od.proofAi == null && !od.img) {
+          const ai = d.proofAi == null ? null : int(d.proofAi);
+          const off = ai != null && Math.abs(ai - amt) > Math.max(1000, amt * 0.02);
           stmts.push(
             logStmt(
               env,
@@ -333,7 +472,7 @@ export async function handleSpace(req, env, url, userId, h) {
               off ? 'flag' : 'proof',
               off
                 ? `Ảnh chứng từ khoản ${label} ${vnd(amt)} của ${who}: AI đọc được ${vnd(ai)}, LỆCH ${vnd(Math.abs(ai - amt))}`
-                : `${who} thêm ảnh chứng từ cho khoản ${label} ${vnd(amt)} (AI đọc khớp)`,
+                : `${who} thêm ảnh chứng từ cho khoản ${label} ${vnd(amt)}${ai != null ? ' (AI đọc khớp)' : ''}`,
               now
             )
           );

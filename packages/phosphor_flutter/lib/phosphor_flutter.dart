@@ -29,6 +29,7 @@ class PhosphorIconsFill {
   static const IconData squaresFour = IconData(0xe464, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData star = IconData(0xe46a, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
   static const IconData wallet = IconData(0xe68a, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
+  static const IconData xCircle = IconData(0xe4f8, fontFamily: 'PhosphorFill', fontPackage: 'phosphor_flutter');
 }
 
 class PhosphorIconsRegular {

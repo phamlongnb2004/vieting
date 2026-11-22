@@ -245,3 +245,11 @@ CREATE TABLE IF NOT EXISTS space_proofs (
   at INTEGER NOT NULL,
   PRIMARY KEY (space_id, rec_id)
 );
+-- Dấu vân tay ảnh chứng từ: phát hiện một ảnh / một giao dịch bị dùng lại cho nhiều khoản
+CREATE TABLE IF NOT EXISTS space_proof_keys (
+  space_id INTEGER NOT NULL,
+  k TEXT NOT NULL,
+  rec_id TEXT NOT NULL,
+  at INTEGER NOT NULL,
+  PRIMARY KEY (space_id, k)
+);

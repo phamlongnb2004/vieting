@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../models.dart';
 import '../store.dart';
+import '../util/format.dart';
 import '../util/vietqr.dart';
 
 /// Một khoản trong quỹ chung: nộp quỹ (contrib) hoặc chi từ quỹ (spend).
@@ -20,6 +21,9 @@ class SpaceEntry {
   String tag; // 4 ký tự trong nội dung chuyển khoản "VT <mã quỹ> <tag>" để tự khớp khi tiền về
   bool ask; // khoản chi cần người khác duyệt
   int? proofAi; // số tiền AI đọc được trên ảnh chứng từ
+  bool img; // có ảnh chứng từ
+  bool? proofOk; // AI kiểm tra ảnh: đúng loại, đúng số tiền, đúng người nhận, còn mới, chưa dùng lại
+  String proofWhy; // lý do không khớp (cho cả nhóm xem)
   Map<int, String> marks; // userId -> confirm | reject | approve | deny
 
   SpaceEntry({
@@ -35,14 +39,18 @@ class SpaceEntry {
     this.tag = '',
     this.ask = false,
     this.proofAi,
+    this.img = false,
+    this.proofOk,
+    this.proofWhy = '',
     Map<int, String>? marks,
   })  : u = u ?? nowMs(),
         marks = marks ?? {};
 
-  bool get hasProof => proofAi != null;
+  bool get hasProof => img || proofAi != null;
 
   /// Ảnh chứng từ lệch số khai (quá 2% hoặc 1.000 ₫).
-  bool get proofOff => proofAi != null && (proofAi! - amount).abs() > (amount * 0.02 > 1000 ? amount * 0.02 : 1000);
+  bool get proofOff =>
+      proofOk == false || (proofAi != null && (proofAi! - amount).abs() > (amount * 0.02 > 1000 ? amount * 0.02 : 1000));
 
   Map<String, dynamic> toData() => {
         'type': type,
@@ -54,6 +62,9 @@ class SpaceEntry {
         if (ask) 'ask': true,
         if (tag.isNotEmpty && type == 'contrib') 'pending': true,
         if (proofAi != null) 'proofAi': proofAi,
+        if (img) 'img': true,
+        if (proofOk != null) 'proofOk': proofOk,
+        if (proofWhy.isNotEmpty) 'proofWhy': proofWhy,
       };
 
   factory SpaceEntry.fromRecord(Map<String, dynamic> r) {
@@ -71,6 +82,9 @@ class SpaceEntry {
       tag: '${d['tag'] ?? ''}',
       ask: d['ask'] == true,
       proofAi: (d['proofAi'] as num?)?.toInt(),
+      img: d['img'] == true,
+      proofOk: d['proofOk'] is bool ? d['proofOk'] as bool : null,
+      proofWhy: '${d['proofWhy'] ?? ''}',
       marks: {
         for (final m in ((r['marks'] as Map?) ?? const {}).entries)
           if (int.tryParse('${m.key}') != null) int.parse('${m.key}'): '${m.value}'
@@ -147,7 +161,11 @@ class Space {
 
   /// Người xác nhận tiền nộp vào: thủ quỹ; không có thủ quỹ thì không cần xác nhận.
   bool needsConfirm(SpaceEntry e) => e.type == 'contrib' && holder != 0 && e.by != holder;
-  bool needsApproval(SpaceEntry e) => e.type == 'spend' && (e.ask || (approveOver > 0 && e.amount > approveOver)) && members.length > 1;
+  /// Khoản chi lớn / xin ý kiến, hoặc khoản có ảnh chứng từ không khớp (mà không có thủ quỹ xác nhận): cần người khác duyệt.
+  bool needsApproval(SpaceEntry e) =>
+      members.length > 1 &&
+      !needsConfirm(e) &&
+      ((e.type == 'spend' && (e.ask || (approveOver > 0 && e.amount > approveOver))) || e.proofOff);
 
   /// ok | pending (chờ thủ quỹ) | rejected | await (chờ duyệt) | denied
   String statusOf(SpaceEntry e) {
@@ -349,6 +367,9 @@ class Spaces {
       e.amount = amount;
       e.marks.clear();
       e.proofAi = null;
+      e.img = false;
+      e.proofOk = null;
+      e.proofWhy = '';
     }
     if (note != null) e.note = note;
     e.u = nowMs();
@@ -402,7 +423,8 @@ class Spaces {
   /// Tải ảnh chứng từ (base64 JPEG) và số tiền AI đọc được lên quỹ.
   static Future<void> attachProof(AppStore s, Space sp, SpaceEntry e, String imgB64, int? aiAmount) async {
     await _call(s, '/api/space/proof', {'space': sp.id, 'rec': e.id, 'img': imgB64});
-    e.proofAi = aiAmount ?? e.amount;
+    e.proofAi = aiAmount;
+    e.img = true;
     e.u = nowMs();
     s.spacesChanged();
     await sync(s, sp, changes: [e]);
@@ -427,6 +449,33 @@ class Spaces {
     } catch (_) {
       return null;
     }
+  }
+
+  /// AI kiểm tra ảnh chứng từ trên server (loại ảnh, số tiền, người nhận, nội dung, thời gian, dùng lại).
+  static Future<ProofCheck> verify(AppStore s, Space sp,
+      {required String recId, required List<int> bytes, required String type, required int amount, String tag = ''}) async {
+    final j = await _call(s, '/api/space/verify', {
+      'space': sp.id,
+      'rec': recId,
+      'img': base64Encode(bytes),
+      'type': type,
+      'amount': amount,
+      'tag': tag,
+    });
+    final ai = Map<String, dynamic>.from((j['ai'] as Map?) ?? const {});
+    return ProofCheck(
+      amount: (ai['amount'] as num?)?.toInt(),
+      kind: '${ai['kind'] ?? 'other'}',
+      checks: [
+        for (final c in (j['checks'] as List? ?? const []))
+          if (c is Map) (id: '${c['id']}', ok: c['ok'] == true, text: '${c['text'] ?? ''}')
+      ],
+    );
+  }
+
+  /// Tải ảnh chứng từ lên TRƯỚC khi ghi khoản (bắt buộc có ảnh ngay từ đầu).
+  static Future<void> uploadProof(AppStore s, Space sp, String recId, String imgB64) async {
+    await _call(s, '/api/space/proof', {'space': sp.id, 'rec': recId, 'img': imgB64});
   }
 
   static Future<String?> proof(AppStore s, Space sp, SpaceEntry e) async {
@@ -478,4 +527,31 @@ class Spaces {
     s.spacesChanged();
     await sync(s, sp, changes: [e]);
   }
+}
+
+/// Kết quả AI kiểm tra một ảnh chứng từ.
+class ProofCheck {
+  final int? amount;
+  final String kind;
+  final List<({String id, bool ok, String text})> checks;
+  const ProofCheck({this.amount, required this.kind, required this.checks});
+
+  /// Các mục kiểm tra, với mục số tiền tính lại theo số người dùng nhập cuối cùng.
+  List<({String id, bool ok, String text})> forAmount(int v) => [
+        for (final c in checks)
+          c.id == 'amount'
+              ? (
+                  id: 'amount',
+                  ok: amount != null && amount == v,
+                  text: amount == null
+                      ? 'Không đọc được số tiền'
+                      : amount == v
+                          ? 'Đúng số tiền'
+                          : 'Ảnh ghi ${groupDigits(amount!)} ₫, bạn khai ${groupDigits(v)} ₫',
+                )
+              : c
+      ];
+
+  bool okFor(int v) => forAmount(v).every((c) => c.ok);
+  String whyFor(int v) => forAmount(v).where((c) => !c.ok).map((c) => c.text).join('; ');
 }
