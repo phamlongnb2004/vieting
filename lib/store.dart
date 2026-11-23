@@ -69,6 +69,12 @@ class AppStore extends ChangeNotifier {
   // đồng ý công bố dữ liệu (notify, ai) → thời điểm đồng ý
   final Map<String, int> consents = {};
   String lang = 'auto'; // auto | vi | en
+  // Thời tiết
+  bool weatherOn = true;
+  bool weatherAlertsOn = true;
+  String weatherLoc = ''; // '' chưa chọn | 'device' vị trí máy | id tỉnh/thành (VD 'hn')
+  Map<String, dynamic>? weather; // dự báo gần nhất (đã gọn) + 'place'
+  int weatherAt = 0;
   String aiTone = 'funny'; // gentle | funny (Gen Z) | strict | expert
   Set<String> skipDays = {}; // ngày ngoại lệ (yyyy-mm-dd) không tính vào chuỗi
   Set<String> sweptDays = {}; // ngày đã cất tiền dư vào hũ
@@ -163,6 +169,11 @@ class AppStore extends ChangeNotifier {
         cycleDay = ((s['cycle'] as num?)?.toInt() ?? 1).clamp(1, 28);
         aiTone = (s['tone'] ?? 'funny') as String;
         lang = (s['lang'] ?? 'auto') as String;
+        weatherOn = (s['wxOn'] ?? true) as bool;
+        weatherAlertsOn = (s['wxAlert'] ?? true) as bool;
+        weatherLoc = (s['wxLoc'] ?? '') as String;
+        if (s['wx'] is Map) weather = Map<String, dynamic>.from(s['wx'] as Map);
+        weatherAt = (s['wxAt'] as num?)?.toInt() ?? 0;
         for (final e in ((s['consents'] as Map?) ?? const {}).entries) {
           consents['${e.key}'] = (e.value as num).toInt();
         }
@@ -230,6 +241,11 @@ class AppStore extends ChangeNotifier {
           'cycle': cycleDay,
           'tone': aiTone,
           'lang': lang,
+          'wxOn': weatherOn,
+          'wxAlert': weatherAlertsOn,
+          'wxLoc': weatherLoc,
+          if (weather != null) 'wx': weather,
+          'wxAt': weatherAt,
           'consents': consents,
           'notice': noticeSeen,
           'savePct': savePct,
@@ -307,6 +323,23 @@ class AppStore extends ChangeNotifier {
 
   void setCycleDay(int d) {
     cycleDay = d.clamp(1, 28);
+    _changed(syncSoon: false);
+  }
+
+  void setWeather({bool? on, bool? alerts, String? loc}) {
+    if (on != null) weatherOn = on;
+    if (alerts != null) weatherAlertsOn = alerts;
+    if (loc != null && loc != weatherLoc) {
+      weatherLoc = loc;
+      weather = null;
+      weatherAt = 0;
+    }
+    _changed(syncSoon: false);
+  }
+
+  void putWeather(Map<String, dynamic> w) {
+    weather = w;
+    weatherAt = nowMs();
     _changed(syncSoon: false);
   }
 

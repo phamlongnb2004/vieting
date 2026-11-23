@@ -5,6 +5,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Text, InputDecoration;
 import 'package:vieting/i18n.dart';
+import '../services/weather.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../insights.dart';
@@ -57,6 +58,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _store = StoreScope.read(context)..addListener(_onStore);
       _store!.fetchConfig().whenComplete(_onStore);
       _store!.fetchProfile();
+      Weather.refresh(_store!);
     });
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       _linkSub = AppLinks().uriLinkStream.listen(_onLink, onError: (_) {});
@@ -79,6 +81,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       final store = StoreScope.read(context);
       if (store.loggedIn) store.sync();
       store.fetchConfig().whenComplete(_onStore);
+      Weather.refresh(store);
     }
   }
 

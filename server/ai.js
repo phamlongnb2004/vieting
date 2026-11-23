@@ -635,3 +635,20 @@ export async function visionJson(env, prompt, img, mime = 'image/jpeg') {
 export async function aiAllowed(env, userId) {
   return underLimit(env, 'u' + userId, userId);
 }
+
+/** Hỏi AI chỉ bằng chữ, trả về đối tượng JSON (Gemini, không có thì Workers AI). */
+export async function textJson(env, prompt) {
+  let text = null;
+  if (env.GEMINI_API_KEY) {
+    const res = await geminiFetch(env, {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.6, maxOutputTokens: 800, responseMimeType: 'application/json' },
+    }).catch(() => null);
+    if (res && res.ok) {
+      const j = await res.json();
+      text = (j.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('');
+    }
+  }
+  if (text == null && env.AI) text = (await askWorkersAI(env, 'Trả lời đúng định dạng JSON được yêu cầu.', [{ role: 'user', text: prompt }]).catch(() => null))?.text ?? null;
+  return text == null ? null : extractJson(text);
+}

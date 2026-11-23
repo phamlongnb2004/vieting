@@ -140,6 +140,7 @@ function content(lang, contact) {
           'Dữ liệu chúng tôi thu thập',
           rows([
             ['Tài khoản', 'Email, mật khẩu (chỉ lưu dạng băm PBKDF2 có muối, chúng tôi không đọc được), tên hiển thị trong quỹ chung, thời điểm tạo tài khoản. Nếu đăng nhập bằng Google: email, tên và mã định danh tài khoản Google (không lấy mật khẩu Google, danh bạ hay dữ liệu khác).', 'Khi đăng ký'],
+            ['Vị trí gần đúng', 'Tọa độ làm tròn (sai số khoảng 1 km) để hiện thời tiết và cảnh báo mưa bão. Chỉ lấy khi bạn mở app hoặc mục Thời tiết, không theo dõi ngầm, server không lưu lại. Không dùng nếu bạn chọn tỉnh / thành bằng tay.', 'Chỉ khi bạn đồng ý và cấp quyền vị trí'],
             ['Thông tin cá nhân', 'Họ và tên, năm sinh. Dùng để hiển thị trong hồ sơ của bạn và giúp trợ lý gợi ý phù hợp độ tuổi; không dùng cho quảng cáo, không chia sẻ cho ai. Có thể sửa hoặc xóa bất cứ lúc nào trong Cài đặt.', 'Khi bạn tự nhập'],
             ['Dữ liệu tài chính bạn ghi', 'Giao dịch thu chi (số tiền, danh mục, ghi chú, ngày, ví), ví và số dư, ngân sách, mục tiêu tiết kiệm, hóa đơn định kỳ, danh sách mong muốn, cài đặt.', 'Khi bạn ghi; đồng bộ lên server nếu đăng nhập'],
             ['Thông báo ngân hàng / ví', 'App đọc thông báo trên máy để tự ghi giao dịch. Chỉ thông báo có số tiền được xử lý; nội dung thông báo đó (tên app gửi, tiêu đề, nội dung) được lưu kèm giao dịch. Thông báo khác bị bỏ qua ngay trên máy.', 'Chỉ Android, chỉ khi bạn đồng ý và cấp quyền'],
@@ -174,6 +175,7 @@ function content(lang, contact) {
               ['Google LLC (Gemini API)', 'Dịch vụ AI', 'Tin nhắn, ảnh, văn bản bạn gửi cho trợ lý kèm bản tóm tắt sổ và tuổi (nếu bạn nhập năm sinh; không gửi họ tên); ảnh hóa đơn / chứng từ.', 'Tạo câu trả lời, đọc ảnh'],
               ['Google LLC (Đăng nhập bằng Google)', 'Dịch vụ đăng nhập (tùy chọn)', 'Google xác nhận bạn là chủ tài khoản và gửi lại email, tên của bạn cho VieTing.', 'Đăng nhập không cần mật khẩu'],
               ['Dịch vụ gửi email (Gmail / Resend)', 'Gửi thư', 'Địa chỉ email của bạn và mã đặt lại mật khẩu.', 'Gửi mã khi bạn bấm Quên mật khẩu'],
+              ['MET Norway (Viện Khí tượng Na Uy)', 'Dịch vụ dự báo thời tiết', 'Tọa độ làm tròn của nơi xem thời tiết (không kèm thông tin nào khác về bạn).', 'Lấy dự báo thời tiết'],
               ['SePay', 'Dịch vụ đọc giao dịch ngân hàng (tùy chọn)', 'VieTing dùng khóa thủ quỹ cấp để đọc giao dịch của tài khoản quỹ.', 'Xác thực tiền vào / ra của Quỹ chung'],
               ['Thành viên cùng Quỹ chung', 'Người dùng khác do bạn mời / chấp nhận', 'Tên hiển thị (hoặc phần trước @ của email), các khoản bạn nộp / chi trong quỹ, ảnh chứng từ, xác nhận, nhật ký.', 'Minh bạch quỹ chung'],
               ['Cơ quan nhà nước có thẩm quyền', 'Theo yêu cầu pháp luật', 'Phần dữ liệu được yêu cầu hợp pháp.', 'Tuân thủ pháp luật Việt Nam'],
@@ -226,6 +228,7 @@ function content(lang, contact) {
         'Data we collect',
         rows([
           ['Account', 'Email, password (stored only as a salted PBKDF2 hash that we cannot read), display name in shared funds, account creation time. If you sign in with Google: your Google email, name and account identifier (never your Google password, contacts or other data).', 'When you sign up'],
+          ['Approximate location', 'Rounded coordinates (accurate to about 1 km) to show the weather and storm warnings. Read only when you open the app or the Weather screen, never in the background, and not stored on the server. Not used if you pick a province / city manually.', 'Only if you agree and grant location permission'],
           ['Personal information', 'Full name and birth year. Used to show in your profile and to help the assistant give age-appropriate tips; never used for ads or shared with anyone. You can edit or clear them anytime in Settings.', 'When you enter them'],
           ['Financial data you record', 'Transactions (amount, category, note, date, wallet), wallets and balances, budgets, savings goals, recurring bills, wish list, settings.', 'When you record them; synced to our server if you sign in'],
           ['Bank / e-wallet notifications', 'The app reads notifications on your device to log transactions automatically. Only notifications containing a money amount are processed; their content (sending app, title, text) is stored with the transaction. All other notifications are ignored on the device.', 'Android only, only after you agree and grant access'],
@@ -260,6 +263,7 @@ function content(lang, contact) {
             ['Google LLC (Gemini API)', 'AI service provider', 'Messages, photos and text you send to the assistant with the ledger summary and your age (if you entered a birth year; never your name); receipt / proof photos.', 'Generating answers, reading images'],
             ['Google LLC (Sign in with Google)', 'Sign-in service (optional)', 'Google confirms you own the account and sends your email and name back to VieTing.', 'Password-free sign-in'],
             ['Email delivery (Gmail / Resend)', 'Email sending', 'Your email address and the password reset code.', 'Sending the code when you tap Forgot password'],
+            ['MET Norway (Norwegian Meteorological Institute)', 'Weather forecast service', 'Rounded coordinates of the weather location (nothing else about you).', 'Getting the weather forecast'],
             ['SePay', 'Bank transaction reader (optional)', 'VieTing uses the key granted by the treasurer to read the fund account’s transactions.', 'Verifying money in / out of a Shared fund'],
             ['Members of the same Shared fund', 'Other users you invite / accept', 'Display name (or the part of your email before @), your contributions / spending in the fund, proof photos, confirmations, history.', 'Transparency within the fund'],
             ['Competent authorities', 'When required by law', 'Only the data lawfully requested.', 'Compliance with Vietnamese law'],

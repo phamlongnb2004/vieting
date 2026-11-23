@@ -36,6 +36,14 @@ class Consent {
           '• Đừng gửi mật khẩu, mã OTP hay số thẻ cho trợ lý.',
       'Đồng ý dùng AI',
     ),
+    'location': (
+      'Dùng vị trí để xem thời tiết?',
+      'VieTing dùng vị trí gần đúng của điện thoại (sai số khoảng 1 km) để hiện thời tiết và cảnh báo mưa bão nơi bạn đang ở.\n\n'
+          '• Chỉ lấy vị trí khi bạn mở app hoặc mở mục Thời tiết, không theo dõi ngầm.\n'
+          '• Tọa độ làm tròn được gửi tới server VieTing rồi tới dịch vụ thời tiết MET Norway để lấy dự báo; không lưu lại, không dùng cho quảng cáo.\n'
+          '• Không muốn chia sẻ vị trí thì chọn tỉnh / thành phố bằng tay. Tắt được bất cứ lúc nào trong Cài đặt.',
+      'Đồng ý dùng vị trí',
+    ),
   };
 
   static bool given(AppStore s, String key) => (s.consents[key] ?? 0) > 0;

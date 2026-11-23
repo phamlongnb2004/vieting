@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text, InputDecoration;
 import 'package:vieting/i18n.dart';
+import 'weather.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
@@ -79,6 +80,8 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
       appBar: AppBar(
         title: const Wordmark(fontSize: 24),
         actions: [
+          const WeatherChip(),
+          const SizedBox(width: 2),
           IconButton(
             tooltip: tr('Dán thông báo ngân hàng'),
             icon: const Icon(PhosphorIconsRegular.clipboardText),
@@ -98,6 +101,7 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
         children: [
+          const WeatherAlertCard(),
           if (_notifyOn == false) ...[
             Card(
               color: Brand.yellow.withAlpha(60),

@@ -105,6 +105,7 @@ def patch_ios():
     pl["NSCameraUsageDescription"] = "VieTing dùng camera để chụp hóa đơn và đọc số tiền."
     pl["NSPhotoLibraryUsageDescription"] = "VieTing đọc ảnh hóa đơn / ảnh chuyển khoản bạn chọn."
     pl["NSFaceIDUsageDescription"] = "Mở khóa VieTing bằng Face ID."
+    pl["NSLocationWhenInUseUsageDescription"] = "VieTing dùng vị trí gần đúng để hiện thời tiết và cảnh báo mưa bão nơi bạn đang ở."
     with open(path, "wb") as f:
         plistlib.dump(pl, f)
 

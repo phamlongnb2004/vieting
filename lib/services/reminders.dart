@@ -7,6 +7,7 @@ import '../insights.dart';
 import '../store.dart';
 import '../util/format.dart';
 import 'notify_bridge.dart';
+import 'weather.dart';
 
 /// Nhắc tự động hiện trên máy kể cả khi không mở app (Android).
 /// App tự tính lịch theo dữ liệu của chính người dùng rồi giao cho hệ thống hẹn giờ;
@@ -125,7 +126,7 @@ class Reminders {
     if (!NotifyBridge.supported) return;
     await updateWidget(s);
     try {
-      final items = build(s);
+      final items = [...build(s), ...Weather.notifications(s)];
       final key = jsonEncode([items, s.serverUrl, s.token]);
       if (key == _last) return;
       _last = key;

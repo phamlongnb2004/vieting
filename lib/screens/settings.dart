@@ -6,6 +6,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Text, InputDecoration;
 import 'package:vieting/i18n.dart';
+import '../services/weather.dart';
+import 'weather.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -424,6 +426,34 @@ class SettingsScreen extends StatelessWidget {
               trailing: const Icon(PhosphorIconsRegular.shareNetwork),
               onTap: () => _export(context, store),
             ),
+          ]),
+          group('Thời tiết', [
+            SwitchListTile(
+              secondary: const VIcon(PhosphorIconsRegular.cloudSun, size: 36),
+              title: const Text('Thời tiết trên trang chủ'),
+              subtitle: Text(store.weatherLoc.isEmpty ? 'Chưa chọn nơi xem' : Weather.placeName(store)),
+              value: store.weatherOn,
+              onChanged: (v) => store.setWeather(on: v),
+            ),
+            if (store.weatherOn) ...[
+              ListTile(
+                leading: const VIcon(PhosphorIconsRegular.mapPin, size: 36),
+                title: const Text('Nơi xem thời tiết'),
+                subtitle: const Text('Vị trí của tôi hoặc một trong 34 tỉnh, thành phố'),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
+                onTap: () => pickWeatherPlace(context),
+              ),
+              SwitchListTile(
+                secondary: const VIcon(PhosphorIconsRegular.warning, size: 36),
+                title: const Text('Cảnh báo mưa to, dông, bão'),
+                subtitle: const Text('Nhắc trên trang chủ và gửi thông báo về điện thoại'),
+                value: store.weatherAlertsOn,
+                onChanged: (v) {
+                  store.setWeather(alerts: v);
+                  Reminders.sync(store);
+                },
+              ),
+            ],
           ]),
           group('Giao diện', [
             SwitchListTile(
