@@ -19,6 +19,7 @@ import { handleDownload } from './download.js';
 import { handleLegal } from './legal.js';
 import { handleAuth, ensureAuthSchema, checkProfile } from './oauth.js';
 import { handleWeather } from './weather.js';
+import { handleScam } from './scam.js';
 import { handleChat, handleReceipt, handleParse } from './ai.js';
 import { handleAdmin, adminPage, publicNotice } from './admin.js';
 import { handleSpace, spaceCron } from './space.js';
@@ -203,6 +204,10 @@ export default {
         const r = await handleWeather(req, env, url, await auth(req, env), { json, readJson });
         if (r) return r;
       }
+      if (url.pathname.startsWith('/api/scam/')) {
+        const r = await handleScam(req, env, url, await auth(req, env), { json, readJson });
+        if (r) return r;
+      }
       if (req.method === 'GET' && url.pathname === '/api/notice') return await publicNotice(env, { json });
       const h = { json, readJson };
       if (req.method === 'GET' && url.pathname === '/api/config') return await publicConfig(req, env, await auth(req, env), h);
@@ -216,7 +221,7 @@ export default {
       if (req.method === 'GET' && url.pathname === '/api/push') return await pushFeed(req, env, await auth(req, env), h);
       if (req.method === 'POST' && url.pathname === '/api/ocr-report') return await ocrReport(req, env, await auth(req, env), h);
       if (url.pathname === '/admin' || url.pathname === '/admin/') return adminPage();
-      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai12' });
+      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai13' });
       {
         const r = await handleLegal(req, env, url, { json, readJson, auth, hashPassword, safeEqual });
         if (r) return r;

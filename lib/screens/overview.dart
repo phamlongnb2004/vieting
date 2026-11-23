@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' hide Text, InputDecoration;
 import 'package:vieting/i18n.dart';
 import 'weather.dart';
 import 'calendar.dart';
+import 'scam.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
@@ -125,6 +126,16 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
         padding: EdgeInsets.fromLTRB(16, fx ? MediaQuery.paddingOf(context).top + kToolbarHeight + 4 : 4, 16, 100),
         children: [
           const WeatherAlertCard(),
+          Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: ListTile(
+              leading: const Icon(PhosphorIconsFill.shieldWarning, color: Brand.red, size: 30),
+              title: const Text('Kiểm tra tài khoản lừa đảo', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('Quét mã QR hoặc nhập số tài khoản trước khi chuyển tiền'),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScamCheckScreen())),
+            ),
+          ),
           if (_notifyOn == false) ...[
             Card(
               color: Brand.yellow.withAlpha(60),

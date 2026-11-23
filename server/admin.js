@@ -7,6 +7,7 @@
 import { DEFAULT_SMART, DEFAULT_OCCASIONS, DEFAULT_RATES, DEFAULT_TONES, fxRates, getConfig, grantPro, setConfig } from './config.js';
 
 import PAGE from './admin.html';
+import { scamAdmin, scamWipe } from './scam.js';
 
 const DAY = 86400000;
 
@@ -166,6 +167,7 @@ async function userAction(env, adminId, b, h) {
       await env.DB.prepare('DELETE FROM admins WHERE user_id = ?').bind(id).run();
       break;
     case 'delete':
+      await scamWipe(env, id).catch(() => null);
       await env.DB.batch([
         env.DB.prepare('DELETE FROM records WHERE user_id = ?').bind(id),
         env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id),
@@ -434,6 +436,10 @@ export async function handleAdmin(req, env, url, userId, h) {
   if (req.method === 'GET' && path === '/notices') return h.json({ notices: await notices(env) });
   if (req.method === 'POST' && path === '/notice') return await saveNotice(env, userId, await h.readJson(req), h);
   const b = req.method === 'POST' ? await h.readJson(req) : null;
+  if (path.startsWith('/scam')) {
+    const r = await scamAdmin(env, userId, req.method, path, url, b, h, log);
+    if (r) return r;
+  }
   switch (req.method + ' ' + path) {
     case 'GET /pushes':
       return h.json({ pushes: await all(env, 'SELECT * FROM pushes ORDER BY id DESC LIMIT 30') });

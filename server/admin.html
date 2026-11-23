@@ -152,6 +152,7 @@
     <button data-t="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c.7-3.5 3.6-6 7-6s6.3 2.5 7 6M17 11a3 3 0 1 0 0-6M22 21c-.4-2.4-2-4.4-4.3-5.3"/></svg>Người dùng</button>
     <button data-t="support"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1M4 13h3v6H5a1 1 0 0 1-1-1zM20 13h-3v6h2a1 1 0 0 0 1-1zM17 19c0 1.5-2 2-5 2"/></svg>Hỗ trợ <span class="badge hidden" id="bt"></span></button>
     <button data-t="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>AI &amp; hóa đơn <span class="badge hidden" id="bo"></span></button>
+    <button data-t="scam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M12 8v5M12 16.5v.5"/></svg>Cảnh báo lừa đảo <span class="badge hidden" id="bsc"></span></button>
     <button data-t="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18M5 4h11l-2 4 2 4H5"/></svg>Thử thách &amp; sự kiện</button>
     <button data-t="catalog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Danh mục &amp; tỷ giá</button>
     <button data-t="analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Phân tích</button>
@@ -266,6 +267,12 @@
       </div>
     </div>
 
+    <div id="scam" class="hidden">
+      <div class="note">Báo cáo chỉ hiện trong app sau khi bạn <b>Duyệt</b>. App luôn ghi đây là phản ánh của người dùng, không phải kết luận. Trước khi duyệt: <b>che</b> tên, số điện thoại, khuôn mặt, địa chỉ… không cần thiết trong ảnh (kéo chuột để vẽ ô đen), bật <b>Công khai</b> cho ảnh muốn hiện, và sửa mô tả nếu có thông tin cá nhân thừa. Không duyệt báo cáo thiếu bằng chứng rõ ràng.</div>
+      <div class="sub" id="scsub"><button data-s="sc-pending" class="on">Chờ duyệt</button><button data-s="sc-approved">Đã duyệt</button><button data-s="sc-rejected">Từ chối</button><button data-s="sc-hidden">Đã ẩn</button><button data-s="sc-appeals">Khiếu nại</button><button data-s="sc-flags">Bị báo sai</button></div>
+      <div id="s-sc-pending"></div><div id="s-sc-approved" class="hidden"></div><div id="s-sc-rejected" class="hidden"></div><div id="s-sc-hidden" class="hidden"></div><div id="s-sc-appeals" class="hidden"></div><div id="s-sc-flags" class="hidden"></div>
+    </div>
+
     <div id="events" class="hidden">
       <div class="card" style="margin-bottom:12px"><h3 id="eh">Tạo thử thách / sự kiện</h3>
         <p class="muted" style="margin-top:0">Hiện trong tab Thói quen của app từ 14 ngày trước ngày bắt đầu tới ngày kết thúc. Người dùng bấm tham gia — không cần cập nhật app.</p>
@@ -349,7 +356,7 @@ $('#lf').onsubmit=async e=>{e.preventDefault();$('#lerr').textContent='';
   try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:$('#em').value,password:$('#pw').value})});const j=await r.json();if(!r.ok)throw new Error(j.error||'Sai thông tin');token=j.token;sessionStorage.setItem('vt_admin',token);await start()}catch(err){$('#lerr').textContent=err.message}};
 async function start(){const me=await api('/admin/me');$('#me').textContent=me.email;$('#login').classList.add('hidden');$('#app').classList.remove('hidden');show('dash')}
 $('#tabs').onclick=e=>{const t=e.target.closest('[data-t]')?.dataset.t;if(t)show(t)};
-const LOAD={dash:()=>loadDash(),users:()=>loadUsers(),support:()=>loadSupport(),ai:()=>loadAi(),events:()=>loadEvents(),catalog:()=>loadCatalog(),analytics:()=>loadAnalytics(),notice:()=>loadNotices(),log:()=>loadLog()};
+const LOAD={dash:()=>loadDash(),scam:()=>loadScam(),users:()=>loadUsers(),support:()=>loadSupport(),ai:()=>loadAi(),events:()=>loadEvents(),catalog:()=>loadCatalog(),analytics:()=>loadAnalytics(),notice:()=>loadNotices(),log:()=>loadLog()};
 function show(t){for(const b of document.querySelectorAll('#tabs button'))b.classList.toggle('on',b.dataset.t===t);const tb=document.querySelector('#tabs [data-t="'+t+'"]');if(tb)$('#ptitle').textContent=tb.textContent.replace(/\d+$/,'').trim();for(const s of Object.keys(LOAD))$('#'+s).classList.toggle('hidden',s!==t);LOAD[t]().catch(e=>toast(e.message))}
 function bars(el,ax,days,vals){const max=Math.max(1,...vals);$(el).innerHTML=vals.map((v,i)=>'<div style="height:'+(v/max*100)+'%" data-t="'+days[i].slice(8)+'/'+days[i].slice(5,7)+': '+v+'"></div>').join('');$(ax).innerHTML='<span>'+days[0].slice(8)+'/'+days[0].slice(5,7)+'</span><span>hôm nay</span>'}
 async function loadDash(){
@@ -407,7 +414,7 @@ async function loadSmart(){const j=await api('/admin/smart');$('#smart').innerHT
 $('#ssave').onclick=async()=>{const smart={};for(const d of document.querySelectorAll('#smart [data-k]')){const k=d.dataset.k,m=SMART[k];smart[k]={on:d.querySelector('.son').checked,title:d.querySelector('.sti').value,body:d.querySelector('.sbo').value};if(m[2])smart[k][m[2]]=Number(d.querySelector('.snum').value)}try{await api('/admin/smart',{smart});toast('Đã lưu nhắc tự động')}catch(e){toast(e.message)}};
 async function loadNotices(){loadSmart();api('/admin/pushes').then(p=>{$('#plist').innerHTML=p.pushes.map(x=>'<div class="nl"><div style="flex:1"><div class="t">🔔 '+esc(x.title)+'</div><div class="muted">'+esc(x.body)+'</div><small class="muted">'+new Date(x.created).toLocaleString('vi-VN')+'</small></div></div>').join('')||'<p class="muted">Chưa đẩy tin nào.</p>'});const j=await api('/admin/notices');$('#nlist').innerHTML=j.notices.length?j.notices.map(n=>'<div class="nl"><div style="flex:1"><div class="t">'+esc(n.title)+' '+(n.active?'<span class="pill green">đang hiện</span>':'<span class="pill gray">đã tắt</span>')+'</div><div class="muted">'+esc(n.body)+'</div><small class="muted">'+date(n.created)+'</small></div><button class="btn sm ghost" data-nt="'+n.id+'">'+(n.active?'Tắt':'Bật lại')+'</button><button class="btn sm ghost" data-nd="'+n.id+'">Xóa</button></div>').join(''):'<p class="muted">Chưa gửi thông báo nào.</p>'}
 $('#nlist').onclick=async e=>{const t=e.target.dataset.nt,d=e.target.dataset.nd;try{if(t)await api('/admin/notice',{id:Number(t),toggle:true});if(d&&await ask('<h3>Xóa thông báo này?</h3>','Xóa'))await api('/admin/notice',{id:Number(d),remove:true});loadNotices()}catch(err){toast(err.message)}};
-const ACT={gift:'Tặng Pro',unpro:'Hủy Pro',dict:'Từ điển','dict-delete':'Xóa từ',ocr:'Hóa đơn đọc sai','ai-config':'Sửa giọng trợ lý / dịp',campaign:'Lưu sự kiện','campaign-toggle':'Bật/tắt sự kiện','campaign-delete':'Xóa sự kiện',catalog:'Gói định kỳ','catalog-delete':'Xóa gói',rates:'Lãi suất',voucher:'Tạo mã','voucher-delete':'Xóa mã',ban:'Khóa',unban:'Mở khóa',logout:'Đăng xuất mọi thiết bị',reset:'Đặt lại mật khẩu',admin:'Cấp admin',unadmin:'Bỏ admin',delete:'Xóa tài khoản',notice:'Gửi thông báo','notice+push':'Gửi + đẩy thông báo',push:'Đẩy thông báo',smart:'Sửa nhắc tự động','notice-toggle':'Bật/tắt thông báo','notice-delete':'Xóa thông báo'};
+const ACT={scam:'Báo cáo lừa đảo','scam-appeal':'Khiếu nại lừa đảo',gift:'Tặng Pro',unpro:'Hủy Pro',dict:'Từ điển','dict-delete':'Xóa từ',ocr:'Hóa đơn đọc sai','ai-config':'Sửa giọng trợ lý / dịp',campaign:'Lưu sự kiện','campaign-toggle':'Bật/tắt sự kiện','campaign-delete':'Xóa sự kiện',catalog:'Gói định kỳ','catalog-delete':'Xóa gói',rates:'Lãi suất',voucher:'Tạo mã','voucher-delete':'Xóa mã',ban:'Khóa',unban:'Mở khóa',logout:'Đăng xuất mọi thiết bị',reset:'Đặt lại mật khẩu',admin:'Cấp admin',unadmin:'Bỏ admin',delete:'Xóa tài khoản',notice:'Gửi thông báo','notice+push':'Gửi + đẩy thông báo',push:'Đẩy thông báo',smart:'Sửa nhắc tự động','notice-toggle':'Bật/tắt thông báo','notice-delete':'Xóa thông báo'};
 async function loadLog(){const j=await api('/admin/log');$('#lb').innerHTML=j.log.map(l=>'<tr><td>'+new Date(l.created).toLocaleString('vi-VN')+'</td><td>'+esc(l.admin)+'</td><td>'+esc(ACT[l.action]||ACT[l.action.split(' ')[0]]&&(ACT[l.action.split(' ')[0]]+' '+l.action.split(' ').slice(1).join(' '))||l.action)+'</td><td>'+esc(l.target)+'</td></tr>').join('')||'<tr><td colspan="4" class="muted">Chưa có thao tác nào.</td></tr>'}
 function badge(sel,n){const e=$(sel);e.textContent=n;e.classList.toggle('hidden',!n)}
 const CAT={an_uong:'Ăn uống',di_lai:'Đi lại',mua_sam:'Mua sắm',hoa_don:'Hóa đơn',nha_o:'Nhà ở',giai_tri:'Giải trí',suc_khoe:'Sức khỏe',giao_duc:'Giáo dục',gia_dinh:'Gia đình & quà',chuyen_di:'Chuyển khoản đi',chi_ho:'Chi hộ',chuyen_vi:'Chuyển ví',khac_chi:'Chi khác',luong:'Lương',thuong:'Thưởng',dau_tu:'Lãi & đầu tư',nhan_tien:'Nhận chuyển khoản',khac_thu:'Thu khác',thu_ho:'Nhận lại tiền chi hộ',nhan_vi:'Nhận từ ví khác'};
@@ -491,6 +498,49 @@ async function loadAnalytics(){const j=await api('/admin/analytics');
 }
 
 if(token)start().catch(()=>logout());
+
+// ----- Cảnh báo lừa đảo -----
+const SCH={mua_ban:'Mua bán online',viec_lam:'Việc làm / CTV',dau_tu:'Đầu tư / tiền ảo',vay:'Vay tiền',gia_danh:'Giả danh cơ quan / người quen',tinh_cam:'Tình cảm',game:'Game / nạp thẻ',khac:'Khác'};
+const BANKS={'970436':'Vietcombank','970415':'VietinBank','970418':'BIDV','970405':'Agribank','970407':'Techcombank','970422':'MB','970416':'ACB','970432':'VPBank','970423':'TPBank','970403':'Sacombank','970441':'VIB','970437':'HDBank','970443':'SHB','970448':'OCB','970426':'MSB','970440':'SeABank','970449':'LPBank','970431':'Eximbank','970429':'SCB','970454':'BVBank','970428':'Nam A Bank','970409':'Bac A Bank','970425':'ABBANK','970427':'VietABank','970412':'PVcomBank','970400':'Saigonbank','546034':'Cake','546035':'Ubank'};
+let scTab='sc-pending',scData=null;
+subtabs('#scsub',s=>{scTab=s;loadScam()});
+async function loadScam(){
+  const st=scTab.startsWith('sc-')&&['pending','approved','rejected','hidden'].includes(scTab.slice(3))?scTab.slice(3):'pending';
+  scData=await api('/admin/scam?status='+st);
+  badge('#bsc',(scData.counts.pending||0)+scData.appeals.length+scData.flags.length);
+  for(const k of ['pending','approved','rejected','hidden']){const b=document.querySelector('#scsub [data-s="sc-'+k+'"]');b.textContent=b.textContent.replace(/ \(\d+\)$/,'')+' ('+(scData.counts[k]||0)+')'}
+  if(scTab==='sc-appeals')return drawAppeals();
+  if(scTab==='sc-flags')return drawFlags();
+  const box=$('#s-'+scTab);
+  box.innerHTML=scData.reports.length?scData.reports.map(r=>'<div class="tk" data-rep="'+r.id+'"><div class="h"><b>#'+r.id+'</b><span class="pill red">'+esc(BANKS[r.bin]||r.bin||'Không rõ ngân hàng')+' · '+esc(r.acct)+'</span><span class="pill gray">'+esc(SCH[r.channel]||r.channel)+'</span>'+(r.others?'<span class="pill navy">đã có '+r.others+' báo cáo duyệt</span>':'')+'<span class="muted">'+esc(r.email||'(đã xóa tài khoản)')+' · '+new Date(r.created).toLocaleString('vi-VN')+'</span></div>'
+    +'<div class="form" style="grid-template-columns:1fr 1fr 1fr"><div><label>Tên chủ TK (người báo cáo ghi)</label><input class="sh" value="'+esc(r.holder)+'"></div><div><label>Số tiền mất</label><input disabled value="'+(r.amount?money(r.amount):'—')+'"></div><div><label>Ngày xảy ra</label><input disabled value="'+esc(r.happened||'—')+'"></div></div>'
+    +'<label>Mô tả (sửa để bỏ thông tin cá nhân thừa trước khi duyệt)</label><textarea class="sb" style="min-height:80px">'+esc(r.body)+'</textarea>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">'+r.photos.map(p=>'<div class="ph" data-pid="'+p.id+'" style="border:1px solid var(--line);border-radius:12px;padding:8px;width:220px"><canvas style="width:100%;border-radius:8px;cursor:crosshair;background:#eee"></canvas><div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><button class="btn sm ghost pu">↶ Hoàn tác</button><button class="btn sm ghost ps">Lưu bản che</button><label style="display:flex;gap:4px;align-items:center;margin:0;font-size:12.5px;color:var(--ink)"><input type="checkbox" class="pp" style="width:auto" '+(p.public?'checked':'')+'> Công khai</label><span class="muted pm" style="font-size:11.5px">'+(p.masked?'✓ đã che':'chưa che')+'</span></div></div>').join('')+'</div>'
+    +'<label>Ghi chú nội bộ / lý do</label><input class="sn" value="'+esc(r.note)+'">'
+    +'<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'+(r.status!=='approved'?'<button class="btn sm" data-sa="approve">✓ Duyệt và công khai</button>':'')+(r.status!=='rejected'?'<button class="btn sm ghost" data-sa="reject">Từ chối</button>':'')+(r.status==='approved'?'<button class="btn sm ghost" data-sa="hide">Ẩn khỏi app</button>':'')+(r.status!=='pending'?'<button class="btn sm ghost" data-sa="pending">Đưa về chờ duyệt</button>':'')+'</div></div>').join(''):'<p class="muted">Không có báo cáo nào.</p>';
+  for(const ph of box.querySelectorAll('.ph'))initMask(ph);
+}
+async function initMask(ph){
+  const id=ph.dataset.pid,cv=ph.querySelector('canvas'),ctx=cv.getContext('2d');
+  const j=await api('/admin/scam-photo?id='+id);const img=new Image();img.src=j.img.startsWith('data:')?j.img:'data:image/jpeg;base64,'+j.img;await img.decode();
+  cv.width=img.naturalWidth;cv.height=img.naturalHeight;const rects=[];
+  const draw=()=>{ctx.drawImage(img,0,0);ctx.fillStyle='#000';for(const r of rects)ctx.fillRect(r.x,r.y,r.w,r.h)};draw();
+  let st=null;const pos=e=>{const b=cv.getBoundingClientRect();return{x:(e.clientX-b.left)*cv.width/b.width,y:(e.clientY-b.top)*cv.height/b.height}};
+  cv.onpointerdown=e=>{st=pos(e);cv.setPointerCapture(e.pointerId)};
+  cv.onpointermove=e=>{if(!st)return;const p=pos(e);draw();ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(Math.min(st.x,p.x),Math.min(st.y,p.y),Math.abs(p.x-st.x),Math.abs(p.y-st.y))};
+  cv.onpointerup=e=>{if(!st)return;const p=pos(e);const r={x:Math.min(st.x,p.x),y:Math.min(st.y,p.y),w:Math.abs(p.x-st.x),h:Math.abs(p.y-st.y)};st=null;if(r.w>4&&r.h>4)rects.push(r);draw()};
+  cv.ondblclick=()=>open(cv.toDataURL('image/jpeg',.9));
+  ph.querySelector('.pu').onclick=()=>{rects.pop();draw()};
+  ph.querySelector('.ps').onclick=async()=>{try{const data=cv.toDataURL('image/jpeg',.82).split(',')[1];await api('/admin/scam-photo',{id:Number(id),img:data,masked:true});ph.querySelector('.pm').textContent='✓ đã che';toast('Đã lưu bản che (ảnh gốc được thay thế)')}catch(e){toast(e.message)}};
+  ph.querySelector('.pp').onchange=async e=>{try{await api('/admin/scam-photo',{id:Number(id),public:e.target.checked});toast(e.target.checked?'Ảnh sẽ hiện trong app khi đã che':'Ảnh không hiện trong app')}catch(err){toast(err.message)}};
+}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-sa]');if(!b)return;const card=b.closest('[data-rep]');const id=Number(card.dataset.rep),action=b.dataset.sa;
+  if(action==='approve'&&!await ask('<h3>Duyệt và công khai báo cáo #'+id+'?</h3><p class="muted">Người dùng app kiểm tra số tài khoản này sẽ thấy cảnh báo kèm mô tả và các ảnh đã bật Công khai. Chỉ duyệt khi bằng chứng rõ ràng.</p>','Duyệt'))return;
+  try{await api('/admin/scam',{id,action,note:card.querySelector('.sn').value,body:card.querySelector('.sb').value,holder:card.querySelector('.sh').value});toast('Xong');loadScam()}catch(err){toast(err.message)}});
+function drawAppeals(){$('#s-sc-appeals').innerHTML=scData.appeals.length?scData.appeals.map(a=>'<div class="tk" data-ap="'+a.id+'"><div class="h"><b>Khiếu nại #'+a.id+'</b><span class="pill navy">'+esc(BANKS[a.bin]||a.bin||'')+' · '+esc(a.acct)+'</span><span class="muted">'+esc(a.email||'')+' · liên hệ: '+esc(a.contact||'—')+' · '+new Date(a.created).toLocaleString('vi-VN')+'</span></div><div class="b">'+esc(a.body)+'</div><label>Trả lời</label><textarea class="ar" style="min-height:50px"></textarea><div style="display:flex;gap:6px;margin-top:8px"><button class="btn sm" data-aa="accepted">Chấp nhận (ẩn mọi báo cáo của TK này)</button><button class="btn sm ghost" data-aa="rejected">Bác khiếu nại</button></div></div>').join(''):'<p class="muted">Không có khiếu nại nào đang mở.</p>'}
+$('#s-sc-appeals').onclick=async e=>{const b=e.target.closest('[data-aa]');if(!b)return;const c=b.closest('[data-ap]');if(b.dataset.aa==='accepted'&&!await ask('<h3>Chấp nhận khiếu nại?</h3><p class="muted">Mọi báo cáo đang công khai của số tài khoản này sẽ bị ẩn.</p>','Chấp nhận'))return;try{await api('/admin/scam-appeal',{id:Number(c.dataset.ap),status:b.dataset.aa,reply:c.querySelector('.ar').value});toast('Đã xử lý');loadScam()}catch(err){toast(err.message)}};
+function drawFlags(){$('#s-sc-flags').innerHTML=scData.flags.length?'<div class="card tw"><table><tr><th>Ngày</th><th>Báo cáo</th><th>Lý do người xem báo sai</th><th></th></tr>'+scData.flags.map(f=>'<tr><td>'+date(f.created)+'</td><td><b>#'+f.report_id+'</b> '+esc(f.acct||'')+'<div class="muted" style="font-size:12px">'+esc((f.body||'').slice(0,140))+'</div></td><td>'+esc(f.reason)+'</td><td><button class="btn sm ghost" data-fd="'+f.id+'">Đã xem</button></td></tr>').join('')+'</table></div>':'<p class="muted">Không có báo cáo sai nào.</p>'}
+$('#s-sc-flags').onclick=async e=>{const id=e.target.dataset.fd;if(id){await api('/admin/scam-flag',{id:Number(id)});loadScam()}};
 </script>
 </body>
 </html>

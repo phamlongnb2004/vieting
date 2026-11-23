@@ -9,6 +9,7 @@ import 'package:vieting/i18n.dart';
 import '../services/weather.dart';
 import 'weather.dart';
 import 'appearance.dart';
+import 'scam.dart';
 import 'calendar.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -427,6 +428,15 @@ class SettingsScreen extends StatelessWidget {
               subtitle: const Text('Toàn bộ giao dịch, mở được bằng Excel / Google Sheets'),
               trailing: const Icon(PhosphorIconsRegular.shareNetwork),
               onTap: () => _export(context, store),
+            ),
+          ]),
+          group('An toàn', [
+            ListTile(
+              leading: const VIcon(PhosphorIconsRegular.shieldWarning, size: 36),
+              title: const Text('Kiểm tra tài khoản lừa đảo'),
+              subtitle: const Text('Quét QR, chọn ảnh QR hoặc nhập số tài khoản; báo cáo lừa đảo kèm bằng chứng'),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
+              onTap: () => _go(context, const ScamCheckScreen()),
             ),
           ]),
           group('Thời tiết', [

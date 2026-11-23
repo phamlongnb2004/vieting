@@ -101,3 +101,57 @@ String vietQrPayload({required String bin, required String acct, int amount = 0,
   if (m == null) return null;
   return (a: m.group(1)!, b: m.group(2) ?? '');
 }
+
+/// Đọc các trường TLV của chuỗi EMVCo (2 số mã + 2 số độ dài + giá trị).
+Map<String, String> _readTlv(String s) {
+  final out = <String, String>{};
+  var i = 0;
+  while (i + 4 <= s.length) {
+    final id = s.substring(i, i + 2);
+    final n = int.tryParse(s.substring(i + 2, i + 4));
+    if (n == null || i + 4 + n > s.length) break;
+    out[id] = s.substring(i + 4, i + 4 + n);
+    i += 4 + n;
+  }
+  return out;
+}
+
+/// Thông tin đọc được từ mã QR chuyển khoản.
+class ScannedAccount {
+  final String bin; // mã ngân hàng, rỗng nếu không rõ
+  final String acct;
+  final String name; // tên trong mã QR (nếu mã có ghi), rỗng nếu không có
+  const ScannedAccount(this.bin, this.acct, this.name);
+}
+
+/// Đọc mã VietQR (NAPAS 247) hoặc chuỗi chỉ có số tài khoản. Trả null nếu không nhận ra.
+ScannedAccount? parseVietQr(String raw) {
+  final s = raw.trim();
+  if (s.startsWith('000201')) {
+    final top = _readTlv(s);
+    String bin = '', acct = '';
+    for (final k in ['38', '26', '27', '28', '29', '30']) {
+      final m = top[k];
+      if (m == null) continue;
+      final sub = _readTlv(m);
+      final inner = sub['01'];
+      if (inner == null) continue;
+      final a = _readTlv(inner);
+      if (a['01'] != null) {
+        bin = a['00'] ?? '';
+        acct = a['01']!;
+        break;
+      }
+    }
+    if (acct.isEmpty) return null;
+    var name = (top['59'] ?? '').trim();
+    if (name.toUpperCase() == 'NA' || name == '-') name = '';
+    return ScannedAccount(bin, acct, name);
+  }
+  // Mã chỉ chứa số tài khoản (một số app tự in)
+  final digits = s.replaceAll(RegExp(r'[\s.\-]'), '');
+  if (RegExp(r'^[0-9A-Za-z]{6,20}$').hasMatch(digits) && RegExp(r'\d{6,}').hasMatch(digits)) {
+    return ScannedAccount('', digits.toUpperCase(), '');
+  }
+  return null;
+}
