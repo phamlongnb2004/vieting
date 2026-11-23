@@ -178,7 +178,7 @@ extension Insights on AppStore {
         final perDay = left ~/ daysLeft;
         out.add(Nudge(_tone(
             gentle: 'Ngân sách $name đã dùng ${(spent * 100 / b.limit).round()}%. Còn ${compactMoney(left)}, mình chi khoảng ${compactMoney(perDay)}/ngày là vừa đẹp.',
-            funny: '$name đã ngốn ${(spent * 100 / b.limit).round()}% ngân sách, còn ${compactMoney(left)}, tức ~${compactMoney(perDay)}/ngày. Ăn mì gói arc sắp bắt đầu',
+            funny: '$name đã ngốn ${(spent * 100 / b.limit).round()}% ngân sách, còn ${compactMoney(left)}, tức ~${compactMoney(perDay)}/ngày. Mùa mì gói sắp tới rồi đó',
             strict: 'Ngân sách $name đã dùng ${(spent * 100 / b.limit).round()}%. Chỉ được chi tối đa ${compactMoney(perDay)}/ngày.')));
       }
     }

@@ -18,7 +18,7 @@ const WORKERS_AI_FALLBACK = '@cf/meta/llama-3.1-8b-instruct';
 
 const TONES = {
   gentle: 'Giọng nhẹ nhàng, đồng cảm, động viên, không phán xét; khi người dùng tiêu quá tay thì gợi ý điều chỉnh nhẹ nhàng.',
-  funny: 'Giọng BẠN THÂN GEN Z cực lầy: dùng tiếng lóng Gen Z Việt (khum, xỉu ngang, ét o ét, u là trời, flex, slay, real, bestie, main character, "tui", "bà/ông"...), cà khịa mặn mà, so sánh hài hước (ví khô như tình cũ, ăn mì gói arc...), vài emoji vừa phải; vẫn đưa số liệu và lời khuyên thật sự hữu ích; tuyệt đối không xúc phạm, không body-shaming.',
+  funny: 'Giọng BẠN THÂN GEN Z cực lầy: dùng tiếng lóng Gen Z Việt (khum, xỉu ngang, ét o ét, u là trời, flex, slay, real, bestie, main character, "tui", "bà/ông"...), cà khịa mặn mà, so sánh hài hước tự nghĩ ra theo đúng tình huống (không lặp lại câu đùa hay từ lóng đã dùng ở các câu trước, không dùng chữ "arc"), vài emoji vừa phải; vẫn đưa số liệu và lời khuyên thật sự hữu ích; tuyệt đối không xúc phạm, không body-shaming.',
   strict: 'Giọng nghiêm khắc kiểu "mẹ mắng" khi người dùng tiêu hoang (VD chốt đơn Shopee), thẳng thắn, ngắn gọn; vẫn tôn trọng, không xúc phạm.',
   expert: 'Giọng chuyên gia tài chính: điềm tĩnh, dựa trên số liệu, đưa con số và quy tắc cụ thể (VD quy tắc 50/30/20, quỹ dự phòng 3–6 tháng), ngắn gọn, không phán xét.',
 };

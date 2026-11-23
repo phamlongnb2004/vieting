@@ -90,7 +90,7 @@ const Map<String, String> kEn = {
   "{0} lần đồ uống trong 7 ngày ≈ {1}/tháng nếu duy trì.": "{0} drinks in 7 days ≈ {1}/month if you keep it up.",
   "{0} ngày công": "{0} work days",
   "{0} phút làm việc": "{0} minutes of work",
-  "{0} đã ngốn {1}% ngân sách, còn {2}, tức ~{3}/ngày. Ăn mì gói arc sắp bắt đầu": "{0} has eaten {1}% of the budget, {2} left, about ~{3}/day. Instant-noodle arc incoming",
+  "{0} đã ngốn {1}% ngân sách, còn {2}, tức ~{3}/ngày. Mùa mì gói sắp tới rồi đó": "{0} has eaten {1}% of the budget, {2} left, about ~{3}/day. Instant-noodle season is coming",
   "Ét o ét! Lố {0} rồi bestie ơi, ví đang xỉu ngang, khum cứu nổi đâu": "SOS! Over by {0} bestie, your wallet just fainted, can't be saved",
   "Đã vượt ngân sách {0}: {1}/{2}. Dừng chi mục này đến hết kỳ!": "Over the {0} budget: {1}/{2}. Stop spending on this until the period ends!",
   "﻿Ngày,Giờ,Loại,Số tiền,Danh mục,Thẻ,Ví,Ghi chú,Nguồn\n": "﻿Date,Time,Type,Amount,Category,Tags,Wallet,Note,Source\n",
