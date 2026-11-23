@@ -15,6 +15,7 @@ App thật (Flutter, biên dịch ra mã máy, không phải web). Có tiền v�
 | `dat-khoa-gemini.bat` | Đặt khóa Gemini miễn phí cho trợ lý AI |
 | `dat-google.bat` | Bật nút "Tiếp tục với Google" (Client ID + secret loại Web application) |
 | `tao-tai-khoan-thu.bat` | Tạo 3 tài khoản thử (reviewer@example.com…) kèm dữ liệu mẫu cho người duyệt Google Play |
+| `ky-aab-cho-play.bat` | Tạo khóa tải lên (lần đầu) và ký file AAB để đưa lên Google Play |
 | `dat-email.bat` | Bật gửi mã "Quên mật khẩu" qua Gmail (mật khẩu ứng dụng) |
 | `installer/` | Bộ cài Windows (Inno Setup) |
 | `tools/` | Tạo thư mục nền tảng + gắn cấu hình |
