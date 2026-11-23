@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -300,7 +301,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ),
               const SizedBox(width: 2),
               IconButton(
-                tooltip: 'Gửi ảnh',
+                tooltip: tr('Gửi ảnh'),
                 onPressed: _busy ? null : _sendImage,
                 icon: const Icon(PhosphorIconsRegular.image, color: Brand.navy),
               ),

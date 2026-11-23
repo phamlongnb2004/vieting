@@ -1,7 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../store.dart';

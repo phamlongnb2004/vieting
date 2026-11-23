@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
@@ -79,13 +80,13 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
         title: const Wordmark(fontSize: 24),
         actions: [
           IconButton(
-            tooltip: 'Dán thông báo ngân hàng',
+            tooltip: tr('Dán thông báo ngân hàng'),
             icon: const Icon(PhosphorIconsRegular.clipboardText),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PasteScreen())),
           ),
           if (store.loggedIn)
             IconButton(
-              tooltip: 'Đồng bộ',
+              tooltip: tr('Đồng bộ'),
               icon: store.syncing
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(PhosphorIconsRegular.arrowsClockwise),
@@ -523,7 +524,7 @@ class _Alerts extends StatelessWidget {
               child: const Text('Cất'),
             ),
           IconButton(
-            tooltip: 'Bỏ qua',
+            tooltip: tr('Bỏ qua'),
             icon: const Icon(PhosphorIconsRegular.x, size: 18),
             onPressed: () => store.markSwept(now.subtract(const Duration(days: 1))),
           ),

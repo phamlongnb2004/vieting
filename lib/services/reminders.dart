@@ -1,3 +1,4 @@
+import 'package:vieting/i18n.dart';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
@@ -34,7 +35,7 @@ class Reminders {
     final now = DateTime.now();
     void add(int id, DateTime at, String title, String body) {
       if (at.isAfter(now.add(const Duration(minutes: 1)))) {
-        out.add({'id': id, 'at': at.millisecondsSinceEpoch, 'title': title, 'body': body});
+        out.add({'id': id, 'at': at.millisecondsSinceEpoch, 'title': tr(title), 'body': tr(body)});
       }
     }
 
@@ -141,7 +142,7 @@ class Reminders {
     if (!NotifyBridge.supported) return;
     try {
       await _ch.invokeMethod('askNotifyPermission');
-      await _ch.invokeMethod('testNotify', {'title': 'Nhắc nhở đã lên sóng', 'body': 'Từ giờ VieTing sẽ cà khịa bạn đúng lúc, kể cả khi không mở app. Chuẩn bị tinh thần nha bestie!'});
+      await _ch.invokeMethod('testNotify', {'title': tr('Nhắc nhở đã lên sóng'), 'body': tr('Từ giờ VieTing sẽ cà khịa bạn đúng lúc, kể cả khi không mở app. Chuẩn bị tinh thần nha bestie!')});
     } catch (_) {}
   }
 }

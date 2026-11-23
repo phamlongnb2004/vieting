@@ -145,6 +145,7 @@ class PhosphorIconsRegular {
   static const IconData target = IconData(0xe47c, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData thumbsUp = IconData(0xe48e, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData timer = IconData(0xe492, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData translate = IconData(0xe4a2, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData trash = IconData(0xe4a6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData tree = IconData(0xe6da, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData trendUp = IconData(0xe4ae, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');

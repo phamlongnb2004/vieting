@@ -1,3 +1,4 @@
+import 'package:vieting/i18n.dart';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -117,7 +118,7 @@ class Assistant {
               'content-type': 'application/json',
               if (s.token.isNotEmpty) 'authorization': 'Bearer ${s.token}',
             },
-            body: jsonEncode({if (imageB64 != null) 'image': imageB64, if (imageB64 != null) 'mime': mime, 'messages': history, 'context': buildContext(s), 'today': _d(DateTime.now()), 'tone': s.aiTone, 'payday': s.cycleDay > 1 && DateTime.now().difference(s.periodStart(s.currentPeriod.year, s.currentPeriod.month)).inHours < 48}),
+            body: jsonEncode({if (imageB64 != null) 'image': imageB64, if (imageB64 != null) 'mime': mime, 'messages': history, 'context': buildContext(s), 'today': _d(DateTime.now()), 'tone': s.aiTone, 'lang': appLang, 'payday': s.cycleDay > 1 && DateTime.now().difference(s.periodStart(s.currentPeriod.year, s.currentPeriod.month)).inHours < 48}),
           )
           .timeout(const Duration(seconds: 45));
       Map<String, dynamic> body;

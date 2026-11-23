@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../insights.dart';
@@ -19,7 +20,7 @@ class SimulateScreen extends StatefulWidget {
 }
 
 class _SimulateScreenState extends State<SimulateScreen> {
-  final _habit = TextEditingController(text: 'trà sữa');
+  final _habit = TextEditingController(text: tr('trà sữa'));
   final _price = TextEditingController(text: groupDigits(45000));
   double _perWeek = 2;
   String? _goal;
@@ -105,7 +106,7 @@ class _SimulateScreenState extends State<SimulateScreen> {
             min: 1,
             max: 14,
             divisions: 13,
-            label: '${_perWeek.round()} lần/tuần',
+            label: tr('${_perWeek.round()} lần/tuần'),
             onChanged: (v) => setState(() => _perWeek = v),
           ),
           const SizedBox(height: 8),

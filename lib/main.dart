@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/home_shell.dart';
@@ -11,6 +12,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final store = AppStore();
   await store.load();
+  setAppLang(store.lang);
   runApp(VieTingApp(store: store));
 }
 
@@ -24,7 +26,9 @@ class VieTingApp extends StatelessWidget {
       store: store,
       child: ListenableBuilder(
         listenable: store,
-        builder: (context, _) => MaterialApp(
+        builder: (context, _) => LangScope(
+          lang: appLang,
+          child: MaterialApp(
           title: 'VieTing',
           scaffoldMessengerKey: messengerKey,
           navigatorKey: navigatorKey,
@@ -32,7 +36,7 @@ class VieTingApp extends StatelessWidget {
           theme: buildTheme(Brightness.light),
           darkTheme: buildTheme(Brightness.dark),
           themeMode: store.dark ? ThemeMode.dark : ThemeMode.light,
-          locale: const Locale('vi'),
+          locale: Locale(appLang),
           supportedLocales: const [Locale('vi'), Locale('en')],
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
@@ -40,6 +44,7 @@ class VieTingApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: const LockGate(child: HomeShell()),
+          ),
         ),
       ),
     );

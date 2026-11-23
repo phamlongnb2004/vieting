@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 
 /// Khóa toàn cục để hiện thông báo (SnackBar) / hộp thoại từ bất kỳ đâu, kể cả sau khi đóng màn hình.
 final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -17,7 +18,7 @@ void showToast(BuildContext? context, String text,
     content: Text(text),
     duration: duration,
     showCloseIcon: true,
-    action: actionLabel == null ? null : SnackBarAction(label: actionLabel, onPressed: onAction ?? () {}),
+    action: actionLabel == null ? null : SnackBarAction(label: tr(actionLabel), onPressed: onAction ?? () {}),
   ));
   var done = false;
   c.closed.then((_) => done = true);

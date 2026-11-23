@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -209,7 +210,7 @@ class GroupDetailScreen extends StatelessWidget {
         title: Text(g.name),
         actions: [
           IconButton(
-            tooltip: 'Chia sẻ tóm tắt',
+            tooltip: tr('Chia sẻ tóm tắt'),
             icon: const Icon(PhosphorIconsRegular.shareNetwork),
             onPressed: () => Share.share(_summary(g), sharePositionOrigin: shareOrigin(context)),
           ),

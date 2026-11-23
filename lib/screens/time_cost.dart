@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -70,7 +71,7 @@ class _TimeCostScreenState extends State<TimeCostScreen> {
       final dir = await getTemporaryDirectory();
       final f = File('${dir.path}${Platform.pathSeparator}vieting-gio-lam.png');
       await f.writeAsBytes(data!.buffer.asUint8List());
-      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], sharePositionOrigin: shareOrigin(context), text: 'Món này tốn bao nhiêu giờ làm của bạn? #VieTing');
+      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], sharePositionOrigin: shareOrigin(context), text: tr('Món này tốn bao nhiêu giờ làm của bạn? #VieTing'));
     } catch (e) {
       if (mounted) showToast(context, 'Không chia sẻ được: $e');
     } finally {

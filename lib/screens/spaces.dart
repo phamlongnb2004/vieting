@@ -3,7 +3,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -57,7 +58,7 @@ class _SpacesScreenState extends State<SpacesScreen> {
 
   Future<void> _create() async {
     final store = StoreScope.read(context);
-    final name = TextEditingController(text: 'Quỹ nhà mình');
+    final name = TextEditingController(text: tr('Quỹ nhà mình'));
     final target = TextEditingController();
     final nick = TextEditingController();
     final ok = await showDialog<bool>(
@@ -1398,7 +1399,7 @@ class _SpaceDetailScreenState extends State<SpaceDetailScreen> {
       appBar: AppBar(
         title: Text(sp.name),
         actions: [
-          IconButton(tooltip: 'Mời thành viên', onPressed: _invite, icon: const Icon(PhosphorIconsRegular.userPlus)),
+          IconButton(tooltip: tr('Mời thành viên'), onPressed: _invite, icon: const Icon(PhosphorIconsRegular.userPlus)),
           PopupMenuButton<String>(
             onSelected: (v) async {
               if (v == 'settings') await _settings(sp);

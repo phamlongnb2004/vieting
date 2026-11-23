@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
@@ -457,7 +458,7 @@ class _EditTxnScreenState extends State<EditTxnScreen> {
             decoration: InputDecoration(
               hintText: '0',
               suffixText: '₫',
-              suffixIcon: IconButton(tooltip: 'Nhập bằng ngoại tệ', icon: const Icon(PhosphorIconsRegular.currencyCircleDollar), onPressed: _foreign),
+              suffixIcon: IconButton(tooltip: tr('Nhập bằng ngoại tệ'), icon: const Icon(PhosphorIconsRegular.currencyCircleDollar), onPressed: _foreign),
               prefixText: _income ? '+ ' : '− ',
               prefixStyle: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color),
             ),

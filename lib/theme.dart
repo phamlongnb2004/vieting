@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 
 /// Màu thương hiệu VieTing: đỏ cờ, vàng sao, xanh tre, xanh than.
 class Brand {

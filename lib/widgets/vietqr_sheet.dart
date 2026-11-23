@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -121,7 +122,7 @@ Widget _row(BuildContext context, String k, String v, {bool copy = false, bool s
       if (copy)
         IconButton(
           visualDensity: VisualDensity.compact,
-          tooltip: 'Chép',
+          tooltip: tr('Chép'),
           icon: const Icon(PhosphorIconsRegular.copy, size: 18),
           onPressed: () {
             Clipboard.setData(ClipboardData(text: v));

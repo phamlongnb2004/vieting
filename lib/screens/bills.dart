@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
@@ -279,7 +280,7 @@ class _InstallmentSimScreenState extends State<InstallmentSimScreen> {
           ),
           const SizedBox(height: 12),
           Text('Trả trong ${_months.round()} tháng · ${money(perMonth)}/tháng', style: const TextStyle(fontWeight: FontWeight.w700)),
-          Slider(value: _months, min: 3, max: 24, divisions: 21, label: '${_months.round()} tháng', onChanged: (v) => setState(() => _months = v)),
+          Slider(value: _months, min: 3, max: 24, divisions: 21, label: tr('${_months.round()} tháng'), onChanged: (v) => setState(() => _months = v)),
           if (total > price)
             Text('Tổng phải trả ${money(total)} (đắt hơn trả thẳng ${money(total - price)})', style: TextStyle(color: cs.onSurfaceVariant)),
           const SizedBox(height: 14),

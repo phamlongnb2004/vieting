@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -67,6 +68,7 @@ class AppStore extends ChangeNotifier {
   int cycleDay = 1; // ngày bắt đầu kỳ chi tiêu (ngày nhận lương)
   // đồng ý công bố dữ liệu (notify, ai) → thời điểm đồng ý
   final Map<String, int> consents = {};
+  String lang = 'auto'; // auto | vi | en
   String aiTone = 'funny'; // gentle | funny (Gen Z) | strict | expert
   Set<String> skipDays = {}; // ngày ngoại lệ (yyyy-mm-dd) không tính vào chuỗi
   Set<String> sweptDays = {}; // ngày đã cất tiền dư vào hũ
@@ -154,6 +156,7 @@ class AppStore extends ChangeNotifier {
         pinHash = (s['pin'] ?? '') as String;
         cycleDay = ((s['cycle'] as num?)?.toInt() ?? 1).clamp(1, 28);
         aiTone = (s['tone'] ?? 'funny') as String;
+        lang = (s['lang'] ?? 'auto') as String;
         for (final e in ((s['consents'] as Map?) ?? const {}).entries) {
           consents['${e.key}'] = (e.value as num).toInt();
         }
@@ -217,6 +220,7 @@ class AppStore extends ChangeNotifier {
           'pin': pinHash,
           'cycle': cycleDay,
           'tone': aiTone,
+          'lang': lang,
           'consents': consents,
           'notice': noticeSeen,
           'savePct': savePct,
@@ -294,6 +298,12 @@ class AppStore extends ChangeNotifier {
 
   void setCycleDay(int d) {
     cycleDay = d.clamp(1, 28);
+    _changed(syncSoon: false);
+  }
+
+  void setLang(String l) {
+    lang = l;
+    setAppLang(l);
     _changed(syncSoon: false);
   }
 

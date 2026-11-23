@@ -4,7 +4,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -412,6 +413,30 @@ class SettingsScreen extends StatelessWidget {
               title: const Text('Chế độ tối'),
               value: store.dark,
               onChanged: store.setDark,
+            ),
+            ListTile(
+              leading: const VIcon(PhosphorIconsRegular.translate, size: 36),
+              title: const Text('Ngôn ngữ / Language'),
+              subtitle: Text(switch (store.lang) {
+                'vi' => 'Tiếng Việt',
+                'en' => 'English',
+                _ => appLang == 'en' ? 'System (English)' : 'Theo máy (Tiếng Việt)',
+              }),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
+              onTap: () async {
+                final l = await showDialog<String>(
+                  context: context,
+                  builder: (c) => SimpleDialog(title: const Text('Ngôn ngữ / Language'), children: [
+                    for (final o in const [('auto', 'Theo máy / System'), ('vi', 'Tiếng Việt'), ('en', 'English')])
+                      ListTile(
+                        title: Text(o.$2),
+                        trailing: store.lang == o.$1 ? const Icon(PhosphorIconsRegular.check) : null,
+                        onTap: () => Navigator.pop(c, o.$1),
+                      ),
+                  ]),
+                );
+                if (l != null) store.setLang(l);
+              },
             ),
           ]),
           const SizedBox(height: 10),

@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -50,7 +51,7 @@ class _WrappedScreenState extends State<WrappedScreen> {
       final dir = await getTemporaryDirectory();
       final f = File('${dir.path}${Platform.pathSeparator}vieting-tong-ket.png');
       await f.writeAsBytes(data!.buffer.asUint8List());
-      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], sharePositionOrigin: shareOrigin(context), text: 'Tổng kết chi tiêu của mình trên VieTing');
+      await Share.shareXFiles([XFile(f.path, mimeType: 'image/png')], sharePositionOrigin: shareOrigin(context), text: tr('Tổng kết chi tiêu của mình trên VieTing'));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không chia sẻ được: $e')));
     } finally {

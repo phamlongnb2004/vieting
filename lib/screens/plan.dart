@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, InputDecoration;
+import 'package:vieting/i18n.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'bills.dart';
@@ -25,14 +26,14 @@ class PlanScreen extends StatelessWidget {
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             tabs: [
-              Tab(icon: Icon(PhosphorIconsRegular.piggyBank), text: 'Ngân sách'),
-              Tab(icon: Icon(PhosphorIconsRegular.tree), text: 'Mục tiêu'),
-              Tab(icon: Icon(PhosphorIconsRegular.fire), text: 'Thói quen'),
-              Tab(icon: Icon(PhosphorIconsRegular.arrowsClockwise), text: 'Định kỳ'),
-              Tab(icon: Icon(PhosphorIconsRegular.snowflake), text: 'Chờ mua'),
-              Tab(icon: Icon(PhosphorIconsRegular.handshake), text: 'Quỹ chung'),
-              Tab(icon: Icon(PhosphorIconsRegular.usersThree), text: 'Chia tiền'),
-              Tab(icon: Icon(PhosphorIconsRegular.gift), text: 'Hiếu hỉ'),
+              Tab(icon: Icon(PhosphorIconsRegular.piggyBank), child: Text('Ngân sách')),
+              Tab(icon: Icon(PhosphorIconsRegular.tree), child: Text('Mục tiêu')),
+              Tab(icon: Icon(PhosphorIconsRegular.fire), child: Text('Thói quen')),
+              Tab(icon: Icon(PhosphorIconsRegular.arrowsClockwise), child: Text('Định kỳ')),
+              Tab(icon: Icon(PhosphorIconsRegular.snowflake), child: Text('Chờ mua')),
+              Tab(icon: Icon(PhosphorIconsRegular.handshake), child: Text('Quỹ chung')),
+              Tab(icon: Icon(PhosphorIconsRegular.usersThree), child: Text('Chia tiền')),
+              Tab(icon: Icon(PhosphorIconsRegular.gift), child: Text('Hiếu hỉ')),
             ],
           ),
         ),

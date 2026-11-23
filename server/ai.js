@@ -458,13 +458,17 @@ NGƯỜI DÙNG GỬI KÈM ẢNH. Phân tích ảnh:
 - Ảnh đồ ăn / quán / vé...: đoán khoản chi, hỏi lại số tiền nếu ảnh không có giá; có giá thì tạo add_txn.
 - Ảnh không liên quan tiền: nhận xét vui vẻ theo đúng tính cách rồi kéo về chuyện chi tiêu.`;
   const sys = systemPrompt(today, b.tone, ex) + (img ? '\n' + IMG_RULES : '') + (dt ? '\n\n' + dt : '') + '\n\nDỮ LIỆU:\n' + context;
+  // app đang chạy tiếng Anh: trả lời bằng tiếng Anh (giữ nguyên định dạng action / số tiền)
+  const sysL = b.lang === 'en'
+    ? sys + '\n\nLANGUAGE: The user reads the app in English. Write every reply in natural, casual English (keep the same personality and humor, Gen Z slang in English if the tone is funny). Keep amounts in VND. Category ids and JSON action fields stay unchanged.'
+    : sys;
   let out = null;
   let geminiNote = '';
   if (env.GEMINI_API_KEY) {
     try {
       const contents = history.map((m) => ({ role: m.role, parts: [{ text: m.text }] }));
       if (img) contents[contents.length - 1].parts.unshift({ inline_data: { mime_type: mime, data: img } });
-      out = await askGemini(env, sys, contents);
+      out = await askGemini(env, sysL, contents);
     } catch (e) {
       out = null; // hết lượt / lỗi: chuyển sang Workers AI
       geminiNote = String(e?.message || e).slice(0, 600);
@@ -472,12 +476,12 @@ NGƯỜI DÙNG GỬI KÈM ẢNH. Phân tích ảnh:
   }
   if (!out && env.AI && img) {
     const q = history[history.length - 1].text;
-    const t = await visionWorkersAI(env, sys + '\n\nCâu của người dùng: ' + q + '\nTrả JSON {"reply": "...", "actions": [...]}.', img, mime);
+    const t = await visionWorkersAI(env, sysL + '\n\nCâu của người dùng: ' + q + '\nTrả JSON {"reply": "...", "actions": [...]}.', img, mime);
     if (t) out = { text: t, provider: 'workers-ai' };
   }
   if (!out && env.AI) {
     try {
-      out = await askWorkersAI(env, sys, history);
+      out = await askWorkersAI(env, sysL, history);
     } catch (e) {
       return json({ error: 'Trợ lý AI đang bận, thử lại sau ít phút.' }, 502);
     }
