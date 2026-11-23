@@ -27,6 +27,32 @@ workflows:
       - VieTing.apk
       - VieTing.aab
 
+  # Bản đưa lên Google Play (ký bằng khóa tải lên). Cần một lần: Codemagic → Teams → Code signing identities →
+  # Android keystores → Add, tải file vieting-upload.jks (tạo bằng tao-khoa-android.bat), Reference name: vieting_upload
+  android-play:
+    name: Android AAB cho Google Play (đã ký)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      java: 17
+      android_signing:
+        - vieting_upload
+    scripts:
+      - name: Tạo thư mục nền tảng + icon
+        script: bash tools/setup-platforms.sh
+      - name: Dựng AAB đã ký
+        script: |
+          set -e
+          export VIETING_KEYSTORE="$CM_KEYSTORE_PATH" VIETING_KEYSTORE_PASSWORD="$CM_KEYSTORE_PASSWORD"
+          export VIETING_KEY_ALIAS="$CM_KEY_ALIAS" VIETING_KEY_PASSWORD="$CM_KEY_PASSWORD"
+          flutter build appbundle --release --build-number=$((${BUILD_NUMBER:-1} + 100)) ${SERVER_URL:+--dart-define=SERVER_URL=$SERVER_URL}
+          cp build/app/outputs/bundle/release/app-release.aab "$CM_BUILD_DIR/VieTing-play.aab"
+          # kiểm tra đã ký bằng khóa tải lên, không phải khóa debug
+          keytool -printcert -jarfile "$CM_BUILD_DIR/VieTing-play.aab" | grep -i "owner" | head -1
+    artifacts:
+      - VieTing-play.aab
+
   ios-unsigned:
     name: iOS IPA chưa ký (cài thử bằng Sideloadly / AltStore)
     instance_type: mac_mini_m2
