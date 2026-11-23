@@ -520,7 +520,7 @@ Future<void> _editProfile(BuildContext context, AppStore store) async {
   final name = TextEditingController(text: store.fullName);
   final year = TextEditingController(text: store.birthYear > 0 ? '${store.birthYear}' : '');
   String? err;
-  final max = DateTime.now().year - 10;
+  final max = DateTime.now().year - 18;
   await showDialog<void>(
     context: context,
     builder: (c) => StatefulBuilder(
@@ -537,7 +537,7 @@ Future<void> _editProfile(BuildContext context, AppStore store) async {
             controller: year,
             keyboardType: TextInputType.number,
             maxLength: 4,
-            decoration: const InputDecoration(labelText: 'Năm sinh', hintText: 'VD: 2004', counterText: ''),
+            decoration: const InputDecoration(labelText: 'Năm sinh', hintText: 'VD: 2000', counterText: ''),
           ),
           const SizedBox(height: 8),
           Text('Chỉ dùng để hiển thị và giúp trợ lý gợi ý hợp tuổi. Không chia sẻ cho ai.',
@@ -553,8 +553,12 @@ Future<void> _editProfile(BuildContext context, AppStore store) async {
             onPressed: () async {
               final t = year.text.trim();
               final y = t.isEmpty ? 0 : (int.tryParse(t) ?? -1);
-              if (y != 0 && (y < 1900 || y > max)) {
-                set(() => err = 'Năm sinh phải từ 1900 đến $max');
+              if (y != 0 && (y < 1900 || y > DateTime.now().year)) {
+                set(() => err = 'Năm sinh chưa đúng');
+                return;
+              }
+              if (y > max) {
+                set(() => err = 'VieTing chỉ dành cho người từ 18 tuổi trở lên');
                 return;
               }
               if (name.text.trim().isNotEmpty && name.text.trim().length < 2) {

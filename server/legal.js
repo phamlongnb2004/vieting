@@ -203,7 +203,7 @@ function content(lang, contact) {
           <li><b>Xóa tài khoản và toàn bộ dữ liệu</b>: trong app (Cài đặt → Quyền riêng tư → Xóa tài khoản) hoặc tại <a href="/xoa-tai-khoan">trang xóa tài khoản</a>.</li>
           <li>Khiếu nại hoặc yêu cầu khác theo pháp luật Việt Nam về bảo vệ dữ liệu cá nhân: liên hệ qua ${reach}. Chúng tôi phản hồi trong vòng 15 ngày.</li></ul>`,
         ],
-        ['Trẻ em', `<p>VieTing không dành cho người dưới 16 tuổi và không cố ý thu thập dữ liệu của trẻ em. Nếu bạn biết một trẻ em đã tạo tài khoản, hãy báo để chúng tôi xóa.</p>`],
+        ['Trẻ em', `<p>VieTing chỉ dành cho người từ 18 tuổi trở lên (khi đăng ký phải nhập năm sinh) và không cố ý thu thập dữ liệu của trẻ em. Nếu bạn biết một trẻ em đã tạo tài khoản, hãy báo để chúng tôi xóa.</p>`],
         ['Thay đổi chính sách', `<p>Khi chính sách thay đổi, chúng tôi cập nhật ngày ở đầu trang và thông báo trong app với các thay đổi quan trọng.</p>`],
       ],
     };
@@ -289,7 +289,7 @@ function content(lang, contact) {
         <li><b>Delete your account and all data</b>: in the app (Settings → Privacy → Delete account) or on the <a href="/delete-account">account deletion page</a>.</li>
         <li>Complaints or other requests under Vietnamese personal-data-protection law: contact us via ${reach}. We reply within 15 days.</li></ul>`,
       ],
-      ['Children', `<p>VieTing is not intended for anyone under 16 and we do not knowingly collect children’s data. If you believe a child has created an account, let us know and we will delete it.</p>`],
+      ['Children', `<p>VieTing is only for people aged 18 and over (a birth year is required at sign-up) and we do not knowingly collect children’s data. If you believe a child has created an account, let us know and we will delete it.</p>`],
       ['Changes to this policy', `<p>When this policy changes, we update the date at the top of this page and announce important changes in the app.</p>`],
     ],
   };

@@ -90,11 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// null = hợp lệ (để trống cũng được)
   String? _birthErr() {
-    final t = _birth.text.trim();
-    if (t.isEmpty) return null;
-    final y = int.tryParse(t);
-    final max = DateTime.now().year - 10;
-    if (y == null || y < 1900 || y > max) return 'Năm sinh phải từ 1900 đến $max';
+    final y = int.tryParse(_birth.text.trim());
+    if (y == null || y < 1900 || y > DateTime.now().year) return 'Nhập năm sinh (VD: 2000)';
+    if (y > DateTime.now().year - 18) return 'VieTing chỉ dành cho người từ 18 tuổi trở lên';
     return null;
   }
 
@@ -207,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.number,
                   maxLength: 4,
                   decoration: const InputDecoration(
-                      labelText: 'Năm sinh (không bắt buộc)', hintText: 'VD: 2004', counterText: '', prefixIcon: Icon(PhosphorIconsRegular.cake)),
+                      labelText: 'Năm sinh', hintText: 'VD: 2000', helperText: 'VieTing dành cho người từ 18 tuổi', counterText: '', prefixIcon: Icon(PhosphorIconsRegular.cake)),
                 ),
                 const SizedBox(height: 12),
               ],

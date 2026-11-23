@@ -1189,4 +1189,10 @@ const Map<String, String> kEn = {
   "Đã lưu mật khẩu mới": "New password saved",
   "Ngôn ngữ / Language": "Language",
   "Theo máy (Tiếng Việt)": "System (Vietnamese)",
+  "Nhập năm sinh (VD: 2000)": "Enter your birth year (e.g. 2000)",
+  "VieTing chỉ dành cho người từ 18 tuổi trở lên": "VieTing is only for people aged 18 and over",
+  "Năm sinh": "Birth year",
+  "VD: 2000": "E.g. 2000",
+  "VieTing dành cho người từ 18 tuổi": "VieTing is for people aged 18+",
+  "Năm sinh chưa đúng": "Invalid birth year",
 };

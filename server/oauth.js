@@ -285,16 +285,19 @@ export async function handleAuth(req, env, url, h) {
   return null;
 }
 
-/** Họ tên 2–80 ký tự, năm sinh 1900..(năm nay - 10), cả hai có thể để trống. */
+/** Họ tên 2–80 ký tự, năm sinh 1900..(năm nay - 18), cả hai có thể để trống. */
 export function checkProfile(b, lang = 'vi') {
   const en = lang === 'en';
   const name = String(b?.name ?? '').replace(/\s+/g, ' ').trim().slice(0, 80);
   const raw = b?.birthYear;
   const year = raw === null || raw === undefined || raw === '' ? null : Number(raw);
-  const max = new Date().getFullYear() - 10;
+  const max = new Date().getFullYear() - 18; // VieTing chỉ dành cho người từ 18 tuổi
   if (name && name.length < 2) return { error: en ? 'Full name is too short' : 'Họ và tên quá ngắn' };
-  if (year !== null && (!Number.isInteger(year) || year < 1900 || year > max)) {
-    return { error: en ? `Birth year must be between 1900 and ${max}` : `Năm sinh phải từ 1900 đến ${max}` };
+  if (year !== null && (!Number.isInteger(year) || year < 1900)) {
+    return { error: en ? 'Invalid birth year' : 'Năm sinh chưa đúng' };
+  }
+  if (year !== null && year > max) {
+    return { error: en ? 'VieTing is only for people aged 18 and over' : 'VieTing chỉ dành cho người từ 18 tuổi trở lên' };
   }
   return { name, year };
 }
