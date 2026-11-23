@@ -26,7 +26,7 @@ WxFx wxFxOf(String sym) {
 }
 
 /// Kiểu hiệu ứng đang áp dụng cho trang Tổng quan (none nếu tắt, chưa có dữ liệu hoặc dữ liệu quá cũ).
-WxFx currentWxFx(Store s) {
+WxFx currentWxFx(AppStore s) {
   if (!s.weatherOn || !s.weatherFx) return WxFx.none;
   final w = s.weather;
   if (w == null) return WxFx.none;
@@ -83,7 +83,7 @@ class _WeatherFxLayerState extends State<WeatherFxLayer> with SingleTickerProvid
     super.dispose();
   }
 
-  WxFx _kind(Store s) => widget.force ?? currentWxFx(s);
+  WxFx _kind(AppStore s) => widget.force ?? currentWxFx(s);
 
   @override
   Widget build(BuildContext context) {
