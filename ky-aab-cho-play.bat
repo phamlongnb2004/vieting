@@ -39,7 +39,7 @@ if not exist play-store\VieTing.aab (
 
 rem ---- 4. Bo chu ky cu, ky bang khoa tai len ----
 copy /y play-store\VieTing.aab "%TEMP%\vieting-unsigned.aab" >nul
-powershell -NoProfile -Command "Add-Type -A System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::Open((Join-Path $env:TEMP 'vieting-unsigned.aab'),'Update'); @($z.Entries | ? { $_.FullName -match '^META-INF/(.*\.(SF|RSA|DSA|EC)|MANIFEST\.MF)$' }) | % { $_.Delete() }; $z.Dispose()"
+powershell -NoProfile -Command "Add-Type -A System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::Open((Join-Path $env:TEMP 'vieting-unsigned.aab'),'Update'); @($z.Entries | ? { $_.FullName -match '^META-INF/(.*\.(SF|RSA|DSA|EC)|MANIFEST\.MF)$' }) | ForEach-Object { $_.Delete() }; $z.Dispose()"
 echo.
 echo === KY FILE AAB: go mat khau khoa tai len ===
 "%JBIN%\jarsigner.exe" -keystore vieting-upload.jks -sigalg SHA256withRSA -digestalg SHA-256 -signedjar play-store\VieTing-play.aab "%TEMP%\vieting-unsigned.aab" upload || (pause & exit /b 1)
