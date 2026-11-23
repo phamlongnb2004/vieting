@@ -95,6 +95,7 @@ ${inner}
 <footer><div class="w">
   <span>© 2026 VieTing · Phạm Thành Long</span>
   <a href="${vi ? '/chinh-sach-rieng-tu' : '/privacy'}">${vi ? 'Chính sách quyền riêng tư' : 'Privacy policy'}</a>
+  <a href="${vi ? '/dieu-khoan' : '/terms'}">${vi ? 'Điều khoản dịch vụ' : 'Terms of service'}</a>
   <a href="${vi ? '/xoa-tai-khoan' : '/delete-account'}">${vi ? 'Xóa tài khoản' : 'Delete account'}</a>
   <a href="/tai-app">${vi ? 'Tải app' : 'Download'}</a>
 </div></footer>
@@ -295,8 +296,78 @@ function content(lang, contact) {
   };
 }
 
+// ---------------- Điều khoản dịch vụ ----------------
+function terms(lang, contact) {
+  const vi = lang === 'vi';
+  const reach = vi
+    ? contact ? `email <a href="mailto:${contact}">${contact}</a> hoặc mục <b>Cài đặt → Góp ý &amp; báo lỗi</b> trong app` : `mục <b>Cài đặt → Góp ý &amp; báo lỗi</b> trong app`
+    : contact ? `email <a href="mailto:${contact}">${contact}</a> or <b>Settings → Feedback &amp; bug report</b> in the app` : `<b>Settings → Feedback &amp; bug report</b> in the app`;
+  const P = (t) => `<p>${t}</p>`;
+  const L = (a) => `<ul>${a.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+  if (vi)
+    return {
+      title: 'Điều khoản dịch vụ',
+      kick: 'Áp dụng cho VieTing trên Android, iPhone, Windows và trang web',
+      lead: 'Đây là thỏa thuận giữa bạn và VieTing khi bạn dùng app. Đọc kỹ nhé: dùng VieTing nghĩa là bạn đồng ý với các điều khoản này.',
+      updated: 'Cập nhật ' + UPDATED.vi,
+      chips: [
+        ['bank', '#152758', 'Không giữ tiền', 'VieTing chỉ ghi chép, không chuyển tiền'],
+        ['shield', '#C1272C', 'Từ 18 tuổi', 'Dành cho người trưởng thành'],
+        ['lock', '#3E8E41', 'Dữ liệu là của bạn', 'Xuất hoặc xóa bất cứ lúc nào'],
+        ['ban', '#B07A00', 'Không phải tư vấn', 'Trợ lý AI chỉ để tham khảo'],
+      ],
+      sections: [
+        ['Dịch vụ là gì', P('VieTing là ứng dụng ghi chép thu chi cá nhân do <b>Phạm Thành Long</b> phát triển ("chúng tôi"). App giúp bạn ghi giao dịch (tự nhập hoặc đọc thông báo ngân hàng khi bạn cho phép), đặt ngân sách, mục tiêu tiết kiệm, ghi sổ chung với người quen (Quỹ chung) và hỏi trợ lý AI về chi tiêu.') + P('VieTing <b>không phải ngân hàng hay ví điện tử</b>: không giữ tiền, không chuyển tiền, không cho vay, không đăng nhập vào ngân hàng của bạn. Mọi khoản chuyển tiền đều do bạn tự làm trong app ngân hàng của mình.')],
+        ['Ai được dùng', P('Bạn phải từ <b>18 tuổi</b> trở lên. Khi đăng ký bằng email, bạn khai năm sinh thật. Nếu chúng tôi biết tài khoản thuộc người dưới 18 tuổi, tài khoản có thể bị xóa.')],
+        ['Tài khoản của bạn', L(['Bạn chịu trách nhiệm giữ mật khẩu và thiết bị của mình. Có thể bật mã PIN / vân tay trong app.', 'Thông tin bạn khai (email, họ tên, năm sinh) phải là của bạn.', 'Mỗi người dùng tài khoản của chính mình; không mua bán hay cho thuê tài khoản.', 'Không cần tài khoản vẫn dùng được phần lớn tính năng; dữ liệu khi đó chỉ nằm trên máy bạn.'])],
+        ['Quỹ chung', P('Quỹ chung là <b>sổ ghi chép chung</b> cho nhóm do bạn tự mời bằng mã. Tiền thật nằm trong tài khoản ngân hàng hoặc tiền mặt của thủ quỹ, không nằm ở VieTing.') + L(['Các công cụ như ảnh chứng từ, AI kiểm tra ảnh, đối chiếu số dư, kết nối ngân hàng qua SePay giúp nhóm minh bạch hơn nhưng <b>không bảo đảm</b> không ai gian lận.', 'Tranh chấp tiền giữa các thành viên là việc giữa các thành viên; chúng tôi không phải bên giữ tiền hay bên bảo lãnh.', 'Chỉ ghi những khoản có thật, không dùng ảnh giả hoặc ảnh đã chỉnh sửa.'])],
+        ['Trợ lý AI và tính năng đọc ảnh', P('Câu trả lời của trợ lý AI, kết quả đọc hóa đơn và kiểm tra ảnh do máy tạo ra nên <b>có thể sai</b>. Hãy kiểm tra lại trước khi dựa vào. Đây chỉ là gợi ý về chi tiêu, <b>không phải tư vấn tài chính, đầu tư, thuế hay pháp lý</b>.') + P('Đừng gửi cho trợ lý mật khẩu, mã OTP, số thẻ hoặc số tài khoản đầy đủ. Cách dữ liệu gửi AI được xử lý nằm trong <a href="/chinh-sach-rieng-tu">Chính sách quyền riêng tư</a>.')],
+        ['VieTing Pro, dùng thử và mã khuyến mãi', L(['Các tính năng cơ bản (ghi chép, đọc thông báo ngân hàng, ví, ngân sách, nhắc nhở, xuất CSV…) luôn miễn phí.', 'Tài khoản mới được dùng thử Pro 7 ngày. Mã khuyến mãi cộng thêm ngày Pro, không đổi được ra tiền và không chuyển nhượng.', 'Khi có bán Pro qua Google Play / App Store, giá, gia hạn, hủy và hoàn tiền theo chính sách của cửa hàng đó và được hiện rõ trước khi bạn trả tiền.', 'Hạn mức dùng AI mỗi ngày có thể thay đổi để giữ dịch vụ ổn định.'])],
+        ['Không được làm', L(['Dùng VieTing cho việc trái pháp luật, lừa đảo, rửa tiền hoặc gom tiền trái phép.', 'Tải lên nội dung vi phạm pháp luật, xúc phạm người khác, hoặc ảnh không phải của mình mà không được phép.', 'Tấn công, dò lỗi trái phép, gửi quá nhiều yêu cầu, hoặc cố lách hạn mức AI.', 'Sao chép, bán lại hoặc làm app giả mạo VieTing.'])],
+        ['Dữ liệu và quyền riêng tư', P('Dữ liệu bạn ghi là của bạn. Bạn có thể xuất ra file CSV, xóa trên máy, hoặc <a href="/xoa-tai-khoan">xóa tài khoản</a> bất cứ lúc nào. Chi tiết thu thập và chia sẻ dữ liệu nằm trong <a href="/chinh-sach-rieng-tu">Chính sách quyền riêng tư</a>.')],
+        ['Tạm ngừng và chấm dứt', P('Bạn có thể ngừng dùng và xóa tài khoản bất cứ lúc nào. Chúng tôi có thể khóa tài khoản vi phạm các điều khoản này, có thông báo lý do khi có thể. Dịch vụ có thể tạm gián đoạn để bảo trì hoặc vì sự cố của nhà cung cấp hạ tầng.')],
+        ['Giới hạn trách nhiệm', P('VieTing được cung cấp "như hiện có". Trong phạm vi pháp luật cho phép, chúng tôi không chịu trách nhiệm cho thiệt hại phát sinh từ: số liệu ghi sai hoặc thiếu, ứng dụng ngân hàng đổi mẫu thông báo, câu trả lời sai của AI, mất dữ liệu trên máy chưa đồng bộ, hay tranh chấp giữa các thành viên Quỹ chung. Điều này không làm mất các quyền của người tiêu dùng mà pháp luật không cho phép loại trừ.')],
+        ['Thay đổi điều khoản', P('Khi điều khoản thay đổi đáng kể, chúng tôi báo trong app hoặc trên trang này và ghi ngày cập nhật ở đầu trang. Tiếp tục dùng sau khi thay đổi có hiệu lực nghĩa là bạn đồng ý với bản mới.')],
+        ['Luật áp dụng và liên hệ', P('Các điều khoản này theo pháp luật Việt Nam. Mọi câu hỏi hoặc khiếu nại, liên hệ qua ' + reach + '.')],
+      ],
+    };
+  return {
+    title: 'Terms of Service',
+    kick: 'Applies to VieTing on Android, iPhone, Windows and the web',
+    lead: 'This is the agreement between you and VieTing when you use the app. Please read it: by using VieTing you agree to these terms.',
+    updated: 'Updated ' + UPDATED.en,
+    chips: [
+      ['bank', '#152758', 'We never hold money', 'VieTing only keeps records'],
+      ['shield', '#C1272C', '18+ only', 'Made for adults'],
+      ['lock', '#3E8E41', 'Your data is yours', 'Export or delete anytime'],
+      ['ban', '#B07A00', 'Not advice', 'The AI assistant is for reference'],
+    ],
+    sections: [
+      ['What the service is', P('VieTing is a personal expense-tracking app developed by <b>Phạm Thành Long</b> ("we"). It helps you record transactions (manually or from bank notifications if you allow it), set budgets and savings goals, keep a shared ledger with people you invite (Shared funds) and ask an AI assistant about your spending.') + P('VieTing is <b>not a bank or e-wallet</b>: it does not hold money, transfer money, lend, or sign in to your bank. Any transfer is made by you in your own banking app.')],
+      ['Who may use it', P('You must be at least <b>18 years old</b>. When signing up by email you provide your real birth year. If we learn an account belongs to someone under 18, it may be deleted.')],
+      ['Your account', L(['You are responsible for keeping your password and device safe. You can turn on a PIN / fingerprint lock in the app.', 'The details you provide (email, name, birth year) must be your own.', 'Use only your own account; do not sell or rent accounts.', 'Most features work without an account; your data then stays on your device only.'])],
+      ['Shared funds', P('A Shared fund is a <b>shared ledger</b> for a group you invite with a code. The actual money sits in the treasurer\'s bank account or cash, not with VieTing.') + L(['Tools such as proof photos, AI photo checks, balance reconciliation and bank connection via SePay make the group more transparent but <b>do not guarantee</b> that nobody cheats.', 'Money disputes between members are between the members; we are not a custodian or guarantor.', 'Only record real transactions and never use fake or edited photos.'])],
+      ['AI assistant and photo reading', P('Answers from the AI assistant, receipt reading and photo checks are machine-generated and <b>can be wrong</b>. Check them before relying on them. They are spending tips only, <b>not financial, investment, tax or legal advice</b>.') + P('Do not send the assistant passwords, OTP codes, card numbers or full account numbers. How data sent to AI is handled is described in the <a href="/privacy">Privacy policy</a>.')],
+      ['VieTing Pro, trials and promo codes', L(['Core features (recording, reading bank notifications, wallets, budgets, reminders, CSV export…) are always free.', 'New accounts get a 7-day Pro trial. Promo codes add Pro days; they have no cash value and cannot be transferred.', 'When Pro is sold through Google Play / the App Store, pricing, renewal, cancellation and refunds follow that store\'s policies and are shown clearly before you pay.', 'Daily AI limits may change to keep the service stable.'])],
+      ['What you must not do', L(['Use VieTing for anything illegal, fraud, money laundering or unlawful fundraising.', 'Upload unlawful or abusive content, or photos that are not yours without permission.', 'Attack the service, probe it without permission, flood it with requests or try to bypass AI limits.', 'Copy, resell or create look-alike versions of VieTing.'])],
+      ['Data and privacy', P('The data you record is yours. You can export it to CSV, delete it from your device, or <a href="/delete-account">delete your account</a> at any time. What we collect and share is described in the <a href="/privacy">Privacy policy</a>.')],
+      ['Suspension and termination', P('You may stop using VieTing and delete your account at any time. We may lock accounts that break these terms, giving a reason when we can. The service may be interrupted for maintenance or because of an infrastructure provider outage.')],
+      ['Limitation of liability', P('VieTing is provided "as is". To the extent permitted by law, we are not liable for losses caused by: wrong or missing records, banking apps changing their notification format, incorrect AI answers, loss of unsynced data on a device, or disputes between Shared fund members. This does not remove consumer rights that the law does not allow to be excluded.')],
+      ['Changes to these terms', P('When these terms change significantly we will tell you in the app or on this page and update the date at the top. Continuing to use VieTing after a change takes effect means you accept the new version.')],
+      ['Governing law and contact', P('These terms are governed by the laws of Vietnam. For any question or complaint, contact us via ' + reach + '.')],
+    ],
+  };
+}
+
 function privacyPage(lang, contact) {
-  const c = content(lang, contact);
+  return docPage(lang, content(lang, contact), { vi: '/chinh-sach-rieng-tu', en: '/privacy' });
+}
+
+function termsPage(lang, contact) {
+  return docPage(lang, terms(lang, contact), { vi: '/dieu-khoan', en: '/terms' });
+}
+
+function docPage(lang, c, alt) {
   const vi = lang === 'vi';
   const inner = `
 <header class="hero"><div class="w">
@@ -314,7 +385,7 @@ function privacyPage(lang, contact) {
     <main>${c.sections.map((s, i) => `<section id="s${i + 1}"><h2><em>${i + 1}</em>${s[0]}</h2>${s[1]}</section>`).join('')}</main>
   </div>
 </div>`;
-  return shell(lang, c.title, { vi: '/chinh-sach-rieng-tu', en: '/privacy' }, inner);
+  return shell(lang, c.title, alt, inner);
 }
 
 function deletePage(lang) {
@@ -435,6 +506,8 @@ export async function handleLegal(req, env, url, h) {
   if (req.method === 'GET') {
     if (p === '/chinh-sach-rieng-tu') return html(privacyPage('vi', env.CONTACT_EMAIL || ''));
     if (p === '/privacy' || p === '/privacy-policy') return html(privacyPage('en', env.CONTACT_EMAIL || ''));
+    if (p === '/dieu-khoan' || p === '/dieu-khoan-dich-vu') return html(termsPage('vi', env.CONTACT_EMAIL || ''));
+    if (p === '/terms' || p === '/terms-of-service') return html(termsPage('en', env.CONTACT_EMAIL || ''));
     if (p === '/xoa-tai-khoan') return html(deletePage('vi'));
     if (p === '/delete-account') return html(deletePage('en'));
     return null;
