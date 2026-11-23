@@ -424,9 +424,13 @@ export async function handleChat(req, env, userId) {
   if (!ok) {
     return json(
       {
-        error: quota?.pro
-          ? 'Hôm nay bạn đã dùng hết lượt hỏi trợ lý, mai quay lại nhé.'
-          : `Bản miễn phí được ${DAILY_LIMIT} tin nhắn trợ lý mỗi ngày và hôm nay đã hết. Nâng cấp Pro để hỏi tới ${PRO_LIMIT} tin mỗi ngày.`,
+        error: b.lang === 'en'
+          ? quota?.pro
+            ? "You've used all of today's assistant messages, come back tomorrow."
+            : `The free plan includes ${DAILY_LIMIT} assistant messages a day and you've used them all today. Upgrade to Pro for up to ${PRO_LIMIT} a day.`
+          : quota?.pro
+            ? 'Hôm nay bạn đã dùng hết lượt hỏi trợ lý, mai quay lại nhé.'
+            : `Bản miễn phí được ${DAILY_LIMIT} tin nhắn trợ lý mỗi ngày và hôm nay đã hết. Nâng cấp Pro để hỏi tới ${PRO_LIMIT} tin mỗi ngày.`,
         quota,
       },
       429
@@ -459,9 +463,15 @@ NGƯỜI DÙNG GỬI KÈM ẢNH. Phân tích ảnh:
 - Ảnh không liên quan tiền: nhận xét vui vẻ theo đúng tính cách rồi kéo về chuyện chi tiêu.`;
   const sys = systemPrompt(today, b.tone, ex) + (img ? '\n' + IMG_RULES : '') + (dt ? '\n\n' + dt : '') + '\n\nDỮ LIỆU:\n' + context;
   // app đang chạy tiếng Anh: trả lời bằng tiếng Anh (giữ nguyên định dạng action / số tiền)
-  const sysL = b.lang === 'en'
-    ? sys + '\n\nLANGUAGE: The user reads the app in English. Write every reply in natural, casual English (keep the same personality and humor, Gen Z slang in English if the tone is funny). Keep amounts in VND. Category ids and JSON action fields stay unchanged.'
-    : sys;
+  const EN_RULE =
+    'LANGUAGE RULE (highest priority): the user is using the app in ENGLISH. The "reply" field MUST be written entirely in natural, casual English, ' +
+    'never in Vietnamese, even though the instructions and data below are in Vietnamese and even if the user writes in Vietnamese. ' +
+    'Keep the same personality (if the tone is the funny Gen Z friend, use English Gen Z slang). Write amounts like 45,000 ₫. ' +
+    'Use English category names (food, transport, shopping, bills...). JSON keys and action fields (category ids, type) stay unchanged.';
+  const sysL = b.lang === 'en' ? EN_RULE + '\n\n' + sys + '\n\n' + EN_RULE : sys;
+  if (b.lang === 'en' && history.length && history[history.length - 1].role === 'user') {
+    history[history.length - 1] = { ...history[history.length - 1], text: history[history.length - 1].text + '\n\n(Reply in English.)' };
+  }
   let out = null;
   let geminiNote = '';
   if (env.GEMINI_API_KEY) {
@@ -483,10 +493,10 @@ NGƯỜI DÙNG GỬI KÈM ẢNH. Phân tích ảnh:
     try {
       out = await askWorkersAI(env, sysL, history);
     } catch (e) {
-      return json({ error: 'Trợ lý AI đang bận, thử lại sau ít phút.' }, 502);
+      return json({ error: b.lang === 'en' ? 'The AI assistant is busy, try again in a few minutes.' : 'Trợ lý AI đang bận, thử lại sau ít phút.' }, 502);
     }
   }
-  if (!out) return json({ error: 'Trợ lý AI đang bận, thử lại sau ít phút.' }, 502);
+  if (!out) return json({ error: b.lang === 'en' ? 'The AI assistant is busy, try again in a few minutes.' : 'Trợ lý AI đang bận, thử lại sau ít phút.' }, 502);
 
   const parsed = extractJson(out.text);
   let reply = parsed && typeof parsed.reply === 'string' ? parsed.reply : String(out.text || '').trim();
