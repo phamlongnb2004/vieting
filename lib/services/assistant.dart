@@ -30,6 +30,7 @@ class Assistant {
     final cur = s.currentPeriod;
     final prev = DateTime(cur.year, cur.month - 1);
     final b = StringBuffer();
+    if (s.age != null) b.writeln('Tuổi người dùng: ${s.age} (gợi ý cho hợp lứa tuổi)');
     b.writeln('Tổng số dư các ví: ${_m(s.totalBalance)} đ');
     if (s.totalBalance < 0) {
       b.writeln('CHÚ Ý: tổng số dư đang ÂM ${_m(-s.totalBalance)} đ (đang tiêu quá số tiền có / nợ). Không được nói là còn tiền.');

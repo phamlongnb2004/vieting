@@ -56,6 +56,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _drain();
       _store = StoreScope.read(context)..addListener(_onStore);
       _store!.fetchConfig().whenComplete(_onStore);
+      _store!.fetchProfile();
     });
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       _linkSub = AppLinks().uriLinkStream.listen(_onLink, onError: (_) {});

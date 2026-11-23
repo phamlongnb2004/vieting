@@ -4,6 +4,8 @@
 // GET  /tai-app, /tai/<android|windows|windows-portable|ios>  trang tải + link tải (download.js)
 // POST /api/register  {email, password}        -> {token}
 // POST /api/login     {email, password}        -> {token}
+// GET  /auth/google/start, /auth/google/callback, POST /api/auth/google/poll   đăng nhập Google (oauth.js)
+// POST /api/password/forgot|reset|set          quên / đặt mật khẩu (oauth.js)
 // POST /api/chat      {messages, context, today}  -> {reply, actions}  trợ lý AI (ai.js), đăng nhập không bắt buộc
 // GET  /admin                                 trang quản trị (admin.js); /api/admin/* cần quyền admin
 // GET  /api/notice                             thông báo admin gửi tới app
@@ -15,6 +17,7 @@
 
 import { handleDownload } from './download.js';
 import { handleLegal } from './legal.js';
+import { handleAuth, ensureAuthSchema, checkProfile } from './oauth.js';
 import { handleChat, handleReceipt, handleParse } from './ai.js';
 import { handleAdmin, adminPage, publicNotice } from './admin.js';
 import { handleSpace, spaceCron } from './space.js';
@@ -84,10 +87,12 @@ async function register(req, env) {
   if (password.length < 6) return json({ error: 'Mật khẩu tối thiểu 6 ký tự' }, 400);
   const exists = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
   if (exists) return json({ error: 'Email này đã có tài khoản' }, 409);
+  const prof = checkProfile(b);
+  if (prof.error) return json({ error: prof.error }, 400);
   const salt = randomHex(16);
   const hash = await hashPassword(password, salt);
-  const res = await env.DB.prepare('INSERT INTO users (email, salt, hash, created) VALUES (?, ?, ?, ?)')
-    .bind(email, salt, hash, Date.now())
+  const res = await env.DB.prepare('INSERT INTO users (email, salt, hash, created, full_name, birth_year) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(email, salt, hash, Date.now(), prof.name, prof.year)
     .run();
   const token = await newSession(env, res.meta.last_row_id);
   // tài khoản mới được dùng thử Pro 7 ngày
@@ -176,6 +181,15 @@ export default {
     const url = new URL(req.url);
     if (req.method === 'OPTIONS') return json({});
     try {
+      if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) await ensureAuthSchema(env).catch(() => {});
+      {
+        const r = await handleAuth(req, env, url, {
+          json, readJson, randomHex, hashPassword, safeEqual, auth,
+          newSession,
+          onNewUser: (id) => grantPro(env, id, 7, 'Dùng thử'),
+        });
+        if (r) return r;
+      }
       if (req.method === 'POST' && url.pathname === '/api/register') return await register(req, env);
       if (req.method === 'POST' && url.pathname === '/api/login') return await login(req, env);
       if (req.method === 'POST' && url.pathname === '/api/sync') return await sync(req, env);
@@ -197,7 +211,7 @@ export default {
       if (req.method === 'GET' && url.pathname === '/api/push') return await pushFeed(req, env, await auth(req, env), h);
       if (req.method === 'POST' && url.pathname === '/api/ocr-report') return await ocrReport(req, env, await auth(req, env), h);
       if (url.pathname === '/admin' || url.pathname === '/admin/') return adminPage();
-      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai10' });
+      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai11' });
       {
         const r = await handleLegal(req, env, url, { json, readJson, auth, hashPassword, safeEqual });
         if (r) return r;

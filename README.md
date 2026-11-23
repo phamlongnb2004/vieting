@@ -13,6 +13,8 @@ App thật (Flutter, biên dịch ra mã máy, không phải web). Có tiền v�
 | `server/` | Trang tải app + server đồng bộ (Cloudflare Workers + D1, miễn phí) |
 | `tai-len-cloudflare.bat` | Đưa trang tải + file cài + server lên Cloudflare |
 | `dat-khoa-gemini.bat` | Đặt khóa Gemini miễn phí cho trợ lý AI |
+| `dat-google.bat` | Bật nút "Tiếp tục với Google" (Client ID + secret loại Web application) |
+| `dat-email.bat` | Bật gửi mã "Quên mật khẩu" qua Gmail (mật khẩu ứng dụng) |
 | `installer/` | Bộ cài Windows (Inno Setup) |
 | `tools/` | Tạo thư mục nền tảng + gắn cấu hình |
 | `.github/workflows/build.yml` | GitHub Actions tự dựng APK/AAB + bộ cài Windows |

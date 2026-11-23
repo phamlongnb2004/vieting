@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 class PhosphorIconsBold {
   const PhosphorIconsBold._();
+  static const IconData googleLogo = IconData(0xe292, fontFamily: 'PhosphorBold', fontPackage: 'phosphor_flutter');
   static const IconData plus = IconData(0xe3d4, fontFamily: 'PhosphorBold', fontPackage: 'phosphor_flutter');
 }
 
@@ -51,6 +52,7 @@ class PhosphorIconsRegular {
   static const IconData bellRinging = IconData(0xe5e8, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData bellSlash = IconData(0xe0d4, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData broom = IconData(0xec54, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData cake = IconData(0xe780, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData calculator = IconData(0xe538, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData calendarBlank = IconData(0xe10a, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData calendarCheck = IconData(0xe712, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
@@ -94,10 +96,12 @@ class PhosphorIconsRegular {
   static const IconData graduationCap = IconData(0xe62c, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData handshake = IconData(0xe582, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData hardDrives = IconData(0xe2a0, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData hash = IconData(0xe2a2, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData headset = IconData(0xe584, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData heart = IconData(0xe2a8, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData hourglassMedium = IconData(0xe2b8, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData house = IconData(0xe2c2, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData identificationCard = IconData(0xe2c8, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData image = IconData(0xe2ca, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData images = IconData(0xe836, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData info = IconData(0xe2ce, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');

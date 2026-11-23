@@ -75,6 +75,9 @@ class AppStore extends ChangeNotifier {
   String serverUrl = kServerUrl;
   String token = '';
   String email = '';
+  String fullName = ''; // họ và tên
+  int birthYear = 0; // 0 = chưa nhập
+  bool hasPassword = true; // tài khoản tạo bằng Google thì chưa có mật khẩu
   int lastSync = 0; // mốc thời gian server lần đồng bộ trước
   int lastPush = 0; // mốc thời gian máy lần đẩy trước
   bool syncing = false;
@@ -150,6 +153,9 @@ class AppStore extends ChangeNotifier {
         if ((s['server'] as String? ?? '').isNotEmpty) serverUrl = s['server'] as String;
         token = (s['token'] ?? '') as String;
         email = (s['email'] ?? '') as String;
+        fullName = (s['name'] ?? '') as String;
+        birthYear = (s['birth'] as num?)?.toInt() ?? 0;
+        hasPassword = (s['hasPw'] ?? true) as bool;
         lastSync = (s['lastSync'] as num?)?.toInt() ?? 0;
         lastPush = (s['lastPush'] as num?)?.toInt() ?? 0;
         allowedApps = ((s['allowed'] as List?) ?? []).map((e) => e.toString()).toSet();
@@ -214,6 +220,9 @@ class AppStore extends ChangeNotifier {
           'server': serverUrl,
           'token': token,
           'email': email,
+          'name': fullName,
+          'birth': birthYear,
+          'hasPw': hasPassword,
           'lastSync': lastSync,
           'lastPush': lastPush,
           'allowed': allowedApps.toList(),
@@ -1032,21 +1041,157 @@ class AppStore extends ChangeNotifier {
 
   String get _base => serverUrl.replaceAll(RegExp(r'/+$'), '');
 
-  Future<void> login(String server, String mail, String password, {bool register = false}) async {
+  Future<void> login(String server, String mail, String password, {bool register = false, String name = '', int birth = 0}) async {
     serverUrl = server.trim();
     final res = await http
         .post(Uri.parse('$_base/api/${register ? 'register' : 'login'}'),
             headers: {'content-type': 'application/json'},
-            body: jsonEncode({'email': mail.trim().toLowerCase(), 'password': password}))
+            body: jsonEncode({
+              'email': mail.trim().toLowerCase(),
+              'password': password,
+              if (register) 'name': name.trim(),
+              if (register && birth > 0) 'birthYear': birth,
+            }))
         .timeout(const Duration(seconds: 20));
-    final body = _decode(res.body);
+    final body = _decode(utf8.decode(res.bodyBytes));
     if (res.statusCode != 200) throw body['error'] ?? 'Lỗi server (${res.statusCode})';
-    token = body['token'] as String;
+    await _signedIn(body['token'] as String, mail);
+  }
+
+  Future<void> _signedIn(String tok, String mail) async {
+    token = tok;
     email = mail.trim().toLowerCase();
     lastSync = 0;
     lastPush = 0;
     _changed(syncSoon: false);
+    await fetchProfile();
     await sync();
+  }
+
+  Map<String, String> get _langHdr => {'accept-language': appLang};
+
+  // ---------------- Đăng nhập bằng Google ----------------
+  // App mở trình duyệt tới server, server lo phần Google; app hỏi lại tới khi có phiên đăng nhập.
+
+  /// Trả về (đường link mở trong trình duyệt, mã state để hỏi kết quả).
+  (Uri, String) googleStart(String server) {
+    serverUrl = server.trim();
+    final r = Random.secure();
+    final state = List.generate(32, (_) => r.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+    return (Uri.parse('$_base/auth/google/start?state=$state&lang=$appLang'), state);
+  }
+
+  /// null = chưa xong (hỏi tiếp), '' = đã đăng nhập, chuỗi khác = lỗi.
+  Future<String?> googlePoll(String state) async {
+    try {
+      final r = await http
+          .post(Uri.parse('$_base/api/auth/google/poll'),
+              headers: {'content-type': 'application/json', ..._langHdr}, body: jsonEncode({'state': state}))
+          .timeout(const Duration(seconds: 15));
+      final j = _decode(utf8.decode(r.bodyBytes));
+      if (j['token'] is String) {
+        await _signedIn(j['token'] as String, '${j['email'] ?? ''}');
+        return '';
+      }
+      if (j['expired'] == true) return 'Hết thời gian đăng nhập, thử lại nhé';
+      if (r.statusCode >= 400) return '${j['error'] ?? 'Lỗi server (${r.statusCode})'}';
+      return null;
+    } catch (_) {
+      return null; // mạng chập chờn: hỏi lại lần sau
+    }
+  }
+
+  // ---------------- Quên / đặt mật khẩu ----------------
+
+  /// Gửi mã 6 số về email. Trả về null nếu đã gửi, hoặc thông báo lỗi.
+  Future<String?> forgotPassword(String server, String mail) async {
+    serverUrl = server.trim();
+    try {
+      final r = await http
+          .post(Uri.parse('$_base/api/password/forgot'),
+              headers: {'content-type': 'application/json', ..._langHdr}, body: jsonEncode({'email': mail.trim().toLowerCase()}))
+          .timeout(const Duration(seconds: 30));
+      final j = _decode(utf8.decode(r.bodyBytes));
+      if (r.statusCode != 200) return '${j['error'] ?? 'Lỗi server (${r.statusCode})'}';
+      return null;
+    } catch (e) {
+      return 'Lỗi mạng: $e';
+    }
+  }
+
+  Future<String?> resetPassword(String server, String mail, String code, String password) async {
+    serverUrl = server.trim();
+    try {
+      final r = await http
+          .post(Uri.parse('$_base/api/password/reset'),
+              headers: {'content-type': 'application/json', ..._langHdr},
+              body: jsonEncode({'email': mail.trim().toLowerCase(), 'code': code.trim(), 'password': password}))
+          .timeout(const Duration(seconds: 20));
+      final j = _decode(utf8.decode(r.bodyBytes));
+      if (r.statusCode != 200 || j['token'] is! String) return '${j['error'] ?? 'Lỗi server (${r.statusCode})'}';
+      await _signedIn(j['token'] as String, mail);
+      return null;
+    } catch (e) {
+      return 'Lỗi mạng: $e';
+    }
+  }
+
+  /// Đặt / đổi mật khẩu khi đã đăng nhập. Tài khoản Google chưa có mật khẩu thì không cần [old].
+  Future<String?> setPassword(String old, String password) async {
+    try {
+      final r = await http
+          .post(Uri.parse('$_base/api/password/set'),
+              headers: {'content-type': 'application/json', 'authorization': 'Bearer $token', ..._langHdr},
+              body: jsonEncode({'old': old, 'password': password}))
+          .timeout(const Duration(seconds: 20));
+      final j = _decode(utf8.decode(r.bodyBytes));
+      if (r.statusCode != 200) return '${j['error'] ?? 'Lỗi server (${r.statusCode})'}';
+      hasPassword = true;
+      _changed(syncSoon: false);
+      return null;
+    } catch (e) {
+      return 'Lỗi mạng: $e';
+    }
+  }
+
+  // ---------------- Thông tin cá nhân ----------------
+
+  int? get age => birthYear > 0 ? DateTime.now().year - birthYear : null;
+
+  Future<void> fetchProfile() async {
+    if (!loggedIn) return;
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/api/profile'), headers: {'authorization': 'Bearer $token', ..._langHdr})
+          .timeout(const Duration(seconds: 15));
+      if (r.statusCode != 200) return;
+      final j = _decode(utf8.decode(r.bodyBytes));
+      fullName = '${j['name'] ?? ''}';
+      birthYear = (j['birthYear'] as num?)?.toInt() ?? 0;
+      hasPassword = j['hasPassword'] != false;
+      _changed(syncSoon: false);
+    } catch (_) {}
+  }
+
+  /// Lưu họ tên, năm sinh (năm 0 = bỏ trống). Chưa đăng nhập thì chỉ lưu trên máy.
+  Future<String?> saveProfile(String name, int year) async {
+    if (loggedIn) {
+      try {
+        final r = await http
+            .post(Uri.parse('$_base/api/profile'),
+                headers: {'content-type': 'application/json', 'authorization': 'Bearer $token', ..._langHdr},
+                body: jsonEncode({'name': name.trim(), 'birthYear': year > 0 ? year : null}))
+            .timeout(const Duration(seconds: 15));
+        final j = _decode(utf8.decode(r.bodyBytes));
+        if (r.statusCode != 200) return '${j['error'] ?? 'Lỗi server (${r.statusCode})'}';
+      } catch (e) {
+        return 'Lỗi mạng: $e';
+      }
+    }
+    fullName = name.trim();
+    birthYear = year;
+    _changed(syncSoon: false);
+    return null;
   }
 
   void setConsent(String key, bool on) {
@@ -1064,8 +1209,8 @@ class AppStore extends ChangeNotifier {
     try {
       final r = await http
           .post(Uri.parse('${serverUrl.replaceAll(RegExp(r'/+$'), '')}/api/account/delete'),
-              headers: {'content-type': 'application/json', 'authorization': 'Bearer $token'},
-              body: jsonEncode({'password': password}))
+              headers: {'content-type': 'application/json', 'authorization': 'Bearer $token', ..._langHdr},
+              body: jsonEncode({'password': password, if (!hasPassword) 'confirm': 'delete'}))
           .timeout(const Duration(seconds: 30));
       final j = _decode(utf8.decode(r.bodyBytes));
       if (r.statusCode != 200) return '${j['error'] ?? 'Không xóa được (lỗi ${r.statusCode})'}';
@@ -1101,6 +1246,9 @@ class AppStore extends ChangeNotifier {
   void logout() {
     token = '';
     email = '';
+    fullName = '';
+    birthYear = 0;
+    hasPassword = true;
     spaces.clear();
     myUserId = 0;
     bankBal.clear();

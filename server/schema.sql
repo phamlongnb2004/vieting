@@ -273,3 +273,7 @@ CREATE TABLE IF NOT EXISTS space_bank_txns (
   PRIMARY KEY (space_id, bid)
 );
 CREATE INDEX IF NOT EXISTS space_bank_txns_at ON space_bank_txns (space_id, at);
+
+-- Đăng nhập Google + quên mật khẩu (oauth.js cũng tự tạo khi chạy)
+CREATE TABLE IF NOT EXISTS oauth_pending (state TEXT PRIMARY KEY, created INTEGER NOT NULL, token TEXT, email TEXT);
+CREATE TABLE IF NOT EXISTS pw_reset (email TEXT PRIMARY KEY, code_hash TEXT, salt TEXT, exp INTEGER, tries INTEGER DEFAULT 0, sent_at INTEGER, sent_day TEXT, sent_n INTEGER DEFAULT 0);

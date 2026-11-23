@@ -92,6 +92,15 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
         children: [
           group('Tài khoản & đồng bộ', [
+            ListTile(
+              leading: const VIcon(PhosphorIconsRegular.identificationCard, size: 36),
+              title: const Text('Thông tin cá nhân'),
+              subtitle: Text(store.fullName.isEmpty && store.birthYear == 0
+                  ? 'Họ và tên, năm sinh'
+                  : [if (store.fullName.isNotEmpty) store.fullName, if (store.birthYear > 0) 'Sinh năm ${store.birthYear}'].join(' · ')),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
+              onTap: () => _editProfile(context, store),
+            ),
             if (store.loggedIn) ...[
               ListTile(
                 leading: const VIcon(PhosphorIconsRegular.user, size: 36),
@@ -103,6 +112,15 @@ class SettingsScreen extends StatelessWidget {
                 trailing: store.syncing
                     ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
                     : IconButton(icon: const Icon(PhosphorIconsRegular.arrowsClockwise), onPressed: () => store.sync()),
+              ),
+              ListTile(
+                leading: const VIcon(PhosphorIconsRegular.password, size: 36),
+                title: Text(store.hasPassword ? 'Đổi mật khẩu' : 'Đặt mật khẩu'),
+                subtitle: Text(store.hasPassword
+                    ? 'Đổi mật khẩu đăng nhập bằng email'
+                    : 'Tài khoản đang đăng nhập bằng Google. Đặt mật khẩu để đăng nhập được bằng email'),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
+                onTap: () => _setPassword(context, store),
               ),
               ListTile(
                 leading: const VIcon(PhosphorIconsRegular.signOut, size: 36),
@@ -467,7 +485,10 @@ Future<void> _deleteAccount(BuildContext context, AppStore store) async {
             : 'Toàn bộ dữ liệu đang lưu trên máy này sẽ bị xóa. Không thể hoàn tác.'),
         if (store.loggedIn) ...[
           const SizedBox(height: 12),
-          TextField(controller: pw, obscureText: true, decoration: const InputDecoration(labelText: 'Nhập mật khẩu để xác nhận')),
+          if (store.hasPassword)
+            TextField(controller: pw, obscureText: true, decoration: const InputDecoration(labelText: 'Nhập mật khẩu để xác nhận'))
+          else
+            TextField(controller: pw, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Gõ lại email của bạn để xác nhận')),
         ],
       ]),
       actions: [
@@ -486,7 +507,122 @@ Future<void> _deleteAccount(BuildContext context, AppStore store) async {
     showToast(context, 'Đã xóa dữ liệu trên máy');
     return;
   }
-  final err = await store.deleteAccount(pw.text);
+  if (!store.hasPassword && pw.text.trim().toLowerCase() != store.email) {
+    showToast(context, 'Email gõ lại không khớp, chưa xóa gì cả');
+    return;
+  }
+  final err = await store.deleteAccount(store.hasPassword ? pw.text : '');
   if (!context.mounted) return;
   showToast(context, err ?? 'Đã xóa tài khoản và toàn bộ dữ liệu');
+}
+
+Future<void> _editProfile(BuildContext context, AppStore store) async {
+  final name = TextEditingController(text: store.fullName);
+  final year = TextEditingController(text: store.birthYear > 0 ? '${store.birthYear}' : '');
+  String? err;
+  final max = DateTime.now().year - 10;
+  await showDialog<void>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, set) => AlertDialog(
+        title: const Text('Thông tin cá nhân'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: name,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Họ và tên'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: year,
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            decoration: const InputDecoration(labelText: 'Năm sinh', hintText: 'VD: 2004', counterText: ''),
+          ),
+          const SizedBox(height: 8),
+          Text('Chỉ dùng để hiển thị và giúp trợ lý gợi ý hợp tuổi. Không chia sẻ cho ai.',
+              style: TextStyle(fontSize: 12, color: Theme.of(c).colorScheme.onSurfaceVariant)),
+          if (err != null) ...[
+            const SizedBox(height: 8),
+            Text(err!, style: TextStyle(color: Theme.of(c).colorScheme.error)),
+          ],
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Thôi')),
+          FilledButton(
+            onPressed: () async {
+              final t = year.text.trim();
+              final y = t.isEmpty ? 0 : (int.tryParse(t) ?? -1);
+              if (y != 0 && (y < 1900 || y > max)) {
+                set(() => err = 'Năm sinh phải từ 1900 đến $max');
+                return;
+              }
+              if (name.text.trim().isNotEmpty && name.text.trim().length < 2) {
+                set(() => err = 'Họ và tên quá ngắn');
+                return;
+              }
+              final e = await store.saveProfile(name.text, y);
+              if (e != null) {
+                set(() => err = e);
+                return;
+              }
+              if (c.mounted) Navigator.pop(c);
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Future<void> _setPassword(BuildContext context, AppStore store) async {
+  final old = TextEditingController();
+  final a = TextEditingController();
+  final b = TextEditingController();
+  String? err;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, set) => AlertDialog(
+        title: Text(store.hasPassword ? 'Đổi mật khẩu' : 'Đặt mật khẩu'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (store.hasPassword) ...[
+            TextField(controller: old, obscureText: true, decoration: const InputDecoration(labelText: 'Mật khẩu hiện tại')),
+            const SizedBox(height: 12),
+          ],
+          TextField(controller: a, obscureText: true, decoration: const InputDecoration(labelText: 'Mật khẩu mới')),
+          const SizedBox(height: 12),
+          TextField(controller: b, obscureText: true, decoration: const InputDecoration(labelText: 'Nhập lại mật khẩu mới')),
+          if (err != null) ...[
+            const SizedBox(height: 8),
+            Text(err!, style: TextStyle(color: Theme.of(c).colorScheme.error)),
+          ],
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Thôi')),
+          FilledButton(
+            onPressed: () async {
+              if (a.text.length < 6) {
+                set(() => err = 'Mật khẩu tối thiểu 6 ký tự');
+                return;
+              }
+              if (a.text != b.text) {
+                set(() => err = 'Hai mật khẩu không khớp');
+                return;
+              }
+              final e = await store.setPassword(old.text, a.text);
+              if (e != null) {
+                set(() => err = e);
+                return;
+              }
+              if (c.mounted) Navigator.pop(c, true);
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (ok == true && context.mounted) showToast(context, 'Đã lưu mật khẩu mới');
 }
