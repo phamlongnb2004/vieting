@@ -14,7 +14,7 @@ for %%P in ("%ProgramFiles%\Android\Android Studio\jbr\bin" "%JAVA_HOME%\bin") d
 if not defined JBIN for /f "delims=" %%D in ('dir /b /s "%LOCALAPPDATA%\VieTing\jdk\jarsigner.exe" 2^>nul') do set "JBIN=%%~dpD"
 if not defined JBIN (
   echo Dang tai Java 17 ^(khoang 190 MB, chi lan dau^)...
-  powershell -NoProfile -Command "$ErrorActionPreference='Stop'; $d=Join-Path $env:LOCALAPPDATA 'VieTing\jdk'; New-Item -ItemType Directory -Force $d | Out-Null; $z=Join-Path $env:TEMP 'vieting-jdk.zip'; Invoke-WebRequest 'https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse' -OutFile $z; Expand-Archive $z $d -Force; Remove-Item $z" || (echo Khong tai duoc Java. & pause & exit /b 1)
+  powershell -NoProfile -Command "$ProgressPreference='SilentlyContinue'; $ErrorActionPreference='Stop'; $d=Join-Path $env:LOCALAPPDATA 'VieTing\jdk'; New-Item -ItemType Directory -Force $d | Out-Null; $z=Join-Path $env:TEMP 'vieting-jdk.zip'; Invoke-WebRequest 'https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse' -OutFile $z; Expand-Archive $z $d -Force; Remove-Item $z" || (echo Khong tai duoc Java. & pause & exit /b 1)
   for /f "delims=" %%D in ('dir /b /s "%LOCALAPPDATA%\VieTing\jdk\jarsigner.exe" 2^>nul') do set "JBIN=%%~dpD"
 )
 if not defined JBIN (echo Khong tim thay Java. & pause & exit /b 1)
@@ -30,7 +30,7 @@ if not exist vieting-upload.jks (
 rem ---- 3. File AAB ----
 if exist play-store\aab-url.txt (
   echo Dang tai file AAB moi nhat...
-  powershell -NoProfile -Command "$u=(Get-Content 'play-store\aab-url.txt' -Raw).Trim(); try { Invoke-WebRequest $u -OutFile 'play-store\VieTing.aab' -ErrorAction Stop; Remove-Item 'play-store\aab-url.txt' } catch { Write-Host 'Link tai da het han, dung file VieTing.aab co san (neu co).' }"
+  powershell -NoProfile -Command "$ProgressPreference='SilentlyContinue'; $u=(Get-Content 'play-store\aab-url.txt' -Raw).Trim(); try { Invoke-WebRequest $u -OutFile 'play-store\VieTing.aab' -ErrorAction Stop; Remove-Item 'play-store\aab-url.txt' } catch { Write-Host 'Link tai da het han, dung file VieTing.aab co san (neu co).' }"
 )
 if not exist play-store\VieTing.aab (
   echo Chua co play-store\VieTing.aab. Tai VieTing.aab tu Codemagic, luu vao thu muc play-store roi chay lai.
