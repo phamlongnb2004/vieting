@@ -1324,4 +1324,6 @@ const Map<String, String> kEn = {
   "Đổi hình nền app, chọn nền cho widget màn hình chính": "Change the app background and pick a home screen widget style",
   "Lịch âm dương": "Lunar & solar calendar",
   "Ngày âm, ngày lễ và chi tiêu từng ngày": "Lunar dates, holidays and daily spending",
+  "Hiệu ứng thời tiết động": "Live weather effects",
+  "Mưa rơi, mây trôi, nắng, sao đêm, sấm chớp ở trang Tổng quan theo thời tiết hiện tại": "Falling rain, drifting clouds, sunshine, night stars and lightning on Overview, matching the current weather",
 };

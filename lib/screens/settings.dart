@@ -455,6 +455,13 @@ class SettingsScreen extends StatelessWidget {
                   Reminders.sync(store);
                 },
               ),
+              SwitchListTile(
+                secondary: const VIcon(PhosphorIconsRegular.cloudRain, size: 36),
+                title: const Text('Hiệu ứng thời tiết động'),
+                subtitle: const Text('Mưa rơi, mây trôi, nắng, sao đêm, sấm chớp ở trang Tổng quan theo thời tiết hiện tại'),
+                value: store.weatherFx,
+                onChanged: (v) => store.setWeather(fx: v),
+              ),
             ],
           ]),
           group('Giao diện', [

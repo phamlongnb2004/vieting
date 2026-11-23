@@ -79,6 +79,7 @@ class AppStore extends ChangeNotifier {
   // Thời tiết
   bool weatherOn = true;
   bool weatherAlertsOn = true;
+  bool weatherFx = true; // hiệu ứng mưa / nắng / mây động ở Tổng quan
   String weatherLoc = ''; // '' chưa chọn | 'device' vị trí máy | id tỉnh/thành (VD 'hn')
   Map<String, dynamic>? weather; // dự báo gần nhất (đã gọn) + 'place'
   int weatherAt = 0;
@@ -184,6 +185,7 @@ class AppStore extends ChangeNotifier {
         widgetDim = (s['wDim'] as num?)?.toDouble() ?? 0.35;
         weatherOn = (s['wxOn'] ?? true) as bool;
         weatherAlertsOn = (s['wxAlert'] ?? true) as bool;
+        weatherFx = (s['wxFx'] ?? true) as bool;
         weatherLoc = (s['wxLoc'] ?? '') as String;
         if (s['wx'] is Map) weather = Map<String, dynamic>.from(s['wx'] as Map);
         weatherAt = (s['wxAt'] as num?)?.toInt() ?? 0;
@@ -262,6 +264,7 @@ class AppStore extends ChangeNotifier {
           'wDim': widgetDim,
           'wxOn': weatherOn,
           'wxAlert': weatherAlertsOn,
+          'wxFx': weatherFx,
           'wxLoc': weatherLoc,
           if (weather != null) 'wx': weather,
           'wxAt': weatherAt,
@@ -359,8 +362,9 @@ class AppStore extends ChangeNotifier {
     _changed(syncSoon: false);
   }
 
-  void setWeather({bool? on, bool? alerts, String? loc}) {
+  void setWeather({bool? on, bool? alerts, bool? fx, String? loc}) {
     if (on != null) weatherOn = on;
+    if (fx != null) weatherFx = fx;
     if (alerts != null) weatherAlertsOn = alerts;
     if (loc != null && loc != weatherLoc) {
       weatherLoc = loc;

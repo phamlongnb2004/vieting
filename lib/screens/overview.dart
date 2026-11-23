@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart' hide Text, InputDecoration;
 import 'package:vieting/i18n.dart';
 import 'weather.dart';
@@ -28,6 +29,7 @@ import 'gifts.dart';
 import 'wrapped.dart';
 import '../widgets/nudge.dart';
 import '../widgets/vicon.dart';
+import '../widgets/weather_fx.dart';
 
 class OverviewScreen extends StatefulWidget {
   final VoidCallback onSeeAll;
@@ -76,9 +78,23 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
     final recent = store.activeTxns.take(6).toList();
     final budgets = store.activeBudgets;
     final cs = Theme.of(context).colorScheme;
+    // Có hiệu ứng thời tiết thì bầu trời tràn lên sau thanh tiêu đề, thanh tiêu đề thành kính mờ như iPhone
+    final fx = currentWxFx(store) != WxFx.none;
 
     return Scaffold(
+      extendBodyBehindAppBar: fx,
       appBar: AppBar(
+        backgroundColor: fx ? Colors.transparent : null,
+        surfaceTintColor: fx ? Colors.transparent : null,
+        scrolledUnderElevation: fx ? 0 : null,
+        flexibleSpace: fx
+            ? ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: ColoredBox(color: cs.surface.withValues(alpha: 0.18)),
+                ),
+              )
+            : null,
         title: const Wordmark(fontSize: 24),
         actions: [
           const WeatherChip(),
@@ -103,8 +119,10 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
           const SizedBox(width: 6),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+      body: Stack(children: [
+        const Positioned.fill(child: WeatherFxLayer()),
+        ListView(
+        padding: EdgeInsets.fromLTRB(16, fx ? MediaQuery.paddingOf(context).top + kToolbarHeight + 4 : 4, 16, 100),
         children: [
           const WeatherAlertCard(),
           if (_notifyOn == false) ...[
@@ -256,6 +274,7 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
           ),
         ],
       ),
+      ]),
     );
   }
 }
