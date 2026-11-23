@@ -489,7 +489,17 @@ NGƯỜI DÙNG GỬI KÈM ẢNH. Phân tích ảnh:
   if (!out) return json({ error: 'Trợ lý AI đang bận, thử lại sau ít phút.' }, 502);
 
   const parsed = extractJson(out.text);
-  const reply = parsed && typeof parsed.reply === 'string' ? parsed.reply : String(out.text || '').trim();
+  let reply = parsed && typeof parsed.reply === 'string' ? parsed.reply : String(out.text || '').trim();
+  // mô hình đôi khi trả JSON hỏng (dấu " trong câu trả lời không được escape): vẫn bóc lấy phần reply
+  if (!parsed) {
+    const m = /"reply"\s*:\s*"([\s\S]*?)"\s*,\s*"actions"\s*:/.exec(reply) || /^\s*\{\s*"reply"\s*:\s*"([\s\S]*)"\s*\}?\s*$/.exec(reply);
+    if (m) reply = m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
+  }
+  // đổi mã danh mục lọt vào câu trả lời (an_uong...) thành tên dễ đọc
+  const CAT = b.lang === 'en'
+    ? { an_uong: 'food', di_lai: 'transport', mua_sam: 'shopping', hoa_don: 'bills', nha_o: 'housing', giai_tri: 'entertainment', suc_khoe: 'health', giao_duc: 'education', gia_dinh: 'family & gifts', khac_chi: 'other spending', luong: 'salary', thuong: 'bonus', khac_thu: 'other income' }
+    : { an_uong: 'ăn uống', di_lai: 'đi lại', mua_sam: 'mua sắm', hoa_don: 'hóa đơn', nha_o: 'nhà ở', giai_tri: 'giải trí', suc_khoe: 'sức khỏe', giao_duc: 'giáo dục', gia_dinh: 'gia đình & quà', khac_chi: 'chi khác', luong: 'lương', thuong: 'thưởng', khac_thu: 'thu khác' };
+  reply = reply.replace(/\b(an_uong|di_lai|mua_sam|hoa_don|nha_o|giai_tri|suc_khoe|giao_duc|gia_dinh|khac_chi|luong|thuong|khac_thu)\b/g, (k) => CAT[k] || k);
   return json({ reply: reply.slice(0, 4000), actions: cleanActions(parsed?.actions), provider: out.provider, quota, ...(geminiNote ? { note: geminiNote } : {}) });
 }
 
