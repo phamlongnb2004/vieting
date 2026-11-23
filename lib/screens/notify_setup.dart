@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../consent.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../parser/banks.dart';
 import '../services/notify_bridge.dart';
+import '../store.dart';
 import '../theme.dart';
 import 'notify_log.dart';
 
@@ -76,7 +78,9 @@ class _NotifySetupScreenState extends State<NotifySetupScreen> with WidgetsBindi
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: NotifyBridge.openSettings,
+            onPressed: () async {
+              if (await Consent.ensure(StoreScope.read(context), 'notify', context: context)) await NotifyBridge.openSettings();
+            },
             icon: const Icon(PhosphorIconsRegular.gear),
             label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Mở cài đặt quyền truy cập thông báo')),
           ),

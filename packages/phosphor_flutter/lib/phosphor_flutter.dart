@@ -40,6 +40,7 @@ class PhosphorIconsRegular {
   static const IconData airplaneTilt = IconData(0xe5d6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData alarm = IconData(0xe006, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData arrowDownLeft = IconData(0xe040, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData arrowSquareOut = IconData(0xe5de, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData arrowUp = IconData(0xe08e, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData arrowUpRight = IconData(0xe092, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData arrowsClockwise = IconData(0xe094, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
@@ -131,6 +132,7 @@ class PhosphorIconsRegular {
   static const IconData scan = IconData(0xebb6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData sealCheck = IconData(0xe606, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData shareNetwork = IconData(0xe408, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData shieldCheck = IconData(0xe40c, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData shieldWarning = IconData(0xe412, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData shoppingBag = IconData(0xe416, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData shoppingCartSimple = IconData(0xe420, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');

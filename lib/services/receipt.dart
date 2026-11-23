@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import '../consent.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../store.dart';
@@ -16,6 +17,7 @@ class ReceiptResult {
 /// Chụp hoặc chọn ảnh hóa đơn / ảnh chuyển khoản / mã QR, gửi AI trên server đọc số tiền.
 class Receipt {
   static Future<ReceiptResult?> pickAndRead(AppStore s, {required bool camera}) async {
+    if (!await Consent.ensure(s, 'ai')) return const ReceiptResult(error: 'Cần đồng ý gửi ảnh cho AI để đọc hóa đơn');
     final x = await ImagePicker().pickImage(
       source: camera ? ImageSource.camera : ImageSource.gallery,
       maxWidth: 1600,

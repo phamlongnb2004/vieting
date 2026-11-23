@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'categories.dart';
 import 'config.dart';
+import 'consent.dart';
 import 'models.dart';
 import 'services/spaces.dart';
 import 'parser/bank_parser.dart';
@@ -64,6 +65,8 @@ class AppStore extends ChangeNotifier {
 
   bool dark = false;
   int cycleDay = 1; // ngày bắt đầu kỳ chi tiêu (ngày nhận lương)
+  // đồng ý công bố dữ liệu (notify, ai) → thời điểm đồng ý
+  final Map<String, int> consents = {};
   String aiTone = 'funny'; // gentle | funny (Gen Z) | strict | expert
   Set<String> skipDays = {}; // ngày ngoại lệ (yyyy-mm-dd) không tính vào chuỗi
   Set<String> sweptDays = {}; // ngày đã cất tiền dư vào hũ
@@ -151,6 +154,9 @@ class AppStore extends ChangeNotifier {
         pinHash = (s['pin'] ?? '') as String;
         cycleDay = ((s['cycle'] as num?)?.toInt() ?? 1).clamp(1, 28);
         aiTone = (s['tone'] ?? 'funny') as String;
+        for (final e in ((s['consents'] as Map?) ?? const {}).entries) {
+          consents['${e.key}'] = (e.value as num).toInt();
+        }
         hourlyWage = (s['wage'] as num?)?.toInt() ?? 0;
         noticeSeen = (s['notice'] as num?)?.toInt() ?? 0;
         savePct = (s['savePct'] as num?)?.toInt() ?? 10;
@@ -211,6 +217,7 @@ class AppStore extends ChangeNotifier {
           'pin': pinHash,
           'cycle': cycleDay,
           'tone': aiTone,
+          'consents': consents,
           'notice': noticeSeen,
           'savePct': savePct,
           'me': myUserId,
@@ -741,6 +748,7 @@ class AppStore extends ChangeNotifier {
 
   /// Nhờ AI bóc tách tin nhắn ví điện tử / ngân hàng mà bộ đọc có sẵn không hiểu.
   Future<List<Map<String, dynamic>>> aiParse(String text) async {
+    if (!await Consent.ensure(this, 'ai')) throw Exception('Cần đồng ý gửi dữ liệu cho AI');
     final d = DateTime.now();
     final j = await _post('/api/parse', {
       'text': text,
@@ -1029,6 +1037,55 @@ class AppStore extends ChangeNotifier {
     lastPush = 0;
     _changed(syncSoon: false);
     await sync();
+  }
+
+  void setConsent(String key, bool on) {
+    if (on) {
+      consents[key] = nowMs();
+    } else {
+      consents.remove(key);
+    }
+    _changed(syncSoon: false);
+  }
+
+  /// Xóa vĩnh viễn tài khoản trên server (cần nhập lại mật khẩu), rồi xóa sạch dữ liệu trên máy.
+  Future<String?> deleteAccount(String password) async {
+    if (!loggedIn) return 'Chưa đăng nhập';
+    try {
+      final r = await http
+          .post(Uri.parse('${serverUrl.replaceAll(RegExp(r'/+$'), '')}/api/account/delete'),
+              headers: {'content-type': 'application/json', 'authorization': 'Bearer $token'},
+              body: jsonEncode({'password': password}))
+          .timeout(const Duration(seconds: 30));
+      final j = _decode(utf8.decode(r.bodyBytes));
+      if (r.statusCode != 200) return '${j['error'] ?? 'Không xóa được (lỗi ${r.statusCode})'}';
+    } catch (e) {
+      return 'Lỗi mạng: $e';
+    }
+    logout();
+    wipeLocal();
+    return null;
+  }
+
+  /// Xóa toàn bộ dữ liệu trên máy này (giữ lại máy chủ đã chọn).
+  void wipeLocal() {
+    txns.clear();
+    goals.clear();
+    budgets.clear();
+    bills.clear();
+    wishes.clear();
+    gifts.clear();
+    chat.clear();
+    rules.clear();
+    logs.clear();
+    challenges.clear();
+    groups.clear();
+    consents.clear();
+    bankBal.clear();
+    wallets.clear();
+    final w = Wallet(id: 'cash', name: 'Tiền mặt', kind: 'cash', color: 0xFF3E8E41);
+    wallets[w.id] = w;
+    _changed(syncSoon: false);
   }
 
   void logout() {

@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../config.dart';
+import '../consent.dart';
+import '../theme.dart';
 import '../insights.dart';
 import '../services/notify_bridge.dart';
 import '../pro.dart';
@@ -172,6 +174,36 @@ class SettingsScreen extends StatelessWidget {
               subtitle: const Text('Báo lỗi theo tính năng, xem phản hồi của VieTing'),
               trailing: const Icon(PhosphorIconsRegular.caretRight),
               onTap: () => _go(context, const FeedbackScreen()),
+            ),
+          ]),
+          group('Quyền riêng tư', [
+            ListTile(
+              leading: const VIcon(PhosphorIconsRegular.shieldCheck, size: 36),
+              title: const Text('Chính sách quyền riêng tư'),
+              subtitle: const Text('VieTing thu thập, dùng và chia sẻ dữ liệu thế nào'),
+              trailing: const Icon(PhosphorIconsRegular.arrowSquareOut),
+              onTap: Consent.openPrivacy,
+            ),
+            SwitchListTile(
+              secondary: const VIcon(PhosphorIconsRegular.sparkle, size: 36),
+              title: const Text('Cho phép gửi dữ liệu tới AI'),
+              subtitle: const Text('Trợ lý, đọc hóa đơn, tách giao dịch gửi nội dung tới Google Gemini / Cloudflare. Tắt thì các tính năng AI hỏi lại trước khi dùng.'),
+              value: Consent.given(store, 'ai'),
+              onChanged: (v) async {
+                if (v) {
+                  await Consent.ensure(store, 'ai', context: context);
+                } else {
+                  store.setConsent('ai', false);
+                }
+              },
+            ),
+            ListTile(
+              leading: const VIcon(PhosphorIconsRegular.trash, size: 36, color: Brand.red),
+              title: Text(store.loggedIn ? 'Xóa tài khoản' : 'Xóa dữ liệu trên máy', style: const TextStyle(color: Brand.red, fontWeight: FontWeight.w700)),
+              subtitle: Text(store.loggedIn
+                  ? 'Xóa vĩnh viễn tài khoản và toàn bộ dữ liệu trên server và trên máy'
+                  : 'Xóa toàn bộ sổ thu chi đang lưu trên máy này'),
+              onTap: () => _deleteAccount(context, store),
             ),
           ]),
           group('Chi tiêu & trợ lý', [
@@ -393,4 +425,43 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// Xóa tài khoản (nhập lại mật khẩu) hoặc xóa dữ liệu trên máy khi chưa đăng nhập.
+Future<void> _deleteAccount(BuildContext context, AppStore store) async {
+  final pw = TextEditingController();
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text(store.loggedIn ? 'Xóa vĩnh viễn tài khoản?' : 'Xóa dữ liệu trên máy?'),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(store.loggedIn
+            ? 'Toàn bộ sổ thu chi, ví, mục tiêu, lịch sử trò chuyện với trợ lý và tài khoản ${store.email} sẽ bị xóa trên server và trên máy này. '
+                'Trong quỹ chung, các khoản bạn đã ghi ở lại cho thành viên khác đối chiếu (tên bạn thành "Thành viên cũ"), ảnh chứng từ bị xóa. Không thể hoàn tác.'
+            : 'Toàn bộ dữ liệu đang lưu trên máy này sẽ bị xóa. Không thể hoàn tác.'),
+        if (store.loggedIn) ...[
+          const SizedBox(height: 12),
+          TextField(controller: pw, obscureText: true, decoration: const InputDecoration(labelText: 'Nhập mật khẩu để xác nhận')),
+        ],
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Thôi')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Brand.red),
+          onPressed: () => Navigator.pop(c, true),
+          child: const Text('Xóa vĩnh viễn'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  if (!store.loggedIn) {
+    store.wipeLocal();
+    showToast(context, 'Đã xóa dữ liệu trên máy');
+    return;
+  }
+  final err = await store.deleteAccount(pw.text);
+  if (!context.mounted) return;
+  showToast(context, err ?? 'Đã xóa tài khoản và toàn bộ dữ liệu');
 }

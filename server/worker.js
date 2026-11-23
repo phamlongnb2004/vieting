@@ -14,6 +14,7 @@
 // Bản nào sửa sau thì thắng (last-write-wins).
 
 import { handleDownload } from './download.js';
+import { handleLegal } from './legal.js';
 import { handleChat, handleReceipt, handleParse } from './ai.js';
 import { handleAdmin, adminPage, publicNotice } from './admin.js';
 import { handleSpace, spaceCron } from './space.js';
@@ -196,7 +197,11 @@ export default {
       if (req.method === 'GET' && url.pathname === '/api/push') return await pushFeed(req, env, await auth(req, env), h);
       if (req.method === 'POST' && url.pathname === '/api/ocr-report') return await ocrReport(req, env, await auth(req, env), h);
       if (url.pathname === '/admin' || url.pathname === '/admin/') return adminPage();
-      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai9' });
+      if (url.pathname === '/api') return json({ app: 'VieTing', ok: true, v: 'ai10' });
+      {
+        const r = await handleLegal(req, env, url, { json, readJson, auth, hashPassword, safeEqual });
+        if (r) return r;
+      }
       const p = url.pathname.replace(/\/+$/, '') || '/';
       if (env.ASSETS) {
         const r = await handleDownload(req, env, p);

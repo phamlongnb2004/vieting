@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import '../consent.dart';
 
 import '../categories.dart';
 import '../models.dart';
@@ -87,6 +88,11 @@ class Assistant {
 
   static Future<AssistantReply> ask(AppStore s, String question, {String? imageB64, String mime = 'image/jpeg'}) async {
     final base = s.serverUrl.replaceAll(RegExp(r'/+$'), '');
+    if (base.isNotEmpty && !await Consent.ensure(s, 'ai')) {
+      return _offline(question, s, why: 'Bạn chưa đồng ý gửi dữ liệu cho AI nên mình chỉ ghi nhanh được thôi.') ??
+          const AssistantReply('Bạn chưa đồng ý gửi dữ liệu cho trợ lý AI. Bật lại trong Cài đặt → Quyền riêng tư, '
+              'hoặc gõ câu ngắn kiểu "phở 45k" để mình ghi nhanh không cần AI.', []);
+    }
     if (base.isEmpty) {
       return _offline(question, s, why: 'Chưa nối server trợ lý AI nên mình chỉ ghi nhanh được thôi.') ??
           const AssistantReply(

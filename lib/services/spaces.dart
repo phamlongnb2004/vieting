@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import '../consent.dart';
 
 import '../models.dart';
 import '../store.dart';
@@ -586,6 +587,7 @@ class Spaces {
   /// AI kiểm tra ảnh chứng từ trên server (loại ảnh, số tiền, người nhận, nội dung, thời gian, dùng lại).
   static Future<ProofCheck> verify(AppStore s, Space sp,
       {required String recId, required List<int> bytes, required String type, required int amount, String tag = ''}) async {
+    if (!await Consent.ensure(s, 'ai')) throw Exception('Cần đồng ý gửi ảnh cho AI kiểm tra');
     final j = await _call(s, '/api/space/verify', {
       'space': sp.id,
       'rec': recId,
