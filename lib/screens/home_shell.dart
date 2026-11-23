@@ -5,6 +5,8 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Text, InputDecoration;
 import 'package:vieting/i18n.dart';
+import '../widgets/backgrounds.dart';
+import 'calendar.dart';
 import '../services/weather.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -145,7 +147,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   /// vieting://add?text=... (Phím tắt iPhone)  hoặc  vieting://add?amount=50000&type=chi&note=...
   void _onLink(Uri uri) {
-    if (!mounted || uri.host != 'add') return;
+    if (!mounted) return;
+    if (uri.host == 'calendar') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarScreen()));
+      return;
+    }
+    if (uri.host != 'add') return;
     final store = StoreScope.read(context);
     final text = uri.queryParameters['text'];
     if (text != null && text.trim().isNotEmpty) {
@@ -202,7 +209,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         : null;
 
     if (wide) {
-      return Scaffold(
+      return _withBg(context, Scaffold(
         floatingActionButton: fab,
         body: Row(children: [
           NavigationRail(
@@ -221,9 +228,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             ),
           ),
         ]),
-      );
+      ));
     }
-    return Scaffold(
+    return _withBg(context, Scaffold(
       body: pages[_tab],
       floatingActionButton: fab,
       bottomNavigationBar: DecoratedBox(
@@ -237,6 +244,22 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           for (final it in items) NavigationDestination(icon: Icon(it.$1), selectedIcon: Icon(it.$2), label: tr(it.$3)),
         ],
       ),
+      ),
+    ));
+  }
+
+  /// Hình nền người dùng chọn: chỉ áp cho 5 trang chính, các màn mở thêm giữ nền đặc để không lộ trang bên dưới.
+  Widget _withBg(BuildContext context, Widget scaffold) {
+    final store = StoreScope.of(context);
+    if (store.appBg.isEmpty) return scaffold;
+    final t = Theme.of(context);
+    return AppBackground(
+      child: Theme(
+        data: t.copyWith(
+          scaffoldBackgroundColor: Colors.transparent,
+          appBarTheme: t.appBarTheme.copyWith(backgroundColor: Colors.transparent),
+        ),
+        child: scaffold,
       ),
     );
   }

@@ -8,4 +8,5 @@
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:description="@string/widget_desc"
+    android:previewLayout="@layout/vieting_widget"
     android:widgetCategory="home_screen" />

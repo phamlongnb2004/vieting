@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="widget_desc">Hôm nay còn được tiêu bao nhiêu + nút ghi nhanh</string>
+    <string name="cal_widget_desc">Lịch âm dương, ngày lễ, chi tiêu hôm nay và thời tiết</string>
 </resources>

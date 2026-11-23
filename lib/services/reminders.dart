@@ -107,17 +107,36 @@ class Reminders {
     if (!NotifyBridge.supported) return;
     final g = s.guiltFree;
     final over = g != null && g.leftToday < 0;
+    final c = s.weather?['current'];
+    var wx = '';
+    if (s.weatherOn && c is Map) {
+      wx = '${c['temp']}° ${tr(wxLook('${c['sym']}').$2)}';
+    }
+    final spentToday = g?.spentToday ?? s.activeTxns.where((t) => !t.income && sameDay(t.date, DateTime.now())).fold<int>(0, (a, t) => a + t.amount);
     final data = {
-      'label': g == null ? 'VieTing' : (over ? 'Hôm nay đã vượt' : 'Hôm nay còn được tiêu'),
-      'amount': g == null ? 'Bấm + để ghi' : money(over ? -g.leftToday : g.leftToday),
-      'line': s.personaLine,
+      'label': tr(g == null ? 'VieTing' : (over ? 'Hôm nay đã vượt' : 'Hôm nay còn được tiêu')),
+      'amount': g == null ? tr('Bấm + để ghi') : money(over ? -g.leftToday : g.leftToday),
+      'line': tr(s.personaLine),
       'over': over,
+      'pct': g == null || g.daily <= 0 ? 0.0 : g.spentToday / g.daily,
+      'weather': wx,
+      'spent': '${tr('Đã tiêu hôm nay')} ${compactMoney(spentToday)}',
+      'lang': appLang,
     };
     final key = jsonEncode(data);
     if (key == _lastWidget) return;
     _lastWidget = key;
     try {
       await _ch.invokeMethod('updateWidget', data);
+    } catch (_) {}
+  }
+
+  /// Chủ đề nền widget: red | navy | bamboo | sunset | paper | glass | photo (ảnh người dùng chọn).
+  static Future<void> setWidgetStyle(String theme, String photo, double dim) async {
+    if (!NotifyBridge.supported) return;
+    try {
+      await _ch.invokeMethod('widgetStyle', {'theme': theme, 'photo': photo, 'dim': dim});
+      _lastWidget = '';
     } catch (_) {}
   }
 

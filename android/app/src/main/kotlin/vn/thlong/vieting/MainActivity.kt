@@ -48,13 +48,18 @@ class MainActivity : FlutterFragmentActivity() {
                     result.success(true)
                 }
                 "updateWidget" -> {
-                    VietingWidget.save(
+                    @Suppress("UNCHECKED_CAST")
+                    VietingWidget.save(this, (call.arguments as? Map<String, Any?>) ?: emptyMap())
+                    result.success(true)
+                }
+                "widgetStyle" -> {
+                    WidgetArt.saveStyle(
                         this,
-                        call.argument<String>("label") ?: "",
-                        call.argument<String>("amount") ?: "",
-                        call.argument<String>("line") ?: "",
-                        call.argument<Boolean>("over") ?: false
+                        call.argument<String>("theme") ?: "red",
+                        call.argument<String>("photo") ?: "",
+                        (call.argument<Number>("dim") ?: 0.35).toFloat()
                     )
+                    VietingWidget.refreshAll(this)
                     result.success(true)
                 }
                 "testNotify" -> {

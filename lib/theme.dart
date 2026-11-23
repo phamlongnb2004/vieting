@@ -32,7 +32,7 @@ class Brand {
 
 const kFont = 'BeVietnamPro';
 
-ThemeData buildTheme(Brightness b) {
+ThemeData buildTheme(Brightness b, {bool clear = false}) {
   final light = b == Brightness.light;
   final scheme = ColorScheme.fromSeed(
     seedColor: Brand.red,
@@ -45,7 +45,8 @@ ThemeData buildTheme(Brightness b) {
     surfaceContainerHighest: light ? const Color(0xFFF0EAE0) : const Color(0xFF2A2723),
     outlineVariant: light ? const Color(0xFFE9E1D4) : const Color(0xFF3A362F),
   );
-  final bg = light ? Brand.paper : Brand.night;
+  // clear: người dùng chọn hình nền app, nên nền Scaffold / AppBar để trong suốt
+  final bg = clear ? Colors.transparent : (light ? Brand.paper : Brand.night);
   final card = light ? Colors.white : const Color(0xFF1D1B18);
   final base = ThemeData(useMaterial3: true, brightness: b, fontFamily: kFont);
   final text = base.textTheme.apply(

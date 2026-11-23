@@ -54,7 +54,15 @@
         </service>
 
         <!-- Widget màn hình chính -->
-        <receiver android:name=".VietingWidget" android:exported="false" android:label="VieTing - hôm nay còn tiêu">
+        <receiver android:name=".CalendarWidget" android:exported="false" android:label="VieTing · Lịch âm dương">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="vn.thlong.vieting.CAL_TICK" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/calendar_widget_info" />
+        </receiver>
+
+        <receiver android:name=".VietingWidget" android:exported="false" android:label="VieTing · Chi tiêu hôm nay">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

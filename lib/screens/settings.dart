@@ -8,6 +8,8 @@ import 'package:flutter/material.dart' hide Text, InputDecoration;
 import 'package:vieting/i18n.dart';
 import '../services/weather.dart';
 import 'weather.dart';
+import 'appearance.dart';
+import 'calendar.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -456,6 +458,20 @@ class SettingsScreen extends StatelessWidget {
             ],
           ]),
           group('Giao diện', [
+            ListTile(
+              leading: const VIcon(PhosphorIconsRegular.palette, size: 36),
+              title: const Text('Hình nền & widget'),
+              subtitle: const Text('Đổi hình nền app, chọn nền cho widget màn hình chính'),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
+              onTap: () => _go(context, const AppearanceScreen()),
+            ),
+            ListTile(
+              leading: const VIcon(PhosphorIconsRegular.calendarDots, size: 36),
+              title: const Text('Lịch âm dương'),
+              subtitle: const Text('Ngày âm, ngày lễ và chi tiêu từng ngày'),
+              trailing: const Icon(PhosphorIconsRegular.caretRight),
+              onTap: () => _go(context, const CalendarScreen()),
+            ),
             SwitchListTile(
               secondary: const VIcon(PhosphorIconsRegular.moon, size: 36),
               title: const Text('Chế độ tối'),

@@ -69,6 +69,13 @@ class AppStore extends ChangeNotifier {
   // đồng ý công bố dữ liệu (notify, ai) → thời điểm đồng ý
   final Map<String, int> consents = {};
   String lang = 'auto'; // auto | vi | en
+  // Hình nền app và widget
+  String appBg = ''; // '' mặc định | id nền có sẵn | 'photo' (ảnh người dùng, đường dẫn ở appBgPhoto)
+  String appBgPhoto = '';
+  double appBgDim = 0.35; // độ phủ màu để chữ dễ đọc trên ảnh
+  String widgetTheme = 'red';
+  String widgetPhoto = '';
+  double widgetDim = 0.35;
   // Thời tiết
   bool weatherOn = true;
   bool weatherAlertsOn = true;
@@ -169,6 +176,12 @@ class AppStore extends ChangeNotifier {
         cycleDay = ((s['cycle'] as num?)?.toInt() ?? 1).clamp(1, 28);
         aiTone = (s['tone'] ?? 'funny') as String;
         lang = (s['lang'] ?? 'auto') as String;
+        appBg = (s['bg'] ?? '') as String;
+        appBgPhoto = (s['bgPhoto'] ?? '') as String;
+        appBgDim = (s['bgDim'] as num?)?.toDouble() ?? 0.35;
+        widgetTheme = (s['wTheme'] ?? 'red') as String;
+        widgetPhoto = (s['wPhoto'] ?? '') as String;
+        widgetDim = (s['wDim'] as num?)?.toDouble() ?? 0.35;
         weatherOn = (s['wxOn'] ?? true) as bool;
         weatherAlertsOn = (s['wxAlert'] ?? true) as bool;
         weatherLoc = (s['wxLoc'] ?? '') as String;
@@ -241,6 +254,12 @@ class AppStore extends ChangeNotifier {
           'cycle': cycleDay,
           'tone': aiTone,
           'lang': lang,
+          'bg': appBg,
+          'bgPhoto': appBgPhoto,
+          'bgDim': appBgDim,
+          'wTheme': widgetTheme,
+          'wPhoto': widgetPhoto,
+          'wDim': widgetDim,
           'wxOn': weatherOn,
           'wxAlert': weatherAlertsOn,
           'wxLoc': weatherLoc,
@@ -323,6 +342,20 @@ class AppStore extends ChangeNotifier {
 
   void setCycleDay(int d) {
     cycleDay = d.clamp(1, 28);
+    _changed(syncSoon: false);
+  }
+
+  void setAppBg({String? bg, String? photo, double? dim}) {
+    if (bg != null) appBg = bg;
+    if (photo != null) appBgPhoto = photo;
+    if (dim != null) appBgDim = dim;
+    _changed(syncSoon: false);
+  }
+
+  void setWidgetStyle({String? theme, String? photo, double? dim}) {
+    if (theme != null) widgetTheme = theme;
+    if (photo != null) widgetPhoto = photo;
+    if (dim != null) widgetDim = dim;
     _changed(syncSoon: false);
   }
 

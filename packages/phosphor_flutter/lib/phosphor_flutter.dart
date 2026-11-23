@@ -119,6 +119,7 @@ class PhosphorIconsRegular {
   static const IconData house = IconData(0xe2c2, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData identificationCard = IconData(0xe2c8, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData image = IconData(0xe2ca, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData imageSquare = IconData(0xe2cc, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData images = IconData(0xe836, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData info = IconData(0xe2ce, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData key = IconData(0xe2d6, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
@@ -137,6 +138,7 @@ class PhosphorIconsRegular {
   static const IconData motorcycle = IconData(0xe80a, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData notePencil = IconData(0xe34c, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData notepad = IconData(0xe63e, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
+  static const IconData palette = IconData(0xe6c8, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData paperPlaneRight = IconData(0xe396, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData password = IconData(0xe752, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');
   static const IconData pencilSimple = IconData(0xe3b4, fontFamily: 'PhosphorRegular', fontPackage: 'phosphor_flutter');

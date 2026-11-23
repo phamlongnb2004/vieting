@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Text, InputDecoration;
 import 'package:vieting/i18n.dart';
 import 'weather.dart';
+import 'calendar.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../categories.dart';
@@ -81,7 +82,11 @@ class _OverviewScreenState extends State<OverviewScreen> with WidgetsBindingObse
         title: const Wordmark(fontSize: 24),
         actions: [
           const WeatherChip(),
-          const SizedBox(width: 2),
+          IconButton(
+            tooltip: tr('Lịch'),
+            icon: const Icon(PhosphorIconsRegular.calendarDots),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarScreen())),
+          ),
           IconButton(
             tooltip: tr('Dán thông báo ngân hàng'),
             icon: const Icon(PhosphorIconsRegular.clipboardText),
